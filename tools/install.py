@@ -155,6 +155,10 @@ def headers(action):
     'src/node_version.h',
     'src/smalloc.h',
   ], 'include/node/')
+  
+  # Add the expfile that is created on AIX
+  if 'aix' in sys.platform:
+    action(['out/Release/node.exp'], 'include/node/')
 
   if 'false' == variables.get('node_shared_cares'):
     subdir_files('deps/cares/include', 'include/node/', action)
