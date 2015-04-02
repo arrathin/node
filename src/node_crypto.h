@@ -38,6 +38,7 @@
 
 #include "v8.h"
 
+#include <string.h>
 #include <openssl/ssl.h>
 #include <openssl/ec.h>
 #include <openssl/ecdh.h>
