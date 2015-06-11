@@ -3013,8 +3013,6 @@ static void PrintHelp() {
 #endif
 #endif
          "  --enable-ssl3        enable ssl3\n"
-         "  --cipher-list=val    specify the default TLS cipher list\n"
-         "  --enable-legacy-cipher-list=v0.10.38 \n"
          "\n"
          "Environment variables:\n"
 #ifdef _WIN32

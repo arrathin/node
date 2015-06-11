@@ -4972,21 +4972,6 @@ const char* Certificate::ExportPublicKey(const char* data, int len) {
   return buf;
 }
 
-// borrowed from v8
-// (see http://v8.googlecode.com/svn/trunk/samples/shell.cc)
-const char* ToCString(const node::Utf8Value& value) {
-  return *value ? *value : "<string conversion failed>";
-}
-
-Handle<Value> DefaultCiphers(const Arguments& args) {
-  HandleScope scope;
-  node::Utf8Value key(args[0]);
-  const char * list = legacy_cipher_list(ToCString(key));
-  if (list == NULL) {
-    list = DEFAULT_CIPHER_LIST_HEAD;
-  }
-  return scope.Close(v8::String::New(list));
-}
 
 void Certificate::ExportPublicKey(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args.GetIsolate());
