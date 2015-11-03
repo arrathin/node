@@ -371,8 +371,10 @@ exports.nodeProcessAborted = function nodeProcessAborted(exitCode, signal) {
   // which corresponds to exit code 3221225477 (0xC0000005)
   if (process.platform === 'win32')
     expectedExitCodes = [3221225477];
-  else if (process.platform === 'os390')
-    expectedExitCodes = [132, 154, 131];
+  else if (process.platform === 'os390') {
+    expectedExitCodes = [137];
+    expectedSignals = ['SIGKILL'];
+  }
 
   // When using --abort-on-uncaught-exception, V8 will use
   // base::OS::Abort to terminate the process.

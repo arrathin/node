@@ -1072,21 +1072,6 @@ static bool TopDomainHasErrorHandler(const Environment* env) {
 }
 
 
-static bool IsDomainActive(const Environment* env) {
-  if (!env->using_domains()) {
-    return false;
-  }
-
-  Local<Array> domain_array = env->domain_array().As<Array>();
-  uint32_t domains_array_length = domain_array->Length();
-  if (domains_array_length == 0)
-    return false;
-
-  Local<Value> domain_v = domain_array->Get(0);
-  return !domain_v->IsNull();
-}
-
-
 bool ShouldAbortOnUncaughtException(v8::Isolate* isolate) {
   Environment* env = Environment::GetCurrent(isolate);
   Local<Object> process_object = env->process_object();
@@ -1095,7 +1080,7 @@ bool ShouldAbortOnUncaughtException(v8::Isolate* isolate) {
   bool isEmittingTopLevelDomainError =
     process_object->Get(emitting_top_level_domain_error_key)->BooleanValue();
 
-  return !IsDomainActive(env) || isEmittingTopLevelDomainError;
+  return isEmittingTopLevelDomainError || !TopDomainHasErrorHandler(env);
 }
 
 
