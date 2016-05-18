@@ -135,6 +135,114 @@ static const char *method_strings[] =
   };
 
 
+#if defined(__MVS__)
+
+/* Tokens as defined by rfc 2616. Also lowercases them.
+ *        token       = 1*<any CHAR except CTLs or separators>
+ *     separators     = "(" | ")" | "<" | ">" | "@"
+ *                    | "," | ";" | ":" | "\" | <">
+ *                    | "/" | "[" | "]" | "?" | "="
+ *                    | "{" | "}" | SP | HT
+ */
+static const char tokens[256] = {
+
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,       0,       0,      '%',      0,       0,
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,      '.',      0,       0,      '+',     '|',
+       '&',      0,       0,       0,       0,       0,       0,       0,
+        0,       0,      '!',     '$',     '*',      0,       0,       0,
+       '-',      0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,       0,       0,      '_',      0,       0,
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,      '`',      0,       0,       0,      '\'',     0,       0,
+   	0,      'a',	 'b',	  'c',	   'd',	    'e',     'f',     'g',
+       'h',     'i',      0,       0,       0,       0,       0,       0,
+        0,      'j',     'k',     'l',     'm',     'n',     'o',     'p',
+       'q',     'r',      0,       0,       0,       0,       0,       0,
+        0,      '~',     's',     't',     'u',     'v',     'w',     'x',
+       'y',     'z',      0,       0,       0,       0,       0,       0,
+       '^',      0,       0,       0,       0,       0,       0,       0,
+        0,       0,       0,       0,       0,       0,       0,       0,
+        0,      'a',     'b',     'c',     'd',     'e',     'f',     'g',
+       'h',     'i',      0,       0,       0,       0,       0,       0,
+        0,      'j',     'k',     'l',     'm',     'n',     'o',     'p',
+       'q',     'r',      0,       0,       0,       0,       0,       0,
+        0,       0,      's',     't',     'u',     'v',     'w',     'x',
+       'y',     'z' ,     0,       0,       0,       0,       0,       0,
+       '0',     '1',     '2',     '3',     '4',     '5',     '6',     '7',
+       '8',     '9',      0,       0,       0,       0,       0,       0 };
+
+static const int8_t unhex[256] =
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  , 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-1,-1,-1,-1,-1,-1
+  };
+
+#if HTTP_PARSER_STRICT
+# define T(v) 0
+#else
+# define T(v) v
+#endif
+
+
+static const uint8_t normal_url_char[32] = {
+        0    |   0    |   0    |   0    |   0    | T(32)  |   0    |   0,
+        0    |   0    |   0    |   0    | T(16)  |   0    |   0    |   0,
+        0    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   0    |   8    |  16    |  32    |  64    | 128,
+        1    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   4    |   8    |  16    |  32    |  64    |   0,
+        1    |   2    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   0    |   8    |  16    |  32    |  64    |   0,
+        0    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   2    |   4    |   0    |  16    |  32    |  64    | 128,
+        0    |   2    |   4    |   8    |  16    |  32    |  64    | 128,
+        1    |   2    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   2    |   4    |   8    |  16    |  32    |  64    | 128,
+        1    |   2    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   2    |   4    |   8    |  16    |  32    |  64    | 128,
+        1    |   2    |   0    |   0    |   0    |   0    |   0    |   0,
+        1    |   0    |   0    |   0    |   0    |   0    |   0    |   0,
+        0    |   0    |   4    |   8    |   0    |   0    |   0    |   0,
+        1    |   2    |   4    |   8    |  16    |  32    |  64    | 128,
+        1    |   2    |   0    |   0    |   0    |   0    |   0    |   0,
+        1    |   2    |   4    |   8    |  16    |  32    |  64    | 128,
+        1    |   2    |   0    |   0    |   0    |   0    |   0    |   0,
+        1    |   0    |   4    |   8    |  16    |  32    |  64    | 128,
+        1    |   2    |   0    |   0    |   0    |   0    |   0    |   0,
+        1    |   2    |   4    |   8    |  16    |  32    |  64    | 128,
+        1    |   2    |   0    |   0    |   0    |   0    |   0    |   0, };
+
+#undef T
+
+#else
+
 /* Tokens as defined by rfc 2616. Also lowercases them.
  *        token       = 1*<any CHAR except CTLs or separators>
  *     separators     = "(" | ")" | "<" | ">" | "@"
@@ -231,6 +339,7 @@ static const uint8_t normal_url_char[32] = {
         1    |   2    |   4    |   8    |   16   |   32   |   64   |   0, };
 
 #undef T
+#endif
 
 enum state
   { s_dead = 1 /* important that this is > 0 */
@@ -359,8 +468,13 @@ enum http_host_state
 /* Macros for character classes; depends on strict-mode  */
 #define CR                  '\r'
 #define LF                  '\n'
-#define LOWER(c)            (unsigned char)(c | 0x20)
+#if defined(__MVS__)
+#define IS_ALPHA(c)         isalpha(c)
+#define LOWER(c)            tolower(c)
+#else
 #define IS_ALPHA(c)         (LOWER(c) >= 'a' && LOWER(c) <= 'z')
+#define LOWER(c)            (unsigned char)(c | 0x20)
+#endif
 #define IS_NUM(c)           ((c) >= '0' && (c) <= '9')
 #define IS_ALPHANUM(c)      (IS_ALPHA(c) || IS_NUM(c))
 #define IS_HEX(c)           (IS_NUM(c) || (LOWER(c) >= 'a' && LOWER(c) <= 'f'))
@@ -377,8 +491,13 @@ enum http_host_state
 #define IS_HOST_CHAR(c)     (IS_ALPHANUM(c) || (c) == '.' || (c) == '-')
 #else
 #define TOKEN(c)            ((c == ' ') ? ' ' : tokens[(unsigned char)c])
+#if defined(__MVS__)
+#define IS_URL_CHAR(c)                                                         \
+  (BIT_AT(normal_url_char, (unsigned char)c) || (toascii(c) & 0x80))
+#else
 #define IS_URL_CHAR(c)                                                         \
   (BIT_AT(normal_url_char, (unsigned char)c) || ((c) & 0x80))
+#endif
 #define IS_HOST_CHAR(c)                                                        \
   (IS_ALPHANUM(c) || (c) == '.' || (c) == '-' || (c) == '_')
 #endif
@@ -387,8 +506,13 @@ enum http_host_state
  * Verify that a char is a valid visible (printable) US-ASCII
  * character or %x80-FF
  **/
+#if defined(__MVS__)
+#define IS_HEADER_CHAR(ch)                                                     \
+  (ch == CR || ch == LF || ch == 5 || ch == 64 || ((unsigned char)ch > 65))
+#else
 #define IS_HEADER_CHAR(ch)                                                     \
   (ch == CR || ch == LF || ch == 9 || ((unsigned char)ch > 31 && ch != 127))
+#endif
 
 #define start_state (parser->type == HTTP_REQUEST ? s_start_req : s_start_res)
 

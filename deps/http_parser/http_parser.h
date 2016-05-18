@@ -196,8 +196,13 @@ enum http_errno {
 
 struct http_parser {
   /** PRIVATE **/
+#if defined __MVS__
+  unsigned char type;     /* enum http_parser_type */
+  unsigned char flags;    /* F_* values from 'flags' enum; semi-public */
+#else
   unsigned int type : 2;         /* enum http_parser_type */
   unsigned int flags : 7;        /* F_* values from 'flags' enum; semi-public */
+#endif
   unsigned int state : 8;        /* enum state from http_parser.c */
   unsigned int header_state : 7; /* enum header_state from http_parser.c */
   unsigned int index : 7;        /* index into current matcher */
@@ -211,6 +216,10 @@ struct http_parser {
   unsigned short http_minor;
   unsigned int status_code : 16; /* responses only */
   unsigned int method : 8;       /* requests only */
+#if defined __MVS__
+  unsigned char http_errno;
+  unsigned char upgrade;
+#else
   unsigned int http_errno : 7;
 
   /* 1 = Upgrade header was present and the parser has exited because of that.
@@ -219,6 +228,7 @@ struct http_parser {
    * error checking.
    */
   unsigned int upgrade : 1;
+#endif
 
   /** PUBLIC **/
   void *data; /* A pointer to get hook to the "connection" or "socket" object */
