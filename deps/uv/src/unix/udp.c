@@ -501,6 +501,10 @@ static int uv__udp_set_membership4(uv_udp_t* handle,
                  optname,
                  &mreq,
                  sizeof(mreq))) {
+#if defined(__MVS__)
+  if(errno == ENXIO)
+    return -ENODEV;
+#endif
     return -errno;
   }
 
@@ -544,6 +548,10 @@ static int uv__udp_set_membership6(uv_udp_t* handle,
                  optname,
                  &mreq,
                  sizeof(mreq))) {
+#if defined(__MVS__)
+  if(errno == ENXIO)
+    return -ENODEV;
+#endif
     return -errno;
   }
 
@@ -636,7 +644,7 @@ static int uv__setsockopt_maybe_char(uv_udp_t* handle,
                                      int option4,
                                      int option6,
                                      int val) {
-#if defined(__sun) || defined(_AIX)
+#if defined(__sun) || defined(_AIX) || defined(__MVS__)
   char arg = val;
 #else
   int arg = val;
@@ -666,6 +674,11 @@ int uv_udp_set_ttl(uv_udp_t* handle, int ttl) {
   if (ttl < 1 || ttl > 255)
     return -EINVAL;
 
+#if defined(__MVS__)
+  if (!(handle->flags & UV_HANDLE_IPV6))
+    return -EINVAL;  /* zOS does not support setting ttl for IPv4 */
+#endif
+
 /*
  * On Solaris and derivatives such as SmartOS, the length of socket options
  * is sizeof(int) for IP_TTL and IPV6_UNICAST_HOPS,
@@ -694,7 +707,7 @@ int uv_udp_set_multicast_ttl(uv_udp_t* handle, int ttl) {
  * IP_MULTICAST_TTL, so hardcode the size of the option in the IPv6 case,
  * and use the general uv__setsockopt_maybe_char call otherwise.
  */
-#if defined(__sun) || defined(_AIX)
+#if defined(__sun) || defined(_AIX) || defined(__MVS__)
   if (handle->flags & UV_HANDLE_IPV6)
     return uv__setsockopt(handle,
                           IP_MULTICAST_TTL,

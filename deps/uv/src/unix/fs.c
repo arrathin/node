@@ -36,6 +36,10 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#if defined (__MVS__)
+#define _OPEN_SYS_FILE_EXT 1
+#include <stdlib.h>
+#endif
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/uio.h>
@@ -179,7 +183,8 @@ skip:
     || defined(__FreeBSD__)                                                   \
     || defined(__NetBSD__)                                                    \
     || defined(__OpenBSD__)                                                   \
-    || defined(__sun)
+    || defined(__sun)    	                                              \
+    || defined(__MVS__)
   struct timeval tv[2];
   tv[0].tv_sec  = req->atime;
   tv[0].tv_usec = (unsigned long)(req->atime * 1000000) % 1000000;
@@ -187,6 +192,14 @@ skip:
   tv[1].tv_usec = (unsigned long)(req->mtime * 1000000) % 1000000;
 # if defined(__sun)
   return futimesat(req->file, NULL, tv);
+#elif defined(__MVS__)
+  attrib_t atr;
+  memset(&atr, 0, sizeof(atr));
+  atr.att_mtimechg = 1;
+  atr.att_atimechg = 1;
+  atr.att_mtime = req->mtime;
+  atr.att_atime = req->atime;
+  return __fchattr(req->file, &atr, sizeof(atr));
 # else
   return futimes(req->file, tv);
 # endif
@@ -198,7 +211,15 @@ skip:
 
 
 static ssize_t uv__fs_mkdtemp(uv_fs_t* req) {
+#if defined(__MVS__)
+  char* c = mktemp((char*)req->path);
+  remove(c);
+  mkdir(c, S_IRWXU);
+  req->path = c;
+  return 0;
+#else
   return mkdtemp((char*) req->path) ? 0 : -1;
+#endif
 }
 
 
@@ -322,6 +343,82 @@ static int uv__fs_scandir_filter(const uv__dirent_t* dent) {
 #endif
   return strcmp(dent->d_name, ".") != 0 && strcmp(dent->d_name, "..") != 0;
 }
+
+#ifdef __MVS__
+int alphasort(const void *a, const void *b) {
+
+    return strcoll(
+            (*(const struct dirent **)a)->d_name, 
+            (*(const struct dirent **)b)->d_name
+            );
+}
+
+/*
+**  * scandir.c: scandir
+**   */
+int scandir(const char *dirp, struct dirent ***namelist,
+        int (*filter)(const struct dirent *),
+        int (*compar)(const struct dirent **, const struct dirent **))
+{
+    struct dirent **nl = NULL, **next_nl;
+    struct dirent *dirent;
+    size_t count = 0;
+    size_t allocated = 0;
+    DIR *dir;
+
+    dir = opendir(dirp);
+    if (!dir)
+        return -1;
+
+    while (1) {
+        dirent = readdir(dir);
+        if (!dirent)
+            break;
+        if (!filter || filter(dirent)) {
+            struct dirent *copy;
+            copy = malloc(sizeof(*copy));
+            if (!copy)
+                goto cleanup_fail;
+            memcpy(copy, dirent, sizeof(*copy));
+
+            /* Extend the array if needed */
+            if (count == allocated) {
+                if (allocated == 0)
+                    allocated = 15; /* ~1 page worth */
+                else
+                    allocated *= 2;
+                next_nl = realloc(nl, allocated);
+                if (!next_nl) {
+                    free(copy);
+                    goto cleanup_fail;
+                }
+                nl = next_nl;
+            }
+
+            nl[count++] = copy;
+        }
+    }
+
+    qsort(nl, count, sizeof(struct dirent *),
+            (int (*)(const void *, const void *))compar);
+
+    closedir(dir);
+
+    *namelist = nl;
+    return count;
+
+cleanup_fail:
+    while (count) {
+        dirent = nl[--count];
+        free(dirent);
+    }
+    free(nl);
+    closedir(dir);
+    errno = ENOMEM;
+    return -1;
+}
+
+#endif
 
 
 static ssize_t uv__fs_scandir(uv_fs_t* req) {
@@ -887,8 +984,16 @@ int uv_fs_chown(uv_loop_t* loop,
                 uv_fs_cb cb) {
   INIT(CHOWN);
   PATH;
+#ifdef __MVS__
+  struct stat info;
+  if (uid == -1 || gid == -1)
+    stat(path, &info);
+  req->uid = uid == -1 ? info.st_uid : uid;
+  req->gid = gid == -1 ? info.st_gid : gid;
+#else
   req->uid = uid;
   req->gid = gid;
+#endif
   POST;
 }
 
@@ -920,8 +1025,16 @@ int uv_fs_fchown(uv_loop_t* loop,
                  uv_fs_cb cb) {
   INIT(FCHOWN);
   req->file = file;
+#ifdef __MVS__
+  struct stat info;
+  if (uid == -1 || gid == -1)
+    fstat(file, &info);
+  req->uid = uid == -1 ? info.st_uid : uid;
+  req->gid = gid == -1 ? info.st_gid : gid;
+#else
   req->uid = uid;
   req->gid = gid;
+#endif
   POST;
 }
 

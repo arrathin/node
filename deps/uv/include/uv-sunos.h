@@ -41,4 +41,8 @@
 
 #endif /* defined(PORT_SOURCE_FILE) */
 
+#define UV_PLATFORM_WRITE_FIELDS /* empty */
+#define UV_PLATFORM_CONNECT_FIELDS /* empty */
+#define UV_TCP_PRIVATE_PLATFORM_FIELDS /* empty */
+
 #endif /* UV_SUNOS_H */

@@ -273,6 +273,9 @@ if SUNOS
 test_run_tests_CFLAGS += -D__EXTENSIONS__ -D_XOPEN_SOURCE=500
 endif
 
+if OS390
+test_run_tests_CFLAGS += -D_UNIX03_THREADS -D_UNIX03_SOURCE -D_OPEN_SYS_IF_EXT=1 -qCHARS=signed -qXPLINK -qFLOAT=IEEE -D_OPEN_MSGQ_EXT -D_XOPEN_SOURCE_EXTENDED -D_ALL_SOURCE -D_LARGE_TIME_API -DUTMP_FILE=\"/etc/utmpx\" -DPATH_MAX=255 -D_OPEN_SYS_SOCK_IPV6 -D_OPEN_SYS_FILE_EXT -DIP_TTL=-1
+endif
 
 if AIX
 libuv_la_CFLAGS += -D_ALL_SOURCE -D_XOPEN_SOURCE=500 -D_LINUX_SOURCE_COMPAT
@@ -330,6 +333,13 @@ if SUNOS
 include_HEADERS += include/uv-sunos.h
 libuv_la_CFLAGS += -D__EXTENSIONS__ -D_XOPEN_SOURCE=500
 libuv_la_SOURCES += src/unix/sunos.c
+endif
+
+if OS390
+include_HEADERS += include/uv-os390.h include/pthread-fixes.h
+libuv_la_CFLAGS += -D_UNIX03_THREADS -D_UNIX03_SOURCE -D_OPEN_SYS_IF_EXT=1 -qCHARS=signed -qXPLINK -qFLOAT=IEEE -D_OPEN_MSGQ_EXT -D_XOPEN_SOURCE_EXTENDED -D_ALL_SOURCE -D_LARGE_TIME_API -DUTMP_FILE=\"/etc/utmpx\" -DPATH_MAX=255 -D_OPEN_SYS_SOCK_IPV6 -D_OPEN_SYS_FILE_EXT -DIP_TTL=-1
+libuv_la_LDFLAGS += -qXPLINK
+libuv_la_SOURCES += src/unix/os390.c  src/unix/os390-epoll.c src/unix/os390-syscalls.c src/unix/pthread-fixes.c
 endif
 
 if HAVE_PKG_CONFIG

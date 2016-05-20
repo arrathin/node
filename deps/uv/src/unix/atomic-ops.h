@@ -33,6 +33,10 @@ UV_UNUSED(static int cmpxchgi(int* ptr, int oldval, int newval)) {
                         : "r" (newval), "0" (oldval)
                         : "memory");
   return out;
+#elif defined(__MVS__)
+  int out = *ptr;
+  cs(&oldval, ptr,  newval);
+  return out;
 #else
   return __sync_val_compare_and_swap(ptr, oldval, newval);
 #endif
@@ -45,6 +49,16 @@ UV_UNUSED(static long cmpxchgl(long* ptr, long oldval, long newval)) {
                         : "=a" (out), "+m" (*(volatile long*) ptr)
                         : "r" (newval), "0" (oldval)
                         : "memory");
+  return out;
+#elif defined __MVS__
+  long out = (*(volatile int*) ptr);
+# ifdef _LP64
+  cds_t newvald;
+  newvald.alignment_dummy = (double)newval;
+  cds(&oldval, ptr, newvald);
+# else
+  cs(&oldval, ptr, newval);
+# endif
   return out;
 #else
   return __sync_val_compare_and_swap(ptr, oldval, newval);

@@ -31,4 +31,8 @@
 
 #define UV_HAVE_KQUEUE 1
 
+#define UV_PLATFORM_WRITE_FIELDS /* empty */
+#define UV_PLATFORM_CONNECT_FIELDS /* empty */
+#define UV_TCP_PRIVATE_PLATFORM_FIELDS /* empty */
+
 #endif /* UV_BSD_H */

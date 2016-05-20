@@ -100,6 +100,9 @@ void uv__stream_init(uv_loop_t* loop,
 
 #if defined(__APPLE__)
   stream->select = NULL;
+#elif defined(__MVS__)
+  stream->aio_read.aio_fildes = -1;
+  stream->aio_status = 0;
 #endif /* defined(__APPLE_) */
 
   uv__io_init(&stream->io_watcher, uv__stream_io, -1);
@@ -401,6 +404,13 @@ int uv__stream_open(uv_stream_t* stream, int fd, int flags) {
     /* TODO Use delay the user passed in. */
     if ((stream->flags & UV_TCP_KEEPALIVE) && uv__tcp_keepalive(fd, 1, 60))
       return -errno;
+
+#if defined(__MVS__)
+    if (uv__nonblock(fd, 0))
+      return -errno;
+    stream->flags |= UV_STREAM_BLOCKING;
+#endif
+
   }
 
 #if defined(__APPLE__)
@@ -434,7 +444,12 @@ void uv__stream_flush_write_queue(uv_stream_t* stream, int error) {
 
 
 void uv__stream_destroy(uv_stream_t* stream) {
+#if defined(__MVS__)
+  if(stream->type != UV_TCP)
+    assert(!uv__io_active(&stream->io_watcher, UV__POLLIN | UV__POLLOUT));
+#else
   assert(!uv__io_active(&stream->io_watcher, UV__POLLIN | UV__POLLOUT));
+#endif
   assert(stream->flags & UV_CLOSED);
 
   if (stream->connect_req) {
@@ -508,11 +523,31 @@ void uv__server_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
   int err;
 
   stream = container_of(w, uv_stream_t, io_watcher);
-  assert(events == UV__POLLIN);
+#if defined(__MVS__)
+
+  if (stream->type == UV_TCP)
+  {
+    /* This write event has returned after the user has called uv_close */
+    if ( (events & (UV__POLLOUT | UV__POLLHUP)) && (stream->flags & UV_CLOSING)) {
+      if (uv__has_ref(stream) && !(stream->aio_status & UV__ZAIO_READING)) {
+        uv__handle_stop((uv_handle_t*)stream);
+        uv__make_close_pending((uv_handle_t*)stream);
+      }
+      return;
+    }
+  }
+#endif
+
   assert(stream->accepted_fd == -1);
   assert(!(stream->flags & UV_CLOSING));
+  assert(events & UV__POLLIN);
 
+#if defined(__MVS__)
+  if(stream->type != UV_TCP)
+    uv__io_start(stream->loop, &stream->io_watcher, UV__POLLIN);
+#else
   uv__io_start(stream->loop, &stream->io_watcher, UV__POLLIN);
+#endif
 
   /* connection_cb can close the server socket while we're
    * in the loop so check it on each iteration.
@@ -525,7 +560,23 @@ void uv__server_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
       return;
 #endif /* defined(UV_HAVE_KQUEUE) */
 
+#if defined(__MVS__)
+    if(stream->type == UV_TCP) {
+    /* capture error state of the prior aio accept */
+      int aio_accept_err=-1;
+      aio_accept_err = aio_error(&stream->aio_read);
+      if(aio_accept_err ==  0)
+        aio_accept_err = aio_return(&stream->aio_read);
+      else
+        aio_accept_err = -aio_accept_err;
+ 
+      err = aio_accept_err;
+    }
+    else
+      err = uv__accept(uv__stream_fd(stream));
+#else
     err = uv__accept(uv__stream_fd(stream));
+#endif
     if (err < 0) {
       if (err == -EAGAIN || err == -EWOULDBLOCK)
         return;  /* Not an error. */
@@ -545,18 +596,37 @@ void uv__server_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
 
     UV_DEC_BACKLOG(w)
     stream->accepted_fd = err;
+    
+#if defined(__MVS__)
+    if(stream->type == UV_TCP) {
+      stream->aio_read.aio_cflags |= AIO_OK2COMPIMD;
+      stream->connection_cb(stream, 0);
+      stream->aio_read.aio_cflags &= ~AIO_OK2COMPIMD;
+    } else
+      stream->connection_cb(stream, 0);
+#else
     stream->connection_cb(stream, 0);
-
+#endif
     if (stream->accepted_fd != -1) {
       /* The user hasn't yet accepted called uv_accept() */
+#if defined(__MVS__)
+      if(stream->type != UV_TCP)
+        uv__io_stop(loop, &stream->io_watcher, UV__POLLIN);
+#else
       uv__io_stop(loop, &stream->io_watcher, UV__POLLIN);
+#endif
       return;
     }
+
+#if defined(__MVS__)
+    if (stream->aio_status & UV__ZAIO_READING)
+      return;
+#endif
 
     if (stream->type == UV_TCP && (stream->flags & UV_TCP_SINGLE_ACCEPT)) {
       /* Give other processes a chance to accept connections. */
       struct timespec timeout = { 0, 1 };
-      nanosleep(&timeout, NULL);
+      usleep(1);
     }
   }
 }
@@ -585,6 +655,10 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
         uv__close(server->accepted_fd);
         goto done;
       }
+#if defined(__MVS__)
+      ((uv_tcp_t*)client)->is_bound = 1;
+      client->aio_read.aio_fildes = server->accepted_fd;
+#endif
       break;
 
     case UV_UDP:
@@ -623,7 +697,21 @@ done:
   } else {
     server->accepted_fd = -1;
     if (err == 0)
+#if defined(__MVS__)
+    if(server->type != UV_TCP) 
       uv__io_start(server->loop, &server->io_watcher, UV__POLLIN);
+    else if(!(server->flags & (UV_CLOSING | UV_CLOSED))){
+      if(!(server->aio_status & UV__ZAIO_READING)) {
+        int rv, rc, rsn;
+        ZASYNC(sizeof(server->aio_read), &server->aio_read, &rv, &rc, &rsn);
+        assert(rv >= 0);
+	if(rv == 0)
+          server->aio_status |= UV__ZAIO_READING;
+      }
+    }
+#else
+      uv__io_start(server->loop, &server->io_watcher, UV__POLLIN);
+#endif
   }
   return err;
 }
@@ -657,8 +745,16 @@ static void uv__drain(uv_stream_t* stream) {
   int err;
 
   assert(QUEUE_EMPTY(&stream->write_queue));
+#if defined(__MVS__)
+  if (stream->type != UV_TCP)
+  {
+    uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLOUT);
+    uv__stream_osx_interrupt_select(stream);
+  }
+#else
   uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLOUT);
   uv__stream_osx_interrupt_select(stream);
+#endif
 
   /* Shutdown? */
   if ((stream->flags & UV_STREAM_SHUTTING) &&
@@ -722,7 +818,31 @@ static void uv__write_req_finish(uv_write_t* req) {
    * callback called in the near future.
    */
   QUEUE_INSERT_TAIL(&stream->write_completed_queue, &req->queue);
+
+#if defined(__MVS__)
+  if (stream->type == UV_TCP) {
+    if ( !req->error && !(stream->flags & UV_CLOSING) && !QUEUE_EMPTY(&stream->write_queue)) {
+      QUEUE* q = QUEUE_HEAD(&stream->write_queue);
+      uv_write_t *req_next = QUEUE_DATA(q, uv_write_t, queue);
+      assert(req_next->handle == stream);
+      //assert(aio_write(&req_next->aio_write)==0);
+      req_next->aio_write_msg.mm_type = AIO_MSG_WRITE;
+      req_next->aio_write_msg.mm_ptr = req_next;
+      req_next->aio_write.aio_msgev_addr = &req_next->aio_write_msg;
+      req_next->aio_write.aio_msgev_size = sizeof(req_next->aio_write_msg.mm_ptr);
+      int rv, rc, rsn;
+      ZASYNC(sizeof(req_next->aio_write), &req_next->aio_write, &rv, &rc, &rsn);
+      assert(rv==0);
+      stream->aio_status |= UV__ZAIO_WRITING;
+    }
+    else if (req->error)
+      uv__io_feed(stream->loop, &stream->io_watcher);
+  }
+  else
+    uv__io_feed(stream->loop, &stream->io_watcher);
+#else
   uv__io_feed(stream->loop, &stream->io_watcher);
+#endif
 }
 
 
@@ -763,10 +883,20 @@ static void uv__write(uv_stream_t* stream) {
 
 start:
 
+#if defined(__MVS__)
+  if(!(stream->type == UV_TCP && stream->flags & UV_CLOSING))
+    assert(uv__stream_fd(stream) >= 0);
+#else
   assert(uv__stream_fd(stream) >= 0);
+#endif
 
   if (QUEUE_EMPTY(&stream->write_queue))
     return;
+
+#if defined(__MVS__)
+  if (stream->aio_status & UV__ZAIO_WRITING)
+    return;
+#endif
 
   q = QUEUE_HEAD(&stream->write_queue);
   req = QUEUE_DATA(q, uv_write_t, queue);
@@ -826,11 +956,29 @@ start:
     while (n == -1 && errno == EINTR);
   } else {
     do {
+#if defined (__MVS__)
+      if(req->handle->type == UV_TCP) {
+        errno = aio_error(&req->aio_write);
+	if(errno == 0)
+	  n = aio_return(&req->aio_write);
+	else
+	  n = -1;
+      }
+      else
+      {
+        if (iovcnt == 1) {
+          n = write(uv__stream_fd(stream), iov[0].iov_base, iov[0].iov_len);
+        } else {
+          n = writev(uv__stream_fd(stream), iov, iovcnt);
+        }
+      }
+#else
       if (iovcnt == 1) {
         n = write(uv__stream_fd(stream), iov[0].iov_base, iov[0].iov_len);
       } else {
         n = writev(uv__stream_fd(stream), iov, iovcnt);
       }
+#endif
     }
     while (n == -1 && errno == EINTR);
   }
@@ -866,6 +1014,10 @@ start:
 
         /* There is more to write. */
         if (stream->flags & UV_STREAM_BLOCKING) {
+#if defined(__MVS__)
+	  /* MVS socket is in blocking mode but actually asynchronously handled by OS*/
+          break;
+#endif
           /*
            * If we're blocking then we should not be enabling the write
            * watcher - instead we need to try again.
@@ -900,11 +1052,54 @@ start:
   /* Either we've counted n down to zero or we've got EAGAIN. */
   assert(n == 0 || n == -1);
 
+#if defined(__MVS__)
+  if(stream->type == UV_TCP) {
+    if( stream->flags != UV_CLOSING ) {
+      uv_buf_t* buf = &(req->bufs[req->write_index]);
+      memset(&req->aio_write, 0, sizeof(struct aiocb));
+      req->aio_write.aio_fildes = uv__stream_fd(stream);
+      req->aio_write.aio_notifytype = AIO_MSGQ;
+      req->aio_write_msg.mm_type = AIO_MSG_WRITE;
+      req->aio_write_msg.mm_ptr = req;
+      req->aio_write.aio_msgev_addr = &req->aio_write_msg;
+      req->aio_write.aio_msgev_size = sizeof(req->aio_write_msg.mm_ptr);
+      if(req->nbufs > 1) {
+        /* vector */
+        req->aio_write.aio_cmd = AIO_WRITEV;
+        req->aio_write.aio_buf = &(req->bufs[req->write_index]);
+        iovcnt = req->nbufs - req->write_index;
+        if (iovcnt > iovmax)
+	  iovcnt = iovmax;
+        req->aio_write.aio_nbytes = iovcnt;
+      } else {
+        req->aio_write.aio_cmd = AIO_WRITE;
+        req->aio_write.aio_buf = buf->base;
+        req->aio_write.aio_nbytes = buf->len;
+      }
+      req->aio_write.aio_msgev_qid = req->handle->loop->msgqid;
+      int rv, rc, rsn;
+      ZASYNC(sizeof(req->aio_write), &req->aio_write, &rv, &rc, &rsn);
+
+      /* Write will happen asynchronously */
+      assert(rv==0);
+      stream->aio_status |= UV__ZAIO_WRITING;
+    }
+  }
+  else
+  {
+    /* Only non-blocking streams should use the write_watcher. */
+    assert(!(stream->flags & UV_STREAM_BLOCKING));
+
+    /* We're not done. */
+    uv__io_start(stream->loop, &stream->io_watcher, UV__POLLOUT);
+  }
+#else
   /* Only non-blocking streams should use the write_watcher. */
   assert(!(stream->flags & UV_STREAM_BLOCKING));
 
   /* We're not done. */
   uv__io_start(stream->loop, &stream->io_watcher, UV__POLLOUT);
+#endif
 
   /* Notify select() thread about state change */
   uv__stream_osx_interrupt_select(stream);
@@ -974,9 +1169,21 @@ uv_handle_type uv__handle_type(int fd) {
 
 static void uv__stream_eof(uv_stream_t* stream, const uv_buf_t* buf) {
   stream->flags |= UV_STREAM_READ_EOF;
+#if defined(__MVS__)
+  if(stream->type == UV_TCP)
+  {
+  }
+  else
+  {
+    uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLIN);
+    if (!uv__io_active(&stream->io_watcher, UV__POLLOUT))
+      uv__handle_stop(stream);
+  }
+#else
   uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLIN);
   if (!uv__io_active(&stream->io_watcher, UV__POLLOUT))
     uv__handle_stop(stream);
+#endif
   uv__stream_osx_interrupt_select(stream);
   stream->read_cb(stream, UV_EOF, buf);
   stream->flags &= ~UV_STREAM_READING;
@@ -1102,7 +1309,24 @@ static void uv__read(uv_stream_t* stream) {
       && (count-- > 0)) {
     assert(stream->alloc_cb != NULL);
 
+#if defined (__MVS__)
+    if(stream->type == UV_TCP)
+    {
+	if(stream->aio_read.aio_buf == stream->bufsml) {
+	  stream->alloc_cb((uv_handle_t*)stream, stream->aio_read.aio_nbytes, &buf);
+	  memcpy(buf.base, stream->bufsml, stream->aio_read.aio_nbytes);
+	}
+	else {
+	  buf.base = stream->aio_read.aio_buf;
+	  buf.len = stream->aio_read.aio_nbytes;
+	}
+    }
+    else
+      stream->alloc_cb((uv_handle_t*)stream, 64 * 1024, &buf);
+#else
     stream->alloc_cb((uv_handle_t*)stream, 64 * 1024, &buf);
+#endif
+
     if (buf.len == 0) {
       /* User indicates it can't or won't handle the read. */
       stream->read_cb(stream, UV_ENOBUFS, &buf);
@@ -1114,7 +1338,22 @@ static void uv__read(uv_stream_t* stream) {
 
     if (!is_ipc) {
       do {
+#if defined (__MVS__)
+	if(stream->type == UV_TCP)
+	{
+	  errno = aio_error(&stream->aio_read);
+	  if(errno == 0)
+	    nread = aio_return(&stream->aio_read);
+	  else
+	    nread = -1;
+	}
+	else
+	{
+	  nread = read(uv__stream_fd(stream), buf.base, buf.len);
+	}
+#else
         nread = read(uv__stream_fd(stream), buf.base, buf.len);
+#endif
       }
       while (nread < 0 && errno == EINTR);
     } else {
@@ -1136,11 +1375,18 @@ static void uv__read(uv_stream_t* stream) {
 
     if (nread < 0) {
       /* Error */
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
         /* Wait for the next one. */
         if (stream->flags & UV_STREAM_READING) {
+#if defined(__MVS__)
+          if(stream->type != UV_TCP) {
+            uv__io_start(stream->loop, &stream->io_watcher, UV__POLLIN);
+            uv__stream_osx_interrupt_select(stream);
+          }
+#else
           uv__io_start(stream->loop, &stream->io_watcher, UV__POLLIN);
           uv__stream_osx_interrupt_select(stream);
+#endif
         }
         stream->read_cb(stream, 0, &buf);
       } else {
@@ -1148,7 +1394,12 @@ static void uv__read(uv_stream_t* stream) {
         stream->read_cb(stream, -errno, &buf);
         if (stream->flags & UV_STREAM_READING) {
           stream->flags &= ~UV_STREAM_READING;
-          uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLIN);
+#if defined(__MVS__)
+          if(stream->type != UV_TCP)
+            uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLIN);
+#else
+         uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLIN);
+#endif
           if (!uv__io_active(&stream->io_watcher, UV__POLLOUT))
             uv__handle_stop(stream);
           uv__stream_osx_interrupt_select(stream);
@@ -1170,6 +1421,41 @@ static void uv__read(uv_stream_t* stream) {
         }
       }
       stream->read_cb(stream, nread, &buf);
+
+#if defined(__MVS__)
+      /* Continue to read */
+      if(stream->type == UV_TCP && !(stream->flags & UV_CLOSING) && (stream->flags & UV_STREAM_READING))
+      {
+	if (count == 0) 
+	  /* too much reading on this socket. Continue reading on next tick */
+          stream->aio_read.aio_cflags &= ~AIO_OK2COMPIMD;
+	else
+          stream->aio_read.aio_cflags |= AIO_OK2COMPIMD;
+        stream->alloc_cb((uv_handle_t*)stream, 64 * 1024, &buf);
+        stream->aio_read.aio_buf = buf.base;
+        stream->aio_read.aio_offset = 0;
+        stream->aio_read.aio_nbytes = buf.len;
+        if (buf.len == 0) {
+          /* User indicates it can't or won't handle the read. */
+          stream->read_cb(stream, UV_ENOBUFS, &buf);
+          return;
+        }
+
+        int rv, rc, rsn;
+        ZASYNC(sizeof(stream->aio_read), &stream->aio_read, &rv, &rc, &rsn);
+        if(rv < 0) {
+          stream->read_cb(stream, -rc, &buf);
+          return;
+        }
+        else if(rv == 1)
+          continue; /* continue to read because it returned immediately */
+
+        stream->aio_status |= UV__ZAIO_READING;  /* wait for io notification */
+        stream->flags |= UV_STREAM_READ_PARTIAL;
+        return;
+
+      }
+#endif
 
       /* Return if we didn't fill the buffer, there is no more data to read. */
       if (nread < buflen) {
@@ -1206,8 +1492,19 @@ int uv_shutdown(uv_shutdown_t* req, uv_stream_t* stream, uv_shutdown_cb cb) {
   stream->shutdown_req = req;
   stream->flags |= UV_STREAM_SHUTTING;
 
+#if defined(__MVS__)
+  if(stream->type != UV_TCP)
+  {
+    uv__io_start(stream->loop, &stream->io_watcher, UV__POLLOUT);
+    uv__stream_osx_interrupt_select(stream);
+  }
+  else
+    if(QUEUE_EMPTY(&stream->write_queue))
+      uv__io_feed(stream->loop, &stream->io_watcher);
+#else
   uv__io_start(stream->loop, &stream->io_watcher, UV__POLLOUT);
   uv__stream_osx_interrupt_select(stream);
+#endif
 
   return 0;
 }
@@ -1221,7 +1518,28 @@ static void uv__stream_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
   assert(stream->type == UV_TCP ||
          stream->type == UV_NAMED_PIPE ||
          stream->type == UV_TTY);
+
+#if defined(__MVS__)
+  /* on zOS this could be a sniff read after eof */
+  if (stream->type == UV_TCP)
+  {
+    /* This write event has returned after the user has called uv_close */
+    if ( (events & POLLOUT | POLLHUP) && (stream->flags & UV_CLOSING)) {
+      if (uv__has_ref(stream) && !(stream->aio_status & (UV__ZAIO_READING | UV__ZAIO_WRITING))) {
+        uv__handle_stop((uv_handle_t*)stream);
+        uv__make_close_pending((uv_handle_t*)stream);
+      }
+      return;
+    }
+  }
+
+  if(stream->type == UV_TCP)
+    assert(!(stream->flags & UV_CLOSING) || ((stream->flags & UV_CLOSING) && (events & POLLHUP )));
+  else
+    assert(!(stream->flags & UV_CLOSING));
+#else
   assert(!(stream->flags & UV_CLOSING));
+#endif
 
   if (stream->connect_req) {
     uv__stream_connect(stream);
@@ -1286,6 +1604,26 @@ static void uv__stream_connect(uv_stream_t* stream) {
     error = stream->delayed_error;
     stream->delayed_error = 0;
   } else {
+#if defined(__MVS__)
+    if(stream->type == UV_TCP) {
+      free(req->aio_connect.aio_sockaddrptr);
+      error = aio_error(&req->aio_connect);
+      if(error ==  0)
+        error = aio_return(&req->aio_connect);
+      else
+        error = -error;
+    }
+    else {
+    /* Normal situation: we need to get the socket error from the kernel. */
+      assert(uv__stream_fd(stream) >= 0);
+      assert(0 == getsockopt(uv__stream_fd(stream),
+               SOL_SOCKET,
+               SO_ERROR,
+               &error,
+               &errorsize));
+      error = -error;
+    }
+#else
     /* Normal situation: we need to get the socket error from the kernel. */
     assert(uv__stream_fd(stream) >= 0);
     getsockopt(uv__stream_fd(stream),
@@ -1294,6 +1632,7 @@ static void uv__stream_connect(uv_stream_t* stream) {
                &error,
                &errorsize);
     error = -error;
+#endif
   }
 
   if (error == -EINPROGRESS)
@@ -1302,9 +1641,49 @@ static void uv__stream_connect(uv_stream_t* stream) {
   stream->connect_req = NULL;
   uv__req_unregister(stream->loop, req);
 
+#if defined(__MVS__)
+  if ((!error && stream->type == UV_TCP) && !(stream->flags & UV_CLOSING) && (stream->flags & UV_STREAM_READING))
+  {
+      /* Client already asked to read from it so start reading right away */
+      uv_buf_t buf;
+      /* create aiocb here and create buffers */
+      memset(&stream->aio_read, 0, sizeof(struct aiocb));
+      stream->aio_read.aio_fildes = uv__stream_fd(stream);
+      stream->aio_read.aio_notifytype = AIO_MSGQ;
+      stream->aio_read.aio_cmd = AIO_READ;
+      stream->aio_read.aio_msgev_qid = stream->loop->msgqid;
+      stream->aio_read_msg.mm_type = AIO_MSG_READ;
+      stream->aio_read_msg.mm_ptr = &stream->io_watcher;
+      stream->aio_read.aio_msgev_addr = &stream->aio_read_msg;
+      stream->aio_read.aio_msgev_size = sizeof(stream->aio_read_msg.mm_ptr);
+      stream->alloc_cb((uv_handle_t*)stream, 64 * 1024, &buf);
+      stream->aio_read.aio_buf = buf.base;
+      stream->aio_read.aio_offset = 0;
+      stream->aio_read.aio_nbytes = buf.len;
+      if (buf.len == 0)
+        error = -ENOMEM;
+      else
+      {
+        int rv, rc, rsn;
+        ZASYNC(sizeof(stream->aio_read), &stream->aio_read, &rv, &rc, &rsn);
+	if(rv != 0)
+          error = -rc;
+        else
+          stream->aio_status |= UV__ZAIO_READING;
+        assert(rv==0);
+      }
+  }
+#endif
+
+#if defined(__MVS__)
+  if (stream->type != UV_TCP && 
+       (error < 0 || QUEUE_EMPTY(&stream->write_queue)))
+    uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLOUT);
+#else
   if (error < 0 || QUEUE_EMPTY(&stream->write_queue)) {
     uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLOUT);
   }
+#endif
 
   if (req->cb)
     req->cb(req, error);
@@ -1378,6 +1757,36 @@ int uv_write2(uv_write_t* req,
   req->write_index = 0;
   stream->write_queue_size += uv__count_bufs(bufs, nbufs);
 
+#if defined(__MVS__)
+    if(stream->type == UV_TCP)
+    {
+      assert(sizeof(uv_buf_t) == sizeof(struct iovec));
+      struct iovec *iov = (struct iovec*) &(req->bufs[req->write_index]);
+      int iovcnt = req->nbufs - req->write_index;
+
+      int iovmax = uv__getiovmax();
+
+      /* Limit iov count to avoid EINVALs from writev() */
+      if (iovcnt > iovmax)
+        iovcnt = iovmax;
+
+      /* create aiocb here and point to the buffers above */
+      memset(&req->aio_write, 0, sizeof(struct aiocb));
+      req->aio_write.aio_fildes = uv__stream_fd(stream);
+      req->aio_write.aio_notifytype = AIO_MSGQ;
+      if(iovcnt > 1) { 
+        req->aio_write.aio_cmd = AIO_WRITEV;
+        req->aio_write.aio_nbytes = iovcnt;
+        req->aio_write.aio_buf = (void *)iov;
+      } else {
+        req->aio_write.aio_cmd = AIO_WRITE;
+        req->aio_write.aio_nbytes = (int)req->bufs[0].len;
+        req->aio_write.aio_buf = (void *)req->bufs[0].base;
+      }
+      req->aio_write.aio_msgev_qid = req->handle->loop->msgqid;
+    }
+#endif
+
   /* Append the request to write_queue. */
   QUEUE_INSERT_TAIL(&stream->write_queue, &req->queue);
 
@@ -1388,15 +1797,50 @@ int uv_write2(uv_write_t* req,
   if (stream->connect_req) {
     /* Still connecting, do nothing. */
   }
+#if defined(__MVS__)
+  else if(empty_queue && stream->type == UV_TCP)
+  {
+    if(req->aio_write.aio_nbytes == 0)
+      return 0;
+    assert(stream->flags & UV_STREAM_BLOCKING);
+    //assert(aio_write(&req->aio_write)==0);
+    req->aio_write_msg.mm_type = AIO_MSG_WRITE;
+    req->aio_write_msg.mm_ptr = req;
+    req->aio_write.aio_msgev_addr = &req->aio_write_msg;
+    req->aio_write.aio_msgev_size = sizeof(req->aio_write_msg.mm_ptr);
+    req->aio_write.aio_cflags |= AIO_OK2COMPIMD;
+    int rv, rc, rsn;
+    ZASYNC(sizeof(req->aio_write), &req->aio_write, &rv, &rc, &rsn);
+    if(rv == 0)
+      /* Asynchronous write */
+      stream->aio_status |= UV__ZAIO_WRITING;
+    else if(rv == -1) {
+      req->aio_write.aio_rv = rv;
+      req->aio_write.aio_rc = rc;
+      uv__write(stream);
+    }
+    else {
+      /* Synchronous write or failure */
+      uv__write(stream);
+      uv__io_feed(stream->loop, &stream->io_watcher);
+    }
+  }
+#endif
   else if (empty_queue) {
     uv__write(stream);
   }
   else {
     /*
-     * blocking streams should never have anything in the queue.
-     * if this assert fires then somehow the blocking stream isn't being
-     * sufficiently flushed in uv__write.
-     */
+    * blocking streams should never have anything in the queue.
+    * if this assert fires then somehow the blocking stream isn't being
+    * sufficiently flushed in uv__write.
+    */
+
+#if defined(__MVS__) // the aio_write was already sent
+    if(stream->type == UV_TCP)
+      return 0;
+#endif
+
     assert(!(stream->flags & UV_STREAM_BLOCKING));
     uv__io_start(stream->loop, &stream->io_watcher, UV__POLLOUT);
     uv__stream_osx_interrupt_select(stream);
@@ -1437,8 +1881,14 @@ int uv_try_write(uv_stream_t* stream,
   if (stream->connect_req != NULL || stream->write_queue_size != 0)
     return -EAGAIN;
 
+#if defined(__MVS__)
+  if(stream->type == UV_TCP)
+    has_pollout = stream->aio_status & UV__ZAIO_WRITING;
+  else
+    has_pollout = uv__io_active(&stream->io_watcher, UV__POLLOUT);
+#else
   has_pollout = uv__io_active(&stream->io_watcher, UV__POLLOUT);
-
+#endif
   r = uv_write(&req, stream, bufs, nbufs, uv_try_write_cb);
   if (r != 0)
     return r;
@@ -1454,6 +1904,7 @@ int uv_try_write(uv_stream_t* stream,
 
   /* Unqueue request, regardless of immediateness */
   QUEUE_REMOVE(&req.queue);
+  QUEUE_REMOVE(&stream->io_watcher.pending_queue);
   uv__req_unregister(stream->loop, &req);
   if (req.bufs != req.bufsml)
     uv__free(req.bufs);
@@ -1496,7 +1947,36 @@ int uv_read_start(uv_stream_t* stream,
   stream->read_cb = read_cb;
   stream->alloc_cb = alloc_cb;
 
+#if defined(__MVS__)
+  if(stream->type == UV_TCP && !(stream->flags & UV_CLOSING) && (stream->flags & UV_STREAM_READING) && stream->connect_req == NULL)
+  {
+    assert(stream->flags & UV_STREAM_BLOCKING);
+    uv_buf_t buf;
+    /* create aiocb here and point to the buffers above */
+    memset(&stream->aio_read, 0, sizeof(struct aiocb));
+    stream->aio_read.aio_fildes = uv__stream_fd(stream);
+    stream->aio_read.aio_notifytype = AIO_MSGQ;
+    stream->aio_read.aio_cmd = AIO_READ;
+    stream->aio_read.aio_msgev_qid = stream->loop->msgqid;
+    stream->aio_read_msg.mm_type = AIO_MSG_READ;
+    stream->aio_read_msg.mm_ptr = &stream->io_watcher;
+    stream->aio_read.aio_msgev_addr = &stream->aio_read_msg;
+    stream->aio_read.aio_msgev_size = sizeof(stream->aio_read_msg.mm_ptr);
+    stream->aio_read.aio_buf = stream->bufsml;
+    stream->aio_read.aio_offset = 0;
+    stream->aio_read.aio_nbytes = sizeof(stream->bufsml);;
+    int rv, rc, rsn;
+    ZASYNC(sizeof(stream->aio_read), &stream->aio_read, &rv, &rc, &rsn);
+    assert(rv==0);
+    stream->aio_status |= UV__ZAIO_READING;
+  }
+  else
+  {
+    uv__io_start(stream->loop, &stream->io_watcher, UV__POLLIN);
+  }
+#else
   uv__io_start(stream->loop, &stream->io_watcher, UV__POLLIN);
+#endif
   uv__handle_start(stream);
   uv__stream_osx_interrupt_select(stream);
 
@@ -1509,9 +1989,33 @@ int uv_read_stop(uv_stream_t* stream) {
     return 0;
 
   stream->flags &= ~UV_STREAM_READING;
+
+#if defined(__MVS__)
+  if (stream->type == UV_TCP && !(stream->flags & UV_CLOSING)) {
+      memset(&stream->aio_cancel, 0, sizeof(struct aiocb));
+      stream->aio_cancel.aio_fildes = uv__stream_fd(stream);
+      stream->aio_cancel.aio_cmd = AIO_CANCEL;
+      stream->aio_cancel.aio_buf = &stream->aio_read;
+      stream->aio_cancel.aio_offset = 0;
+      stream->aio_cancel.aio_nbytes = sizeof(struct aiocb);
+      int rv, rc, rsn;
+      ZASYNC(sizeof(stream->aio_cancel), &stream->aio_cancel, &rv, &rc, &rsn);
+  }
+  else
+    uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLIN);
+#else
   uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLIN);
+#endif
+
+#if defined(__MVS__)
+  if (stream->type == UV_TCP && stream->aio_status & (UV__ZAIO_READING | UV__ZAIO_WRITING))
+    uv__handle_stop(stream);
+  else if (!uv__io_active(&stream->io_watcher, UV__POLLOUT))
+    uv__handle_stop(stream);
+#else
   if (!uv__io_active(&stream->io_watcher, UV__POLLOUT))
     uv__handle_stop(stream);
+#endif
   uv__stream_osx_interrupt_select(stream);
 
   stream->read_cb = NULL;
@@ -1572,9 +2076,35 @@ void uv__stream_close(uv_stream_t* handle) {
   }
 #endif /* defined(__APPLE__) */
 
+#if defined(__MVS__)
+  if (handle->type == UV_TCP) {
+    if (handle->aio_status & (UV__ZAIO_READING | UV__ZAIO_WRITING)) {
+      memset(&handle->aio_cancel, 0, sizeof(struct aiocb));
+      handle->aio_cancel.aio_fildes = uv__stream_fd(handle);
+      handle->aio_cancel.aio_notifytype = AIO_MSGQ;
+      handle->aio_cancel.aio_cmd = AIO_CANCEL;
+      handle->aio_cancel.aio_msgev_qid = handle->loop->msgqid;
+      handle->aio_cancel_msg.mm_type = AIO_MSG_READ;
+      handle->aio_cancel_msg.mm_ptr = &handle->io_watcher;
+      handle->aio_cancel.aio_msgev_addr = &handle->aio_cancel_msg;
+      handle->aio_cancel.aio_msgev_size = sizeof(handle->aio_cancel_msg.mm_ptr);
+      int rv, rc, rsn;
+      ZASYNC(sizeof(handle->aio_cancel), &handle->aio_cancel, &rv, &rc, &rsn);
+    }
+  }
+  else
+    uv__io_close(handle->loop, &handle->io_watcher);
+#else
   uv__io_close(handle->loop, &handle->io_watcher);
+#endif
+
   uv_read_stop(handle);
+#if defined(__MVS__)
+  if (handle->type != UV_TCP || !(handle->aio_status & (UV__ZAIO_READING | UV__ZAIO_WRITING)))
+    uv__handle_stop(handle);
+#else
   uv__handle_stop(handle);
+#endif
 
   if (handle->io_watcher.fd != -1) {
     /* Don't close stdio file descriptors.  Nothing good comes from it. */
@@ -1597,7 +2127,18 @@ void uv__stream_close(uv_stream_t* handle) {
     handle->queued_fds = NULL;
   }
 
+#if defined(__MVS__)
+  if (handle->type == UV_TCP) {
+    if (!(handle->aio_status & (UV__ZAIO_READING | UV__ZAIO_WRITING)) && QUEUE_EMPTY(&handle->write_completed_queue))
+      uv__make_close_pending((uv_handle_t*)handle);
+    else if(!uv__has_ref(handle))
+      uv__make_close_pending((uv_handle_t*)handle);
+  }
+  else
+    assert(!uv__io_active(&handle->io_watcher, UV__POLLIN | UV__POLLOUT));
+#else
   assert(!uv__io_active(&handle->io_watcher, UV__POLLIN | UV__POLLOUT));
+#endif
 }
 
 

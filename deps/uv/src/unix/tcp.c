@@ -85,6 +85,10 @@ int uv__tcp_bind(uv_tcp_t* tcp,
                    IPV6_V6ONLY,
                    &on,
                    sizeof on) == -1) {
+#ifdef __MVS__
+// bug in zOS returning setting the wrong error code
+      return UV_EINVAL;
+#endif
       return -errno;
     }
   }
@@ -98,6 +102,10 @@ int uv__tcp_bind(uv_tcp_t* tcp,
   if (addr->sa_family == AF_INET6)
     tcp->flags |= UV_HANDLE_IPV6;
 
+#ifdef __MVS__
+  tcp->is_bound = 1;
+#endif
+
   return 0;
 }
 
@@ -108,7 +116,7 @@ int uv__tcp_connect(uv_connect_t* req,
                     unsigned int addrlen,
                     uv_connect_cb cb) {
   int err;
-  int r;
+  int r = -1;
 
   assert(handle->type == UV_TCP);
 
@@ -124,7 +132,44 @@ int uv__tcp_connect(uv_connect_t* req,
   handle->delayed_error = 0;
 
   do
+  {
+#if defined(__MVS__)
+    int rv, rc, rsn;
+    memset(&req->aio_connect, 0, sizeof(struct aiocb));
+    req->aio_connect.aio_fildes = uv__stream_fd(handle);
+    req->aio_connect.aio_notifytype = AIO_MSGQ;
+    req->aio_connect.aio_cmd = AIO_CONNECT;
+    req->aio_connect.aio_cflags |= AIO_OK2COMPIMD;
+    req->aio_connect.aio_msgev_qid = handle->loop->msgqid;
+    req->aio_connect_msg.mm_type = AIO_MSG_CONNECT;
+    req->aio_connect_msg.mm_ptr = req;
+    req->aio_connect.aio_msgev_addr = &req->aio_connect_msg;
+    req->aio_connect.aio_msgev_size = sizeof(req->aio_connect_msg.mm_ptr);
+    req->aio_connect.aio_sockaddrlen = addrlen;
+    req->aio_connect.aio_sockaddrptr = (struct sockaddr_in*)uv__malloc(addrlen);
+    if (req->aio_connect.aio_sockaddrptr != NULL) {
+      memcpy(req->aio_connect.aio_sockaddrptr, addr, addrlen);
+      ZASYNC(sizeof(req->aio_connect), &req->aio_connect, &rv, &rc, &rsn);
+      if(rv < 0) {
+        r = rv;
+        errno = rc;
+      }
+      else if(rv == 0){
+	/* connect has not happened immediately 
+	   wait for notification */
+        r = -1;
+        errno = EINPROGRESS;
+        handle->aio_status |= UV__ZAIO_WRITING;
+      }
+      else if(rv == 1) {
+	/* do nothing. Just as if connect() succeeded */
+        r = 1;
+      }
+    }
+#else
     r = connect(uv__stream_fd(handle), addr, addrlen);
+#endif
+  }
   while (r == -1 && errno == EINTR);
 
   if (r == -1) {
@@ -146,7 +191,13 @@ int uv__tcp_connect(uv_connect_t* req,
   QUEUE_INIT(&req->queue);
   handle->connect_req = req;
 
+#if defined(__MVS__)
+  if (r == 1)
+    /* the aio connect succeeded immediately. Ready for io */
+    uv__io_feed(handle->loop, &handle->io_watcher);
+#else
   uv__io_start(handle->loop, &handle->io_watcher, UV__POLLOUT);
+#endif
 
   if (handle->delayed_error)
     uv__io_feed(handle->loop, &handle->io_watcher);
@@ -158,9 +209,11 @@ int uv__tcp_connect(uv_connect_t* req,
 int uv_tcp_open(uv_tcp_t* handle, uv_os_sock_t sock) {
   int err;
 
+#if !defined(__MVS__)
   err = uv__nonblock(sock, 1);
   if (err)
     return err;
+#endif
 
   return uv__stream_open((uv_stream_t*)handle,
                          sock,
@@ -231,6 +284,30 @@ int uv_tcp_listen(uv_tcp_t* tcp, int backlog, uv_connection_cb cb) {
   if (err)
     return err;
 
+#ifdef __MVS__
+  /* on zOS the listen call does not bind automatically if the socket is unbound
+  ** Hence the manual binding to an arbitrary port is required to be done manually */
+
+  errno = 0;
+  if (tcp->is_bound != 1)
+  {
+    struct sockaddr_in saddr;
+    unsigned namelen = sizeof saddr;
+    memset(&saddr, 0, sizeof saddr);
+/*
+    saddr.sin_port=0;
+    saddr.sin_addr.s_addr = INADDR_ANY;
+*/
+    saddr.sin_family = AF_INET;
+    if( bind(tcp->io_watcher.fd, (struct sockaddr*)&saddr, sizeof saddr)) {
+      if (errno == EAFNOSUPPORT)
+        return -EINVAL;
+      return -errno;
+    }
+    tcp->is_bound = 1;
+  }
+#endif
+
   if (listen(tcp->io_watcher.fd, backlog))
     return -errno;
 
@@ -238,15 +315,38 @@ int uv_tcp_listen(uv_tcp_t* tcp, int backlog, uv_connection_cb cb) {
 
   /* Start listening for connections. */
   tcp->io_watcher.cb = uv__server_io;
+
+#if defined(__MVS__)
+  memset(&tcp->aio_read, 0, sizeof(struct aiocb));
+
+  tcp->aio_read.aio_fildes = tcp->io_watcher.fd;
+  tcp->aio_read.aio_notifytype = AIO_MSGQ;
+  tcp->aio_read.aio_cmd = AIO_ACCEPT;
+  tcp->aio_read.aio_msgev_qid = tcp->loop->msgqid;
+  tcp->aio_read_msg.mm_type = AIO_MSG_ACCEPT;
+  tcp->aio_read_msg.mm_ptr = &tcp->io_watcher;
+
+  tcp->aio_read.aio_msgev_addr = &tcp->aio_read_msg;
+  tcp->aio_read.aio_msgev_size = sizeof(tcp->aio_read_msg.mm_ptr);
+  int rv, rc, rsn;
+  ZASYNC(sizeof(struct aiocb), &tcp->aio_read, &rv, &rc, &rsn);
+  if (rv == -1)
+    return -rc;
+  else
+    tcp->aio_status |= UV__ZAIO_READING;
+#else
   uv__io_start(tcp->loop, &tcp->io_watcher, UV__POLLIN);
+#endif
 
   return 0;
 }
 
 
 int uv__tcp_nodelay(int fd, int on) {
+#if !defined(__MVS__)
   if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)))
     return -errno;
+#endif
   return 0;
 }
 

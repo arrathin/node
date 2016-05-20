@@ -56,7 +56,12 @@ static void connect_cb(uv_connect_t* req, int status) {
   uv_stream_t* outgoing;
 
   if (req == &tcp_check_req) {
+#if defined(__MVS__)
+    /* zOS cleans up stale event */
+    ASSERT(status == 0);
+#else
     ASSERT(status != 0);
+#endif
 
     /* Close check and incoming[0], time to finish test */
     uv_close((uv_handle_t*) &tcp_incoming[0], close_cb);

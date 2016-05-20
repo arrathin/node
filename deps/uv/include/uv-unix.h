@@ -36,17 +36,20 @@
 #include <termios.h>
 #include <pwd.h>
 
+#ifndef __MVS__
 #include <semaphore.h>
-#include <pthread.h>
-#ifdef __ANDROID__
+#elif defined(__ANDROID__)
 #include "pthread-fixes.h"
 #endif
+#include <pthread.h>
 #include <signal.h>
 
 #include "uv-threadpool.h"
 
 #if defined(__linux__)
 # include "uv-linux.h"
+#elif defined (__MVS__)
+# include "uv-os390.h"
 #elif defined(_AIX)
 # include "uv-aix.h"
 #elif defined(__sun)
@@ -101,7 +104,9 @@ struct uv__async {
   int wfd;
 };
 
-#ifndef UV_PLATFORM_SEM_T
+#ifdef __MVS__
+# define UV_PLATFORM_SEM_T  int
+#elif !defined UV_PLATFORM_SEM_T
 # define UV_PLATFORM_SEM_T sem_t
 #endif
 
@@ -147,7 +152,17 @@ typedef struct {
   uv_sem_t turnstile2;
 } uv_barrier_t;
 
-#else /* defined(__APPLE__) && defined(__MACH__) */
+#elif defined(__MVS__)
+
+typedef struct 
+{
+  unsigned count;
+  unsigned total;
+  pthread_mutex_t mutex;
+  pthread_cond_t cv;
+} uv_barrier_t;
+
+#else
 
 typedef pthread_barrier_t uv_barrier_t;
 
@@ -250,9 +265,11 @@ typedef struct {
   unsigned int nbufs;                                                         \
   int error;                                                                  \
   uv_buf_t bufsml[4];                                                         \
+  UV_PLATFORM_WRITE_FIELDS                                                    \
 
 #define UV_CONNECT_PRIVATE_FIELDS                                             \
   void* queue[2];                                                             \
+  UV_PLATFORM_CONNECT_FIELDS                                                  \
 
 #define UV_SHUTDOWN_PRIVATE_FIELDS /* empty */
 
@@ -281,7 +298,8 @@ typedef struct {
   void* queued_fds;                                                           \
   UV_STREAM_PRIVATE_PLATFORM_FIELDS                                           \
 
-#define UV_TCP_PRIVATE_FIELDS /* empty */
+#define UV_TCP_PRIVATE_FIELDS 						      \
+    UV_TCP_PRIVATE_PLATFORM_FIELDS
 
 #define UV_UDP_PRIVATE_FIELDS                                                 \
   uv_alloc_cb alloc_cb;                                                       \

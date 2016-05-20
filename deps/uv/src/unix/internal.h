@@ -37,6 +37,10 @@
 # include "linux-syscalls.h"
 #endif /* __linux__ */
 
+#if defined(__MVS__)
+# include "os390-syscalls.h"
+#endif/* __MVS__ */
+
 #if defined(__sun)
 # include <sys/port.h>
 # include <port.h>
@@ -88,7 +92,7 @@
 # define UV_UNUSED(declaration)     declaration
 #endif
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__MVS__)
 # define UV__POLLIN   UV__EPOLLIN
 # define UV__POLLOUT  UV__EPOLLOUT
 # define UV__POLLERR  UV__EPOLLERR
