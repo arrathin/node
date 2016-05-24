@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 [ $# -ne 0 ] || set -x		# debug mode without arguments:-)
 

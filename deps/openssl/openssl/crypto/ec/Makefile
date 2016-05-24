@@ -9,6 +9,9 @@ INCLUDES= -I.. -I$(TOP) -I../../include
 CFLAG=-g
 MAKEFILE=	Makefile
 AR=		ar r
+ifeq ($(shell uname -s),OS/390)
+export SHELL=		/bin/bash
+endif
 
 CFLAGS= $(INCLUDES) $(CFLAG)
 

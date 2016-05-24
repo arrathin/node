@@ -10,6 +10,9 @@ INCLUDES=
 CFLAG=-g
 MAKEFILE=	Makefile
 AR=		ar r
+ifeq ($(shell uname -s),OS/390)
+export SHELL=		/bin/bash
+endif
 
 AES_ENC=aes_core.o aes_cbc.o
 

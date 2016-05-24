@@ -10,6 +10,9 @@ INCLUDES=-I$(TOP) -I../../include
 CFLAG=-g
 MAKEFILE=	Makefile
 AR=		ar r
+ifeq ($(shell uname -s),OS/390)
+export SHELL=		/bin/bash
+endif
 RANLIB=		ranlib
 DES_ENC=	des_enc.o fcrypt_b.o
 

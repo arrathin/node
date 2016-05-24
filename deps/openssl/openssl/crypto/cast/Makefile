@@ -10,6 +10,9 @@ INCLUDES=
 CFLAG=-g
 MAKEFILE=	Makefile
 AR=		ar r
+ifeq ($(shell uname -s),OS/390)
+export SHELL=		/bin/bash
+endif
 
 CAST_ENC=c_enc.o
 

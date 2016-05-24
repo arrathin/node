@@ -7,6 +7,9 @@ CC=		gcc
 PIC=		-fPIC
 CFLAGS=		-g -I../../../include $(PIC) -DENGINE_DYNAMIC_SUPPORT -DFLAT_INC
 AR=		ar r
+ifeq ($(shell uname -s),OS/390)
+export SHELL=		/bin/bash
+endif
 RANLIB=		ranlib
 
 LIB=		$(LIBNAME).a

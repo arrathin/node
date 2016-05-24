@@ -10,6 +10,9 @@ INCLUDES=
 CFLAG=-g
 MAKEFILE=	Makefile
 AR=		ar r
+ifeq ($(shell uname -s),OS/390)
+export SHELL=		/bin/bash
+endif
 
 CMLL_ENC= camellia.o cmll_misc.o cmll_cbc.o
 

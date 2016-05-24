@@ -9,6 +9,9 @@ CPP=    $(CC) -E
 INCLUDES=
 CFLAG=-g
 AR=		ar r
+ifeq ($(shell uname -s),OS/390)
+export SHELL=		/bin/bash
+endif
 
 RC4_ENC=rc4_enc.o rc4_skey.o
 

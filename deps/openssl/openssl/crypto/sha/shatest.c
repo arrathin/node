@@ -56,6 +56,7 @@
  * [including the GNU Public Licence.]
  */
 
+#pragma strings(writable)
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

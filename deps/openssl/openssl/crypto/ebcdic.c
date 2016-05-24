@@ -257,6 +257,27 @@ const unsigned char os_toebcdic[256] = {
  * memcpy(3).
  */
 
+#if defined(__MVS__)
+
+# include <unistd.h>
+# include <string.h>
+
+void *ebcdic2ascii(void *dest, const void *srce, size_t count)
+{
+    memcpy(dest, srce, count);
+    __e2a_l(dest, count);
+    return dest;
+}
+
+void *ascii2ebcdic(void *dest, const void *srce, size_t count)
+{
+    memcpy(dest, srce, count);
+    __a2e_l(dest, count);
+    return dest;
+}
+
+#else
+
 void *ebcdic2ascii(void *dest, const void *srce, size_t count)
 {
     unsigned char *udest = dest;
@@ -280,5 +301,7 @@ void *ascii2ebcdic(void *dest, const void *srce, size_t count)
 
     return dest;
 }
+
+#endif /* __MVS__ */
 
 #endif

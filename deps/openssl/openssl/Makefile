@@ -16,6 +16,10 @@ PLATFORM=dist
 OPTIONS= no-ec_nistp_64_gcc_128 no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-shared no-ssl2 no-store no-unit-test no-weak-ssl-ciphers no-zlib no-zlib-dynamic static-engine
 CONFIGURE_ARGS=dist
 SHLIB_TARGET=
+ifeq ($(shell uname -s),OS/390)
+export SHELL=          /bin/bash
+endif
+
 
 # HERE indicates where this Makefile lives.  This can be used to indicate
 # where sub-Makefiles are expected to be.  Currently has very limited usage,
@@ -204,6 +208,7 @@ CLEARENV=	TOP= && unset TOP $${LIB+LIB} $${LIBS+LIBS}	\
 		$${SHARED_LIB+SHARED_LIB} $${LIBEXTRAS+LIBEXTRAS}
 
 BUILDENV=	PLATFORM='$(PLATFORM)' PROCESSOR='$(PROCESSOR)' \
+		SHELL='$(SHELL)'		 			\
 		CC='$(CC)' CFLAG='$(CFLAG)' 			\
 		AS='$(CC)' ASFLAG='$(CFLAG) -c'			\
 		AR='$(AR)' NM='$(NM)' RANLIB='$(RANLIB)'	\

@@ -14,6 +14,9 @@ MAKEDEPPROG=	makedepend
 MAKEDEPEND=	$(TOP)/util/domd $(TOP) -MD $(MAKEDEPPROG)
 MAKEFILE=	Makefile
 AR=		ar r
+ifeq ($(shell uname -s),OS/390)
+export SHELL=		/bin/bash
+endif
 
 PEX_LIBS=
 EX_LIBS=

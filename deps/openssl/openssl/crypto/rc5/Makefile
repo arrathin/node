@@ -10,6 +10,9 @@ INCLUDES=
 CFLAG=-g
 MAKEFILE=	Makefile
 AR=		ar r
+ifeq ($(shell uname -s),OS/390)
+export SHELL=		/bin/bash
+endif
 
 RC5_ENC=		rc5_enc.o
 
