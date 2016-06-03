@@ -2,12 +2,22 @@
  * Copyright (c) 2005 The OpenSSL Project.  All rights reserved.
  * ====================================================================
  */
+#ifdef __MVS__
+#pragma strings(writable)
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include <openssl/whrlpool.h>
 #include <openssl/crypto.h>
+
+# ifdef CHARSET_EBCDIC
+#  include <openssl/ebcdic.h>
+#  define STRINGDATA(str) ebcdic2ascii(str, str, strlen(str))
+# else
+#  define STRINGDATA(str) str
+# endif
 
 #if defined(OPENSSL_NO_WHIRLPOOL)
 int main(int argc, char *argv[])
@@ -147,7 +157,7 @@ int main(int argc, char *argv[])
         fprintf(stdout, ".");
     fflush(stdout);
 
-    WHIRLPOOL("a", 1, md);
+    WHIRLPOOL(STRINGDATA("a"), 1, md);
     if (memcmp(md, iso_test_2, sizeof(iso_test_2))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 2 of 9 failed.\n");
@@ -156,7 +166,7 @@ int main(int argc, char *argv[])
         fprintf(stdout, ".");
     fflush(stdout);
 
-    WHIRLPOOL("abc", 3, md);
+    WHIRLPOOL(STRINGDATA("abc"), 3, md);
     if (memcmp(md, iso_test_3, sizeof(iso_test_3))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 3 of 9 failed.\n");
@@ -165,7 +175,7 @@ int main(int argc, char *argv[])
         fprintf(stdout, ".");
     fflush(stdout);
 
-    WHIRLPOOL("message digest", 14, md);
+    WHIRLPOOL(STRINGDATA("message digest"), 14, md);
     if (memcmp(md, iso_test_4, sizeof(iso_test_4))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 4 of 9 failed.\n");
@@ -174,7 +184,7 @@ int main(int argc, char *argv[])
         fprintf(stdout, ".");
     fflush(stdout);
 
-    WHIRLPOOL("abcdefghijklmnopqrstuvwxyz", 26, md);
+    WHIRLPOOL(STRINGDATA("abcdefghijklmnopqrstuvwxyz"), 26, md);
     if (memcmp(md, iso_test_5, sizeof(iso_test_5))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 5 of 9 failed.\n");
@@ -183,8 +193,8 @@ int main(int argc, char *argv[])
         fprintf(stdout, ".");
     fflush(stdout);
 
-    WHIRLPOOL("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-              "abcdefghijklmnopqrstuvwxyz" "0123456789", 62, md);
+    WHIRLPOOL(STRINGDATA("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+              "abcdefghijklmnopqrstuvwxyz" "0123456789"), 62, md);
     if (memcmp(md, iso_test_6, sizeof(iso_test_6))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 6 of 9 failed.\n");
@@ -193,8 +203,8 @@ int main(int argc, char *argv[])
         fprintf(stdout, ".");
     fflush(stdout);
 
-    WHIRLPOOL("1234567890" "1234567890" "1234567890" "1234567890"
-              "1234567890" "1234567890" "1234567890" "1234567890", 80, md);
+    WHIRLPOOL(STRINGDATA("1234567890" "1234567890" "1234567890" "1234567890"
+              "1234567890" "1234567890" "1234567890" "1234567890"), 80, md);
     if (memcmp(md, iso_test_7, sizeof(iso_test_7))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 7 of 9 failed.\n");
@@ -203,7 +213,7 @@ int main(int argc, char *argv[])
         fprintf(stdout, ".");
     fflush(stdout);
 
-    WHIRLPOOL("abcdbcdecdefdefgefghfghighijhijk", 32, md);
+    WHIRLPOOL(STRINGDATA("abcdbcdecdefdefgefghfghighijhijk"), 32, md);
     if (memcmp(md, iso_test_8, sizeof(iso_test_8))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 8 of 9 failed.\n");
@@ -214,7 +224,7 @@ int main(int argc, char *argv[])
 
     WHIRLPOOL_Init(&ctx);
     for (i = 0; i < 1000000; i += 288)
-        WHIRLPOOL_Update(&ctx, "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
+        WHIRLPOOL_Update(&ctx, STRINGDATA("aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
@@ -222,7 +232,7 @@ int main(int argc, char *argv[])
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
-                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa",
+                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"),
                          (1000000 - i) < 288 ? 1000000 - i : 288);
     WHIRLPOOL_Final(md, &ctx);
     if (memcmp(md, iso_test_9, sizeof(iso_test_9))) {

@@ -564,7 +564,7 @@ install_sw:
 		tmp="$(SHARED_LIBS)"; \
 		for i in $${tmp:-x}; \
 		do \
-			if [[ -f "$$i" -o -f "$$i.a" ]]; then \
+			if [[ -f "$$i" ]] || [[ -f "$$i.a" ]]; then \
 			(       echo installing $$i; \
 				if [ "$(PLATFORM)" != "Cygwin" ]; then \
 					cp $$i $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new; \

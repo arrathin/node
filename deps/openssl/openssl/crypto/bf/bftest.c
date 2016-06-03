@@ -61,6 +61,9 @@
  * RC2 modes, more of the code will be uncommented.
  */
 
+#ifdef __MVS__
+#pragma strings(writable)
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

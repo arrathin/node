@@ -3,12 +3,23 @@
  * Copyright (c) 2004 The OpenSSL Project.  All rights reserved.
  * ====================================================================
  */
+#ifdef __MVS__
+#pragma strings(writable)
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include <openssl/sha.h>
 #include <openssl/evp.h>
+
+# ifdef CHARSET_EBCDIC
+#  include <openssl/ebcdic.h>
+#  define STRINGDATA(str) ebcdic2ascii(str, str, strlen(str))
+# else
+#  define STRINGDATA(str) str
+# endif
+
 
 #if defined(OPENSSL_NO_SHA) || defined(OPENSSL_NO_SHA256)
 int main(int argc, char *argv[])
@@ -68,7 +79,7 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "Testing SHA-256 ");
 
-    EVP_Digest("abc", 3, md, NULL, EVP_sha256(), NULL);
+    EVP_Digest(STRINGDATA("abc"), 3, md, NULL, EVP_sha256(), NULL);
     if (memcmp(md, app_b1, sizeof(app_b1))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 1 of 3 failed.\n");
@@ -77,8 +88,8 @@ int main(int argc, char **argv)
         fprintf(stdout, ".");
     fflush(stdout);
 
-    EVP_Digest("abcdbcde" "cdefdefg" "efghfghi" "ghijhijk"
-               "ijkljklm" "klmnlmno" "mnopnopq", 56, md, NULL, EVP_sha256(),
+    EVP_Digest(STRINGDATA("abcdbcde" "cdefdefg" "efghfghi" "ghijhijk"
+               "ijkljklm" "klmnlmno" "mnopnopq"), 56, md, NULL, EVP_sha256(),
                NULL);
     if (memcmp(md, app_b2, sizeof(app_b2))) {
         fflush(stdout);
@@ -91,11 +102,11 @@ int main(int argc, char **argv)
     EVP_MD_CTX_init(&evp);
     EVP_DigestInit_ex(&evp, EVP_sha256(), NULL);
     for (i = 0; i < 1000000; i += 160)
-        EVP_DigestUpdate(&evp, "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
+        EVP_DigestUpdate(&evp, STRINGDATA("aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
-                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa",
+                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"),
                          (1000000 - i) < 160 ? 1000000 - i : 160);
     EVP_DigestFinal_ex(&evp, md, NULL);
     EVP_MD_CTX_cleanup(&evp);
@@ -113,7 +124,7 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "Testing SHA-224 ");
 
-    EVP_Digest("abc", 3, md, NULL, EVP_sha224(), NULL);
+    EVP_Digest(STRINGDATA("abc"), 3, md, NULL, EVP_sha224(), NULL);
     if (memcmp(md, addenum_1, sizeof(addenum_1))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 1 of 3 failed.\n");
@@ -122,8 +133,8 @@ int main(int argc, char **argv)
         fprintf(stdout, ".");
     fflush(stdout);
 
-    EVP_Digest("abcdbcde" "cdefdefg" "efghfghi" "ghijhijk"
-               "ijkljklm" "klmnlmno" "mnopnopq", 56, md, NULL, EVP_sha224(),
+    EVP_Digest(STRINGDATA("abcdbcde" "cdefdefg" "efghfghi" "ghijhijk"
+               "ijkljklm" "klmnlmno" "mnopnopq"), 56, md, NULL, EVP_sha224(),
                NULL);
     if (memcmp(md, addenum_2, sizeof(addenum_2))) {
         fflush(stdout);
@@ -136,8 +147,8 @@ int main(int argc, char **argv)
     EVP_MD_CTX_init(&evp);
     EVP_DigestInit_ex(&evp, EVP_sha224(), NULL);
     for (i = 0; i < 1000000; i += 64)
-        EVP_DigestUpdate(&evp, "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
-                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa",
+        EVP_DigestUpdate(&evp, STRINGDATA("aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
+                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"),
                          (1000000 - i) < 64 ? 1000000 - i : 64);
     EVP_DigestFinal_ex(&evp, md, NULL);
     EVP_MD_CTX_cleanup(&evp);

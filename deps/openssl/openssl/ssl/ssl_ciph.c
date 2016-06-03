@@ -141,6 +141,9 @@
  */
 
 #include <stdio.h>
+#ifdef __MVS__
+# include <ctype.h>
+#endif
 #include <openssl/objects.h>
 #ifndef OPENSSL_NO_COMP
 # include <openssl/comp.h>
@@ -1129,7 +1132,11 @@ static int ssl_cipher_process_rulestr(const char *rule_str,
     const char *l, *buf;
     int j, multi, found, rule, retval, ok, buflen;
     unsigned long cipher_id = 0;
+#ifdef __MVS__
+    unsigned char ch;
+#else
     char ch;
+#endif
 
     retval = 1;
     l = rule_str;

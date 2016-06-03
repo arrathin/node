@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 HERE="`echo $0 | sed -e 's|[^/]*$||'`"
 OPENSSL="${HERE}../apps/openssl"
