@@ -1152,6 +1152,9 @@
       ['is_clang==1 or gcc_version>=43', {
         'cflags': ['-Wno-old-style-declaration'],
       }],
+      ['OS in "os390"', {
+        'cflags!': ['-Wno-missing-field-initializers'],
+      }],
       ['OS=="solaris"', {
         'defines': ['__EXTENSIONS__'],
       }],

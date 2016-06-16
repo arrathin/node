@@ -222,6 +222,10 @@
                     '-Wl,--whole-archive <(PRODUCT_DIR)/libopenssl.a -Wl,--no-whole-archive',
                   ],
                 }],
+                [ 'OS=="os390"', {
+                    'ldflags': ['-qXPLINK', '-q64']
+                }],
+
               ],
             }]]
         }, {
@@ -408,6 +412,10 @@
               '-Wl,--whole-archive <(V8_BASE) -Wl,--no-whole-archive',
             ],
         }],
+        [ 'OS=="os390"', {
+          'ldflags': ['-qXPLINK', '-q64']
+        }],
+
       ],
       'msvs_settings': {
         'VCManifestTool': {
@@ -725,6 +733,10 @@
               '-Wl,--whole-archive <(V8_BASE) -Wl,--no-whole-archive',
             ],
         }],
+        [ 'OS=="os390"', {
+          'ldflags': ['-qXPLINK', '-q64']
+        }],
+
       ],
       'msvs_settings': {
         'VCLinkerTool': {
@@ -751,6 +763,10 @@
         [ 'OS=="aix"', {
           'ldflags': ['-Wl,-bE:<(PRODUCT_DIR)/node.exp']
         }],
+        [ 'OS=="os390"', {
+          'ldflags': ['-qXPLINK', '-q64']
+        }],
+
       ],
        'actions': [
          {
