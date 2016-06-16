@@ -81,11 +81,18 @@ OBJS += src/ares_getenv.o
 OBJS += src/ares_platform.o
 
 LDFLAGS += -lws2_32.lib -liphlpapi.lib
+else
+ifneq (,$(findstring os/390,$(OS)))
+CFLAGS += -g
+CFLAGS += -qXPLINK
+CFLAGS += -D_LARGEFILE_SOURCE
+CFLAGS += -D_FILE_OFFSET_BITS=64
 else # else a posix system
 CFLAGS += -g --std=gnu89 -pedantic
 CFLAGS += -Wall -Wextra -Wno-unused-parameter
 CFLAGS += -D_LARGEFILE_SOURCE
 CFLAGS += -D_FILE_OFFSET_BITS=64
+endif
 endif
 
 ifneq (,$(findstring cygwin,$(OS)))
