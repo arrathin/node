@@ -123,7 +123,7 @@
             '-g',
           ],
         }],
-        [ 'OS!="os390"', {
+        [ 'OS not in "win os390"', {
           # Not Windows i.e. POSIX
           'cflags': [
             '-pedantic',
