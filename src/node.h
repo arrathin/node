@@ -429,7 +429,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       priv,                                                           \
       NULL                                                            \
     };                                                                \
-    NODE_C_CTOR(_register_ ## modname)                                \                                  \
+    NODE_C_CTOR(_register_ ## modname)                                \
   }
 
 #define NODE_MODULE(modname, regfunc)                                 \
