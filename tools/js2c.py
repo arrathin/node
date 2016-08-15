@@ -56,7 +56,7 @@ def ToCArray(filename, lines):
     if (sys.platform.startswith('os390') and value >= 256):
       print 'non-ebcdic value ' + filename + ':' + str(row) + ':' + str(col)
       sys.exit(1);
-    if value >= 128:
+    elif value >= 128:
       print 'non-ascii value ' + filename + ':' + str(row) + ':' + str(col)
       sys.exit(1);
 
