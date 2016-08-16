@@ -420,6 +420,8 @@ def GetFlavor(params):
     return 'openbsd'
   if sys.platform.startswith('aix'):
     return 'aix'
+  if sys.platform.startswith('os390'):
+    return 'os390'
 
   return 'linux'
 
