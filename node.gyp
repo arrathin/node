@@ -223,9 +223,8 @@
                   ],
                 }],
                 [ 'OS=="os390"', {
-                    'ldflags': ['-qXPLINK', '-q64']
+                    'ldflags': ['-qxplink -q64']
                 }],
-
               ],
             }]]
         }, {
@@ -413,7 +412,22 @@
             ],
         }],
         [ 'OS=="os390"', {
-          'ldflags': ['-qXPLINK', '-q64']
+          'defines': [
+            '_XOPEN_SOURCE_EXTENDED',
+            '_UNIX03_THREADS',
+            '_UNIX03_SOURCE',
+            '_XOPEN_SOURCE=500',
+            '_OPEN_SYS_SOCK_IPV6',
+            '_POSIX_SOURCE',
+            '_OPEN_SYS',
+            '__IBMCPP_TR1__',
+            'PATH_MAX=_POSIX_PATH_MAX',
+          ],
+          'cflags': [
+            '-qlonglong',
+            '-qxplink -q64',
+          ],
+          'ldflags': ['-qxplink -q64']
         }],
 
       ],
@@ -734,7 +748,7 @@
             ],
         }],
         [ 'OS=="os390"', {
-          'ldflags': ['-qXPLINK', '-q64']
+          'ldflags': ['-qxplink -q64']
         }],
 
       ],
@@ -764,7 +778,7 @@
           'ldflags': ['-Wl,-bE:<(PRODUCT_DIR)/node.exp']
         }],
         [ 'OS=="os390"', {
-          'ldflags': ['-qXPLINK', '-q64']
+          'ldflags': ['-qxplink -q64']
         }],
 
       ],

@@ -1,7 +1,7 @@
 {
   'target_defaults': {
     'conditions': [
-      ['OS!="win"', {
+      ['OS not in "win os390"', {
         'defines': [
           '_DARWIN_USE_64_BIT_INODE=1',
           '_LARGEFILE_SOURCE',
@@ -117,11 +117,6 @@
             '-lws2_32.lib',
             '-liphlpapi.lib'
           ],
-        }, {
-          # Not Windows i.e. POSIX
-          'cflags': [
-            '-g',
-          ],
         }],
         [ 'OS not in "win os390"', {
           # Not Windows i.e. POSIX
@@ -162,8 +157,8 @@
           'sources': [ 'config/aix/ares_config.h' ],
         }],
         [ 'OS=="os390"', {
-          'include_dirs': [ 'config/OS390' ],
-          'sources': [ 'config/OS390/ares_config.h' ],
+          'include_dirs': [ 'config/os390' ],
+          'sources': [ 'config/os390/ares_config.h' ],
         }],
         [ 'OS=="solaris"', {
           'include_dirs': [ 'config/sunos' ],

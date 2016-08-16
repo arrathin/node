@@ -142,7 +142,7 @@ cmd_alink_thin = rm -f $@ && $(AR.$(TOOLSET)) crsT $@ $(filter %.o,$^)
 # special "figure out circular dependencies" flags around the entire
 # input list during linking.
 quiet_cmd_link = LINK($(TOOLSET)) $@
-cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(LD_INPUTS) $(LIBS)
+cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(LD_INPUTS)
 
 # We support two kinds of shared objects (.so):
 # 1) shared_library, which is just bundling together many dependent libraries
@@ -175,13 +175,14 @@ quiet_cmd_alink_thin = AR($(TOOLSET)) $@
 cmd_alink_thin = rm -f $@ && $(AR.$(TOOLSET)) crsT $@ $(filter %.o,$^)
 
 quiet_cmd_link = LINK($(TOOLSET)) $@
-cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET))-q64 -qXPLINK   -o $@ $(LD_INPUTS) $(LIBS)
+cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(LD_INPUTS)
 
 quiet_cmd_solink = SOLINK($(TOOLSET)) $@
-cmd_solink = $(LINK.$(TOOLSET)) -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -Wl,-soname=$(@F) -o $@ -Wl,--whole-a
+cmd_solink = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(LD_INPUTS) $(LIBS) -Wl,DLL
 
 quiet_cmd_solink_module = SOLINK_MODULE($(TOOLSET)) $@
-cmd_solink_module = $(LINK.$(TOOLSET)) -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -Wl,-soname=$(@F) -o $@ -Wl,--
+cmd_solink_module = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(filter-out FORCE_DO_CMD, $^) $(LIBS) -Wl,DLL
+
 """
 
 LINK_COMMANDS_MAC = """\
@@ -243,13 +244,6 @@ quiet_cmd_solink_module = SOLINK_MODULE($(TOOLSET)) $@
 cmd_solink_module = $(LINK.$(TOOLSET)) -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -Wl,-soname=$(@F) -o $@ $(filter-out FORCE_DO_CMD, $^) $(LIBS)
 """
 
-DEP_FLAGS_ZOS = """\
-DEPFLAGS = -DHAVE_ARPA_INET_H -D_XOPEN_SOURCE_EXTENDED -DOPENSSL_NO_GOST -DOPENSSL_NO_HW_PADLOCK -D_ISOC99_SOURCE -qmakedep -qLONGLONG -qLANGLVL=EXTENDED -D_UNIX03_THREADS -D_UNIX03_SOURCE -D_OPEN_SYS_IF_EXT=1 -qXPLINK -qFLOAT=IEEE -D_OPEN_MSGQ_EXT -D_ALL_SOURCE -D_LARGE_TIME_API -DUTMP_FILE=\"/etc/utmpx\" -DPATH_MAX=255 -D_OPEN_SYS_SOCK_IPV6 -D_OPEN_SYS_FILE_EXT -DIP_TTL=-1 -DNI_MAXHOST=1024 -DNI_MAXSERV=32 -q64 -MF $(depfile).raw
-"""
-
-DEP_FLAGS_NON_ZOS = """\
-DEPFLAGS = -MMD -MF $(depfile).raw
-"""
 
 # Header of toplevel Makefile.
 # This should go into the build tree, but it's easier to keep it here for now.
@@ -334,7 +328,7 @@ dirx = $(call unreplace_spaces,$(dir $(call replace_spaces,$1)))
 # We write to a dep file on the side first and then rename at the end
 # so we can't end up with a broken dep file.
 depfile = $(depsdir)/$(call replace_spaces,$@).d
-%(dependency_flags)s
+DEPFLAGS = -qmakedep=gcc -MF $(depfile).raw 
 
 # We have to fixup the deps output in a few ways.
 # (1) the file output should mention the proper .o file.
@@ -366,11 +360,7 @@ sed -e "s|^$(notdir $@)|$@|" $(depfile).raw >> $(depfile)
 # We remove slashes and replace spaces with new lines;
 # remove blank lines;
 # delete the first line and append a colon to the remaining lines.
-""" +
-("sed -e 's|\\\\||' -e 'y| |\\|' $(depfile).raw |\\" \
-if sys.platform.startswith("os390") \
-else "sed -e 's|\\\\||' -e 'y| |\\n|' $(depfile).raw |\\") +
-r"""
+sed -e 's|\\||' -e 'y| |\n|' $(depfile).raw |\
   grep -v '^$$'                             |\
   sed -e 1d -e 's|$$|:|'                     \
     >> $(depfile)
@@ -2045,7 +2035,6 @@ def GenerateOutput(target_list, target_dicts, data, params):
       'flock': flock_command,
       'flock_index': 1,
       'link_commands': LINK_COMMANDS_LINUX,
-      'dependency_flags': DEP_FLAGS_NON_ZOS,
       'extra_commands': '',
       'srcdir': srcdir,
     }
@@ -2061,10 +2050,9 @@ def GenerateOutput(target_list, target_dicts, data, params):
     header_params.update({
         'link_commands': LINK_COMMANDS_ANDROID,
     })
-  elif sys.platform.startswith('os390'):
+  elif flavor == 'os390':
     header_params.update({
         'link_commands': LINK_COMMANDS_ZOS,
-        'dependency_flags': DEP_FLAGS_ZOS,
     })
   elif flavor == 'solaris':
     header_params.update({

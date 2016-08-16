@@ -5,7 +5,7 @@
     "include_dirs": [
       "src",
       "include",
-      "../v8/include",
+      "../v8z/include",
       "../uv/include",
 
       # Private node.js folder and stuff needed to include from it
@@ -24,6 +24,16 @@
         # to avoid subtle bugs
         'cflags': [ '-fno-strict-aliasing' ],
       }],
+      ['OS in "os390"', {
+          'defines': [
+            '_UNIX03_THREADS',
+            '_OPEN_SYS_SOCK_IPV6',
+            '_XOPEN_SOURCE=500',
+          ],
+          'cflags': [ '-q64 -qxplink -qlonglong' ],
+          'ldflags': [ '-q64 -qxplink' ],
+      }]
+
     ],
     "sources": [
       "src/agent.cc",
