@@ -3552,8 +3552,6 @@ void Init(int* argc,
   node_isolate = Isolate::New();
   Isolate::Scope isolate_scope(node_isolate);
 
-  node_isolate->SetAbortOnUncaughtException(ShouldAbortOnUncaughtException);
-
 #ifdef __POSIX__
   // Raise the open file descriptor limit.
   {  // NOLINT (whitespace/braces)
