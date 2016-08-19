@@ -211,7 +211,7 @@
  /* If this is set to 'unsigned int' on a DEC Alpha, this gives about a
   * %20 speed up (longs are 8 bytes, int's are 4). */
 # undef DES_LONG
-# if defined(_M_X64) || defined(__x86_64__) || defined(__arm__) || defined(__mips__) || defined(__powerpc64__) || defined(__s390x)
+# if defined(_M_X64) || defined(__x86_64__) || defined(__arm__) || defined(__mips__) || defined(__powerpc64__) || defined(__s390x) || defined(__MVS__)
 #  define DES_LONG unsigned int
 # elif defined(_M_IX86) || defined(__i386__) || defined(__powerpc__) || defined(_ARCH_PPC) || defined(__s390__)
 #  define DES_LONG unsigned long
