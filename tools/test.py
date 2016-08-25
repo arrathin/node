@@ -1536,10 +1536,12 @@ def Main():
 
 def CleanupSemaphores():
  if (platform.system() == 'OS/390'):
-   os.system("for u in $(ipcs -s | grep `whoami` | tr -s ' ' | cut -d ' ' -f2) ;"
-             "do ipcrm -s $u; done")
-   os.system("for u in $(ipcs -s | grep `whoami` | tr -s ' ' | cut -d ' ' -f2) ;"
-             "do ipcrm -q $u; done")
+   os.system("for u in `ipcs | grep \"^q.*$(whoami)\" | tr -s ' ' | cut -d' ' -f2`;"
+                "do ipcrm -q $u;"
+              "done");
+   os.system("for u in `ipcs | grep \"^s.*$(whoami)\" | tr -s ' ' | cut -d' ' -f2`;"
+                "do ipcrm -s $u;"
+              "done");
 
 
 if __name__ == '__main__':
