@@ -84,6 +84,7 @@
         'variables': {
           'v8_enable_handle_zapping%': 0,
         },
+        'cflags': [ '-O3' ],
         'conditions': [
           ['target_arch=="x64"', {
             'msvs_configuration_platform': 'x64',
@@ -102,7 +103,7 @@
             'cflags': [ '-fno-omit-frame-pointer' ],
           }],
           ['OS!="os390"', {
-            'cflags': [ '-O3 -ffunction-sections', '-fdata-sections' ],
+            'cflags': [ '-ffunction-sections', '-fdata-sections' ],
           }],
         ],
         'msvs_settings': {
