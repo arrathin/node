@@ -50,7 +50,7 @@
       }],
       ['GENERATOR != "ninja" and OS!= "mac" and target_arch in "s390 s390x"', {
         'OBJ_DIR': '<(PRODUCT_DIR)/obj.target',
-        'V8_BASE': '<(PRODUCT_DIR)/obj.target/deps/v8z/tools/gyp/libv8_base.a',
+        'V8_BASE': '<(PRODUCT_DIR)/obj.target/deps/v8/tools/gyp/libv8_base.a',
       }],
       ['openssl_fips != ""', {
         'OPENSSL_PRODUCT': 'libcrypto.a',

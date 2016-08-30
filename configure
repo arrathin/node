@@ -780,7 +780,7 @@ def configure_node(o):
     o['variables']['node_enable_v8_vtunejit'] = 'false'
 
   if target_arch in ('s390', 's390x'):
-    o['variables']['v8_parent_path'] = 'deps/v8z'
+    o['variables']['v8_parent_path'] = 'deps/v8'
   else:
     o['variables']['v8_parent_path'] = 'deps/v8'
 
