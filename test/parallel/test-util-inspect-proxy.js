@@ -22,7 +22,7 @@ assert.strictEqual(target, details[0]);
 assert.strictEqual(handler, details[1]);
 
 assert.strictEqual(util.inspect(proxyObj, opts),
-                   'Proxy [ {}, { get: [Function] } ]');
+                   'Proxy [ {}, { get: [Function: get] } ]');
 
 // Using getProxyDetails with non-proxy returns undefined
 assert.strictEqual(processUtil.getProxyDetails({}), undefined);
@@ -48,11 +48,11 @@ const expected2 = 'Proxy [ Proxy [ {}, {} ], {} ]';
 const expected3 = 'Proxy [ Proxy [ Proxy [ {}, {} ], {} ], Proxy [ {}, {} ] ]';
 const expected4 = 'Proxy [ Proxy [ {}, {} ], Proxy [ Proxy [ {}, {} ], {} ] ]';
 const expected5 = 'Proxy [ Proxy [ Proxy [ Proxy [Object], {} ],' +
-                  ' Proxy [ {}, {} ] ],\r\n  Proxy [ Proxy [ {}, {} ]' +
+                  ' Proxy [ {}, {} ] ],\n  Proxy [ Proxy [ {}, {} ]' +
                   ', Proxy [ Proxy [Object], {} ] ] ]';
 const expected6 = 'Proxy [ Proxy [ Proxy [ Proxy [Object], Proxy [Object]' +
-                  ' ],\r\n    Proxy [ Proxy [Object], Proxy [Object] ] ],\r\n' +
-                  '  Proxy [ Proxy [ Proxy [Object], Proxy [Object] ],\r\n' +
+                  ' ],\n    Proxy [ Proxy [Object], Proxy [Object] ] ],\n' +
+                  '  Proxy [ Proxy [ Proxy [Object], Proxy [Object] ],\n' +
                   '    Proxy [ Proxy [Object], Proxy [Object] ] ] ]';
 assert.strictEqual(util.inspect(proxy1, opts), expected1);
 assert.strictEqual(util.inspect(proxy2, opts), expected2);

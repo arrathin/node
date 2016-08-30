@@ -221,8 +221,9 @@ static struct {
   void Initialize(int thread_pool_size) {}
   void PumpMessageLoop(Isolate* isolate) {}
   void Dispose() {}
-  void StartInspector(Environment *env, int port, bool wait) {
+  bool StartInspector(Environment *env, int port, bool wait) {
     env->ThrowError("Node compiled with NODE_USE_V8_PLATFORM=0");
+    return false;  // make compiler happy
   }
 #endif  // !NODE_USE_V8_PLATFORM
 } v8_platform;
@@ -257,7 +258,10 @@ static void PrintErrorString(const char* format, ...) {
 
   std::vector<wchar_t> wbuf(n);
   MultiByteToWideChar(CP_UTF8, 0, out.data(), -1, wbuf.data(), n);
-  WriteConsoleW(stderr_handle, wbuf.data(), n, nullptr, nullptr);
+
+  // Don't include the null character in the output
+  CHECK_GT(n, 0);
+  WriteConsoleW(stderr_handle, wbuf.data(), n - 1, nullptr, nullptr);
 #else
   vfprintf(stderr, format, ap);
 #endif
@@ -2520,31 +2524,43 @@ void FatalException(Isolate* isolate,
   Local<Function> fatal_exception_function =
       process_object->Get(fatal_exception_string).As<Function>();
 
+  int exit_code = 0;
   if (!fatal_exception_function->IsFunction()) {
     // failed before the process._fatalException function was added!
     // this is probably pretty bad.  Nothing to do but report and exit.
     ReportException(env, error, message);
-    exit(6);
+    exit_code = 6;
   }
 
-  TryCatch fatal_try_catch(isolate);
+  if (exit_code == 0) {
+    TryCatch fatal_try_catch(isolate);
 
-  // Do not call FatalException when _fatalException handler throws
-  fatal_try_catch.SetVerbose(false);
+    // Do not call FatalException when _fatalException handler throws
+    fatal_try_catch.SetVerbose(false);
 
-  // this will return true if the JS layer handled it, false otherwise
-  Local<Value> caught =
-      fatal_exception_function->Call(process_object, 1, &error);
+    // this will return true if the JS layer handled it, false otherwise
+    Local<Value> caught =
+        fatal_exception_function->Call(process_object, 1, &error);
 
-  if (fatal_try_catch.HasCaught()) {
-    // the fatal exception function threw, so we must exit
-    ReportException(env, fatal_try_catch);
-    exit(7);
+    if (fatal_try_catch.HasCaught()) {
+      // the fatal exception function threw, so we must exit
+      ReportException(env, fatal_try_catch);
+      exit_code = 7;
+    }
+
+    if (exit_code == 0 && false == caught->BooleanValue()) {
+      ReportException(env, error, message);
+      exit_code = 1;
+    }
   }
 
-  if (false == caught->BooleanValue()) {
-    ReportException(env, error, message);
-    exit(1);
+  if (exit_code) {
+#if HAVE_INSPECTOR
+    if (use_inspector) {
+      env->inspector_agent()->FatalException(error, message);
+    }
+#endif
+    exit(exit_code);
   }
 }
 
@@ -2871,41 +2887,40 @@ static Local<Object> GetFeatures(Environment* env) {
   Local<Value> debug = False(env->isolate());
 #endif  // defined(DEBUG) && DEBUG
 
-  obj->Set(env->debug_string(), debug);
-
-  obj->Set(env->uv_string(), True(env->isolate()));
+  obj->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "debug"), debug);
+  obj->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "uv"), True(env->isolate()));
   // TODO(bnoordhuis) ping libuv
-  obj->Set(env->ipv6_lc_string(), True(env->isolate()));
+  obj->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "ipv6"), True(env->isolate()));
 
 #ifdef OPENSSL_NPN_NEGOTIATED
   Local<Boolean> tls_npn = True(env->isolate());
 #else
   Local<Boolean> tls_npn = False(env->isolate());
 #endif
-  obj->Set(env->tls_npn_string(), tls_npn);
+  obj->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "tls_npn"), tls_npn);
 
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
   Local<Boolean> tls_alpn = True(env->isolate());
 #else
   Local<Boolean> tls_alpn = False(env->isolate());
 #endif
-  obj->Set(env->tls_alpn_string(), tls_alpn);
+  obj->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "tls_alpn"), tls_alpn);
 
 #ifdef SSL_CTRL_SET_TLSEXT_SERVERNAME_CB
   Local<Boolean> tls_sni = True(env->isolate());
 #else
   Local<Boolean> tls_sni = False(env->isolate());
 #endif
-  obj->Set(env->tls_sni_string(), tls_sni);
+  obj->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "tls_sni"), tls_sni);
 
 #if !defined(OPENSSL_NO_TLSEXT) && defined(SSL_CTX_set_tlsext_status_cb)
   Local<Boolean> tls_ocsp = True(env->isolate());
 #else
   Local<Boolean> tls_ocsp = False(env->isolate());
 #endif  // !defined(OPENSSL_NO_TLSEXT) && defined(SSL_CTX_set_tlsext_status_cb)
-  obj->Set(env->tls_ocsp_string(), tls_ocsp);
+  obj->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "tls_ocsp"), tls_ocsp);
 
-  obj->Set(env->tls_string(),
+  obj->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "tls"),
            Boolean::New(env->isolate(),
                         get_builtin_module("crypto") != nullptr));
 
@@ -3031,12 +3046,12 @@ void SetupProcessObject(Environment* env,
 
   Local<Object> process = env->process_object();
 
-  auto maybe = process->SetAccessor(env->context(),
-                                    env->title_string(),
-                                    ProcessTitleGetter,
-                                    ProcessTitleSetter,
-                                    env->as_external());
-  CHECK(maybe.FromJust());
+  auto title_string = FIXED_ONE_BYTE_STRING(env->isolate(), "title");
+  CHECK(process->SetAccessor(env->context(),
+                             title_string,
+                             ProcessTitleGetter,
+                             ProcessTitleSetter,
+                             env->as_external()).FromJust());
 
   // process.version
   READONLY_PROPERTY(process,
@@ -3183,14 +3198,15 @@ void SetupProcessObject(Environment* env,
   for (int i = 0; i < argc; ++i) {
     arguments->Set(i, String::NewFromUtf8(env->isolate(), argv[i]));
   }
-  process->Set(env->argv_string(), arguments);
+  process->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "argv"), arguments);
 
   // process.execArgv
   Local<Array> exec_arguments = Array::New(env->isolate(), exec_argc);
   for (int i = 0; i < exec_argc; ++i) {
     exec_arguments->Set(i, String::NewFromUtf8(env->isolate(), exec_argv[i]));
   }
-  process->Set(env->exec_argv_string(), exec_arguments);
+  process->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "execArgv"),
+               exec_arguments);
 
   // create process.env
   Local<ObjectTemplate> process_env_template =
@@ -3207,12 +3223,13 @@ void SetupProcessObject(Environment* env,
 
   READONLY_PROPERTY(process, "pid", Integer::New(env->isolate(), getpid()));
   READONLY_PROPERTY(process, "features", GetFeatures(env));
-  maybe = process->SetAccessor(env->context(),
-                               env->need_imm_cb_string(),
-                               NeedImmediateCallbackGetter,
-                               NeedImmediateCallbackSetter,
-                               env->as_external());
-  CHECK(maybe.FromJust());
+
+  auto need_immediate_callback_string =
+      FIXED_ONE_BYTE_STRING(env->isolate(), "_needImmediateCallback");
+  CHECK(process->SetAccessor(env->context(), need_immediate_callback_string,
+                             NeedImmediateCallbackGetter,
+                             NeedImmediateCallbackSetter,
+                             env->as_external()).FromJust());
 
   // -e, --eval
   if (eval_string) {
@@ -3312,16 +3329,16 @@ void SetupProcessObject(Environment* env,
   } else {
     exec_path_value = String::NewFromUtf8(env->isolate(), argv[0]);
   }
-  process->Set(env->exec_path_string(), exec_path_value);
+  process->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "execPath"),
+               exec_path_value);
   delete[] exec_path;
 
-  maybe = process->SetAccessor(env->context(),
-                               env->debug_port_string(),
-                               DebugPortGetter,
-                               DebugPortSetter,
-                               env->as_external());
-  CHECK(maybe.FromJust());
-
+  auto debug_port_string = FIXED_ONE_BYTE_STRING(env->isolate(), "debugPort");
+  CHECK(process->SetAccessor(env->context(),
+                             debug_port_string,
+                             DebugPortGetter,
+                             DebugPortSetter,
+                             env->as_external()).FromJust());
 
   // define various internal methods
   env->SetMethod(process,
@@ -3380,8 +3397,8 @@ void SetupProcessObject(Environment* env,
 
   // pre-set _events object for faster emit checks
   Local<Object> events_obj = Object::New(env->isolate());
-  maybe = events_obj->SetPrototype(env->context(), Null(env->isolate()));
-  CHECK(maybe.FromJust());
+  CHECK(events_obj->SetPrototype(env->context(),
+                                 Null(env->isolate())).FromJust());
   process->Set(env->events_string(), events_obj);
 }
 
@@ -3426,7 +3443,6 @@ void LoadEnvironment(Environment* env) {
   env->isolate()->SetFatalErrorHandler(node::OnFatalError);
   env->isolate()->AddMessageListener(OnMessage);
 
-  // The node.js file returns a function 'f'
   atexit(AtExit);
 
   TryCatch try_catch(env->isolate());
@@ -3446,16 +3462,17 @@ void LoadEnvironment(Environment* env) {
     ReportException(env, try_catch);
     exit(10);
   }
+  // The bootstrap_node.js file returns a function 'f'
   CHECK(f_value->IsFunction());
   Local<Function> f = Local<Function>::Cast(f_value);
 
   // Now we call 'f' with the 'process' variable that we've built up with
-  // all our bindings. Inside node.js we'll take care of assigning things to
-  // their places.
+  // all our bindings. Inside bootstrap_node.js we'll take care of
+  // assigning things to their places.
 
   // We start the process this way in order to be more modular. Developers
-  // who do not like how 'src/node.js' setups the module system but do like
-  // Node's I/O bindings may want to replace 'f' with their own function.
+  // who do not like how bootstrap_node.js setups the module system but do
+  // like Node's I/O bindings may want to replace 'f' with their own function.
 
   // Add a reference to the global object
   Local<Object> global = env->context()->Global();
