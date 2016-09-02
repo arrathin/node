@@ -491,8 +491,21 @@ def host_arch_win():
 
   return matchup.get(arch, 'ia32')
 
+def compiler_version_zos():
+  try:
+      proc = subprocess.Popen(shlex.split(CC) + ['-qVersion'],
+                            stdout=subprocess.PIPE)
+  except OSError:
+    return (0, False)
+
+  version = tuple(map(int, proc.communicate()[0].split(' ')[1][1:].split('.')))
+  return (version, 0)
 
 def compiler_version():
+
+  if sys.platform.startswith('os390'):
+    return compiler_version_zos()
+ 
   try:
     proc = subprocess.Popen(shlex.split(CC) + ['--version'],
                             stdout=subprocess.PIPE)
