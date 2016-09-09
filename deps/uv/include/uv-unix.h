@@ -36,7 +36,7 @@
 #include <termios.h>
 #include <pwd.h>
 
-#ifndef __MVS__
+#if !defined(__MVS__)
 #include <semaphore.h>
 #elif defined(__ANDROID__)
 #include "pthread-fixes.h"
@@ -104,9 +104,7 @@ struct uv__async {
   int wfd;
 };
 
-#ifdef __MVS__
-# define UV_PLATFORM_SEM_T  int
-#elif !defined UV_PLATFORM_SEM_T
+#ifndef UV_PLATFORM_SEM_T
 # define UV_PLATFORM_SEM_T sem_t
 #endif
 
@@ -298,8 +296,7 @@ typedef struct {
   void* queued_fds;                                                           \
   UV_STREAM_PRIVATE_PLATFORM_FIELDS                                           \
 
-#define UV_TCP_PRIVATE_FIELDS 						      \
-    UV_TCP_PRIVATE_PLATFORM_FIELDS
+#define UV_TCP_PRIVATE_FIELDS /* empty */
 
 #define UV_UDP_PRIVATE_FIELDS                                                 \
   uv_alloc_cb alloc_cb;                                                       \
