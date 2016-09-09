@@ -274,7 +274,20 @@ test_run_tests_CFLAGS += -D__EXTENSIONS__ -D_XOPEN_SOURCE=500
 endif
 
 if OS390
-test_run_tests_CFLAGS += -D_UNIX03_THREADS -D_UNIX03_SOURCE -D_OPEN_SYS_IF_EXT=1 -qCHARS=signed -qXPLINK -qFLOAT=IEEE -D_OPEN_MSGQ_EXT -D_XOPEN_SOURCE_EXTENDED -D_ALL_SOURCE -D_LARGE_TIME_API -DUTMP_FILE=\"/etc/utmpx\" -DPATH_MAX=255 -D_OPEN_SYS_SOCK_IPV6 -D_OPEN_SYS_FILE_EXT -DIP_TTL=-1
+test_run_tests_CFLAGS += -D_UNIX03_THREADS \
+                         -D_UNIX03_SOURCE \
+                         -D_OPEN_SYS_IF_EXT=1 \
+                         -D_OPEN_SYS_SOCK_IPV6 \
+                         -D_OPEN_MSGQ_EXT \
+                         -D_XOPEN_SOURCE_EXTENDED \
+                         -D_ALL_SOURCE \
+                         -D_LARGE_TIME_API \
+                         -D_OPEN_SYS_FILE_EXT \
+                         -DPATH_MAX=255 \
+                         -D_AE_BIMODAL \
+                         -qCHARS=signed \
+                         -qXPLINK \
+                         -qFLOAT=IEEE
 endif
 
 if AIX
@@ -336,9 +349,27 @@ libuv_la_SOURCES += src/unix/sunos.c
 endif
 
 if OS390
-include_HEADERS += include/uv-os390.h include/pthread-fixes.h
-libuv_la_CFLAGS += -D_UNIX03_THREADS -D_UNIX03_SOURCE -D_OPEN_SYS_IF_EXT=1 -qCHARS=signed -qXPLINK -qFLOAT=IEEE -D_OPEN_MSGQ_EXT -D_XOPEN_SOURCE_EXTENDED -D_ALL_SOURCE -D_LARGE_TIME_API -DUTMP_FILE=\"/etc/utmpx\" -DPATH_MAX=255 -D_OPEN_SYS_SOCK_IPV6 -D_OPEN_SYS_FILE_EXT -DIP_TTL=-1
+include_HEADERS += include/pthread-fixes.h include/pthread-barrier.h
+libuv_la_CFLAGS += -D_UNIX03_THREADS \
+                   -D_UNIX03_SOURCE \
+                   -D_OPEN_SYS_IF_EXT=1 \
+                   -D_OPEN_MSGQ_EXT \
+                   -D_XOPEN_SOURCE_EXTENDED \
+                   -D_ALL_SOURCE \
+                   -D_LARGE_TIME_API \
+                   -D_OPEN_SYS_SOCK_IPV6 \
+                   -D_OPEN_SYS_FILE_EXT \
+                   -DUV_PLATFORM_SEM_T=int \
+                   -DPATH_MAX=255 \
+                   -D_AE_BIMODAL \
+                   -qCHARS=signed \
+                   -qXPLINK \
+                   -qFLOAT=IEEE
 libuv_la_LDFLAGS += -qXPLINK
+libuv_la_SOURCES += src/unix/pthread-fixes.c \
+                    src/unix/pthread-barrier.c \
+                    src/unix/os390.c \
+                    src/unix/os390-syscalls.c \
 libuv_la_SOURCES += src/unix/os390.c  src/unix/os390-epoll.c src/unix/os390-syscalls.c src/unix/pthread-fixes.c
 endif
 

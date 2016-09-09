@@ -19,7 +19,7 @@
  * IN THE SOFTWARE.
  */
 
-#if !defined(_WIN32) && !defined(__MVS__)
+#if !defined(_WIN32)
 
 #include "uv.h"
 #include "task.h"
@@ -98,6 +98,11 @@ static void connection_cb(uv_stream_t* handle, int status) {
 
 
 TEST_IMPL(tcp_oob) {
+
+#if defined(__MVS__)
+  RETURN_SKIP("Not supported by the platform");
+#endif
+
   struct sockaddr_in addr;
   uv_loop_t* loop;
 

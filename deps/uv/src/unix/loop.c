@@ -95,9 +95,7 @@ void uv__loop_close(uv_loop_t* loop) {
   }
 
   if (loop->backend_fd != -1) {
-#if !defined(__MVS__)
     uv__close(loop->backend_fd);
-#endif
     loop->backend_fd = -1;
   }
 

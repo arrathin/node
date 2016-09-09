@@ -118,19 +118,13 @@ skip:
 static void uv__tty_make_raw(struct termios* tio) {
   assert(tio != NULL);
 
-#ifdef __sun
+#if defined __sun || defined __MVS__
   /*
    * This implementation of cfmakeraw for Solaris and derivatives is taken from
    * http://www.perkin.org.uk/posts/solaris-portability-cfmakeraw.html.
    */
   tio->c_iflag &= ~(IMAXBEL | IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR |
                     IGNCR | ICRNL | IXON);
-  tio->c_oflag &= ~OPOST;
-  tio->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-  tio->c_cflag &= ~(CSIZE | PARENB);
-  tio->c_cflag |= CS8;
-#elif defined __MVS__
-  tio->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
   tio->c_oflag &= ~OPOST;
   tio->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
   tio->c_cflag &= ~(CSIZE | PARENB);

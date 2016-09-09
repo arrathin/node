@@ -138,23 +138,6 @@
             ],
           },
         }, { # Not Windows i.e. POSIX
-          'conditions': [
-            ['OS!="os390"', {
-              'cflags': [
-                '-g',
-                '--std=gnu89',
-                '-pedantic',
-                '-Wall',
-                '-Wextra',
-                '-Wno-unused-parameter',
-              ],
-
-            }, {
-              'cflags': [
-                '-g',
-                '-qCHARS=signed',
-              ]},
-            ]],
           'sources': [
             'include/uv-unix.h',
             'include/uv-linux.h',
@@ -216,7 +199,7 @@
             }],
           ],
         }],
-        [ 'OS in "linux mac ios android"', {
+        [ 'OS in "linux mac ios android os390"', {
           'sources': [ 'src/unix/proctitle.c' ],
         }],
         [ 'OS != "os390"', {
@@ -286,16 +269,6 @@
             ],
           },
         }],
-        [ 'OS=="os390"', {
-          'sources': [
-            'src/unix/pthread-fixes.c',
-            'src/unix/os390-syscalls.c',
-            'src/unix/os390-syscalls.h',
-            'src/unix/os390-epoll.c',
-            'src/unix/os390-epoll.h',
-            'src/unix/os390.c',
-          ],
-        }],
         [ 'OS=="aix"', {
           'sources': [ 'src/unix/aix.c' ],
           'defines': [
@@ -328,6 +301,14 @@
         }],
         ['uv_library=="shared_library"', {
           'defines': [ 'BUILDING_UV_SHARED=1' ]
+        }],
+        ['OS=="os390"', {
+          'sources': [ 
+            'src/unix/pthread-fixes.c',
+            'src/unix/pthread-barrier.c',
+            'src/unix/os390.c',
+            'src/unix/os390-syscalls.c'
+          ]
         }],
       ]
     },
@@ -476,6 +457,12 @@
             'test/runner-unix.c',
             'test/runner-unix.h',
           ],
+          'conditions': [
+            [ 'OS != "os390"', {
+              'defines': [ '_GNU_SOURCE' ],
+              'cflags': [ '-Wno-long-long' ],
+            }],
+          ],
         }],
         [ 'OS=="solaris"', { # make test-fs.c compile, needs _POSIX_C_SOURCE
           'defines': [
@@ -491,10 +478,10 @@
         }],
         ['uv_library=="shared_library"', {
           'defines': [ 'USING_UV_SHARED=1' ],
-          'conditions': [ 
+          'conditions': [
             [ 'OS == "os390"', {
               'cflags': [ '-Wc,DLL' ],
-            }], 
+            }],
           ],
         }],
       ],
@@ -551,10 +538,10 @@
         }],
         ['uv_library=="shared_library"', {
           'defines': [ 'USING_UV_SHARED=1' ],
-          'conditions': [ 
+          'conditions': [
             [ 'OS == "os390"', {
               'cflags': [ '-Wc,DLL' ],
-            }], 
+            }],
           ],
         }],
       ],
