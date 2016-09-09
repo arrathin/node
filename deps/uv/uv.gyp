@@ -305,7 +305,6 @@
         ['OS=="os390"', {
           'sources': [ 
             'src/unix/pthread-fixes.c',
-            'src/unix/pthread-barrier.c',
             'src/unix/os390.c',
             'src/unix/os390-syscalls.c'
           ]

@@ -24,4 +24,8 @@
 
 #define UV_PLATFORM_SEM_T int
 
+#define UV_PLATFORM_WRITE_FIELDS /* empty */
+#define UV_PLATFORM_CONNECT_FIELDS /* empty */
+#define UV_TCP_PRIVATE_PLATFORM_FIELDS /* empty */
+
 #endif /* UV_MVS_H */
