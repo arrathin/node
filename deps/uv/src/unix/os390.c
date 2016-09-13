@@ -518,7 +518,7 @@ int uv__io_check_fd(uv_loop_t* loop, int fd) {
   int rv;
 
   p[0].fd = fd;
-  p[0].events = POLLIN;
+  p[0].events = UV__POLLIN;
 
   do
     rv = poll(p, 1, 0);
@@ -712,7 +712,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
        * the current watcher. Also, filters out events that users has not
        * requested us to watch.
        */
-      pe->events &= w->pevents | POLLERR | POLLHUP;
+      pe->events &= w->pevents | UV__POLLERR | UV__POLLHUP;
 
       /* Work around an epoll quirk where it sometimes reports just the
        * EPOLLERR or EPOLLHUP event.  In order to force the event loop to
@@ -729,8 +729,8 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
        * needs to remember the error/hangup event.  We should get that for
        * free when we switch over to edge-triggered I/O.
        */
-      if (pe->events == POLLERR || pe->events == POLLHUP)
-        pe->events |= w->pevents & (POLLIN | POLLOUT);
+      if (pe->events == UV__POLLERR || pe->events == UV__POLLHUP)
+        pe->events |= w->pevents & (UV__POLLIN | UV__POLLOUT);
 
       if (pe->events != 0) {
         w->cb(loop, w, pe->events);
