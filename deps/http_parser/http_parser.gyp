@@ -45,11 +45,8 @@
         ],
       }],
       ['OS == "os390"', {
-        'cflags!': [ '-Wall', '-Wextra', ],
+        'cflags!': [ '-Wall', '-Wextra', '-ftrapv', '-O0' ],
       }],
-      #['OS == "os390"', {
-      #  'cflags': [ '-g', ],
-      #}],
     ],
   },
 
