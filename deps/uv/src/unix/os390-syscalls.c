@@ -21,6 +21,7 @@
 
 
 #include "os390-syscalls.h"
+#include "internal.h"
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -213,13 +214,13 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
       continue;
 
     if(pfds[i].revents & POLLRDNORM)
-      ev.events = ev.events | POLLIN;
+      ev.events = ev.events | UV__POLLIN;
 
     if(pfds[i].revents & POLLWRNORM)
-      ev.events = ev.events | POLLOUT;
+      ev.events = ev.events | UV__POLLOUT;
 
     if(pfds[i].revents & POLLHUP)
-      ev.events = ev.events | POLLHUP;
+      ev.events = ev.events | UV__POLLHUP;
 
     pfds[i].revents = 0;
     events[reventcount++] = ev; 

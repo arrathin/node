@@ -42,10 +42,10 @@
 #define UV__EPOLL_CTL_DEL         EPOLL_CTL_DEL
 #define UV__EPOLL_CTL_MOD         EPOLL_CTL_MOD
 
-#define UV__EPOLLIN           1
-#define UV__EPOLLOUT          4
-#define UV__EPOLLERR          8
-#define UV__EPOLLHUP          16
+#define UV__EPOLLIN           POLLIN
+#define UV__EPOLLOUT          POLLOUT
+#define UV__EPOLLERR          POLLERR
+#define UV__EPOLLHUP          POLLHUP
 #define UV__EPOLLRDHUP        0x2000
 #define UV__EPOLLONESHOT      0x40000000
 #define UV__EPOLLET           0x80000000
