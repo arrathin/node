@@ -37,6 +37,8 @@
 
 #if defined(_MSC_VER)
 #define strcasecmp _stricmp
+#elif defined(__MVS__)
+#include <unistd.h>   // a2e
 #else
 #include <strings.h>  // strcasecmp()
 #endif
@@ -395,6 +397,11 @@ class Parser : public BaseObject {
     Local<Object> buffer_obj = args[0].As<Object>();
     char* buffer_data = Buffer::Data(buffer_obj);
     size_t buffer_len = Buffer::Length(buffer_obj);
+
+#ifdef __MVS__
+    // TODO: (jBarz) consider converting to ebcdic-utf
+    __a2e_l(buffer_data, buffer_len);
+#endif
 
     // This is a hack to get the current_buffer to the callbacks with the least
     // amount of overhead. Nothing else will run while http_parser_execute()
