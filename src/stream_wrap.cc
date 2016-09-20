@@ -498,6 +498,10 @@ void StreamWrap::Writev(const FunctionCallbackInfo<Value>& args) {
                                   encoding);
     bufs[i].base = str_storage;
     bufs[i].len = str_size;
+#ifdef __MVS__
+    if (encoding == UTF8 && wrap->is_tcp())
+      __e2a_l(bufs[i].base, bufs[i].len);
+#endif
     offset += str_size;
     bytes += str_size;
   }
