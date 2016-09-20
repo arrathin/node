@@ -425,7 +425,9 @@
           ],
           'cflags': [
             '-qlonglong',
-            '-qxplink -q64',
+            '-qconvlit=ISO8859-1',
+            '-qxplink',
+            '-q64',
           ],
           'ldflags': ['-qxplink -q64']
         }],
