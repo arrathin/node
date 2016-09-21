@@ -53,23 +53,23 @@ class TimerWrap : public HandleWrap {
     Local<FunctionTemplate> constructor = FunctionTemplate::New(env->isolate(),
                                                                 New);
     constructor->InstanceTemplate()->SetInternalFieldCount(1);
-    constructor->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "Timer"));
-    constructor->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "kOnTimeout"),
+    constructor->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x69\x6d\x65\x72"));
+    constructor->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x6b\x4f\x6e\x54\x69\x6d\x65\x6f\x75\x74"),
                      Integer::New(env->isolate(), kOnTimeout));
 
-    NODE_SET_METHOD(constructor, "now", Now);
+    NODE_SET_METHOD(constructor, "\x6e\x6f\x77", Now);
 
-    NODE_SET_PROTOTYPE_METHOD(constructor, "close", HandleWrap::Close);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "ref", HandleWrap::Ref);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "unref", HandleWrap::Unref);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x63\x6c\x6f\x73\x65", HandleWrap::Close);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x72\x65\x66", HandleWrap::Ref);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x75\x6e\x72\x65\x66", HandleWrap::Unref);
 
-    NODE_SET_PROTOTYPE_METHOD(constructor, "start", Start);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "stop", Stop);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "setRepeat", SetRepeat);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "getRepeat", GetRepeat);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "again", Again);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x73\x74\x61\x72\x74", Start);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x73\x74\x6f\x70", Stop);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x73\x65\x74\x52\x65\x70\x65\x61\x74", SetRepeat);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x67\x65\x74\x52\x65\x70\x65\x61\x74", GetRepeat);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x61\x67\x61\x69\x6e", Again);
 
-    target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "Timer"),
+    target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x69\x6d\x65\x72"),
                 constructor->GetFunction());
   }
 

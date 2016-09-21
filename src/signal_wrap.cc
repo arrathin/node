@@ -50,15 +50,15 @@ class SignalWrap : public HandleWrap {
     Local<FunctionTemplate> constructor = FunctionTemplate::New(env->isolate(),
                                                                 New);
     constructor->InstanceTemplate()->SetInternalFieldCount(1);
-    constructor->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "Signal"));
+    constructor->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x53\x69\x67\x6e\x61\x6c"));
 
-    NODE_SET_PROTOTYPE_METHOD(constructor, "close", HandleWrap::Close);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "ref", HandleWrap::Ref);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "unref", HandleWrap::Unref);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "start", Start);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "stop", Stop);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x63\x6c\x6f\x73\x65", HandleWrap::Close);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x72\x65\x66", HandleWrap::Ref);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x75\x6e\x72\x65\x66", HandleWrap::Unref);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x73\x74\x61\x72\x74", Start);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x73\x74\x6f\x70", Stop);
 
-    target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "Signal"),
+    target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x53\x69\x67\x6e\x61\x6c"),
                 constructor->GetFunction());
   }
 

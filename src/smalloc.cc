@@ -176,17 +176,17 @@ void CopyOnto(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (!args[0]->IsObject())
-    return env->ThrowTypeError("source must be an object");
+    return env->ThrowTypeError("\x73\x6f\x75\x72\x63\x65\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x6f\x62\x6a\x65\x63\x74");
   if (!args[2]->IsObject())
-    return env->ThrowTypeError("dest must be an object");
+    return env->ThrowTypeError("\x64\x65\x73\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x6f\x62\x6a\x65\x63\x74");
 
   Local<Object> source = args[0].As<Object>();
   Local<Object> dest = args[2].As<Object>();
 
   if (!source->HasIndexedPropertiesInExternalArrayData())
-    return env->ThrowError("source has no external array data");
+    return env->ThrowError("\x73\x6f\x75\x72\x63\x65\x20\x68\x61\x73\x20\x6e\x6f\x20\x65\x78\x74\x65\x72\x6e\x61\x6c\x20\x61\x72\x72\x61\x79\x20\x64\x61\x74\x61");
   if (!dest->HasIndexedPropertiesInExternalArrayData())
-    return env->ThrowError("dest has no external array data");
+    return env->ThrowError("\x64\x65\x73\x74\x20\x68\x61\x73\x20\x6e\x6f\x20\x65\x78\x74\x65\x72\x6e\x61\x6c\x20\x61\x72\x72\x61\x79\x20\x64\x61\x74\x61");
 
   size_t source_start = args[1]->Uint32Value();
   size_t dest_start = args[3]->Uint32Value();
@@ -209,16 +209,16 @@ void CopyOnto(const FunctionCallbackInfo<Value>& args) {
   // optimization for Uint8 arrays (i.e. Buffers)
   if (source_size != 1 || dest_size != 1) {
     if (source_size == 0)
-      return env->ThrowTypeError("unknown source external array type");
+      return env->ThrowTypeError("\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x73\x6f\x75\x72\x63\x65\x20\x65\x78\x74\x65\x72\x6e\x61\x6c\x20\x61\x72\x72\x61\x79\x20\x74\x79\x70\x65");
     if (dest_size == 0)
-      return env->ThrowTypeError("unknown dest external array type");
+      return env->ThrowTypeError("\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x64\x65\x73\x74\x20\x65\x78\x74\x65\x72\x6e\x61\x6c\x20\x61\x72\x72\x61\x79\x20\x74\x79\x70\x65");
 
     if (source_length * source_size < source_length)
-      return env->ThrowRangeError("source_length * source_size overflow");
+      return env->ThrowRangeError("\x73\x6f\x75\x72\x63\x65\x5f\x6c\x65\x6e\x67\x74\x68\x20\x2a\x20\x73\x6f\x75\x72\x63\x65\x5f\x73\x69\x7a\x65\x20\x6f\x76\x65\x72\x66\x6c\x6f\x77");
     if (copy_length * source_size < copy_length)
-      return env->ThrowRangeError("copy_length * source_size overflow");
+      return env->ThrowRangeError("\x63\x6f\x70\x79\x5f\x6c\x65\x6e\x67\x74\x68\x20\x2a\x20\x73\x6f\x75\x72\x63\x65\x5f\x73\x69\x7a\x65\x20\x6f\x76\x65\x72\x66\x6c\x6f\x77");
     if (dest_length * dest_size < dest_length)
-      return env->ThrowRangeError("dest_length * dest_size overflow");
+      return env->ThrowRangeError("\x64\x65\x73\x74\x5f\x6c\x65\x6e\x67\x74\x68\x20\x2a\x20\x64\x65\x73\x74\x5f\x73\x69\x7a\x65\x20\x6f\x76\x65\x72\x66\x6c\x6f\x77");
 
     source_length *= source_size;
     copy_length *= source_size;
@@ -227,19 +227,19 @@ void CopyOnto(const FunctionCallbackInfo<Value>& args) {
 
   // necessary to check in case (source|dest)_start _and_ copy_length overflow
   if (copy_length > source_length)
-    return env->ThrowRangeError("copy_length > source_length");
+    return env->ThrowRangeError("\x63\x6f\x70\x79\x5f\x6c\x65\x6e\x67\x74\x68\x20\x3e\x20\x73\x6f\x75\x72\x63\x65\x5f\x6c\x65\x6e\x67\x74\x68");
   if (copy_length > dest_length)
-    return env->ThrowRangeError("copy_length > dest_length");
+    return env->ThrowRangeError("\x63\x6f\x70\x79\x5f\x6c\x65\x6e\x67\x74\x68\x20\x3e\x20\x64\x65\x73\x74\x5f\x6c\x65\x6e\x67\x74\x68");
   if (source_start > source_length)
-    return env->ThrowRangeError("source_start > source_length");
+    return env->ThrowRangeError("\x73\x6f\x75\x72\x63\x65\x5f\x73\x74\x61\x72\x74\x20\x3e\x20\x73\x6f\x75\x72\x63\x65\x5f\x6c\x65\x6e\x67\x74\x68");
   if (dest_start > dest_length)
-    return env->ThrowRangeError("dest_start > dest_length");
+    return env->ThrowRangeError("\x64\x65\x73\x74\x5f\x73\x74\x61\x72\x74\x20\x3e\x20\x64\x65\x73\x74\x5f\x6c\x65\x6e\x67\x74\x68");
 
   // now we can guarantee these will catch oob access and *_start overflow
   if (source_start + copy_length > source_length)
-    return env->ThrowRangeError("source_start + copy_length > source_length");
+    return env->ThrowRangeError("\x73\x6f\x75\x72\x63\x65\x5f\x73\x74\x61\x72\x74\x20\x2b\x20\x63\x6f\x70\x79\x5f\x6c\x65\x6e\x67\x74\x68\x20\x3e\x20\x73\x6f\x75\x72\x63\x65\x5f\x6c\x65\x6e\x67\x74\x68");
   if (dest_start + copy_length > dest_length)
-    return env->ThrowRangeError("dest_start + copy_length > dest_length");
+    return env->ThrowRangeError("\x64\x65\x73\x74\x5f\x73\x74\x61\x72\x74\x20\x2b\x20\x63\x6f\x70\x79\x5f\x6c\x65\x6e\x67\x74\x68\x20\x3e\x20\x64\x65\x73\x74\x5f\x6c\x65\x6e\x67\x74\x68");
 
   memmove(dest_data + dest_start, source_data + source_start, copy_length);
 }
@@ -297,7 +297,7 @@ void Alloc(const FunctionCallbackInfo<Value>& args) {
 
   // can't perform this check in JS
   if (obj->HasIndexedPropertiesInExternalArrayData())
-    return env->ThrowTypeError("object already has external array data");
+    return env->ThrowTypeError("\x6f\x62\x6a\x65\x63\x74\x20\x61\x6c\x72\x65\x61\x64\x79\x20\x68\x61\x73\x20\x65\x78\x74\x65\x72\x6e\x61\x6c\x20\x61\x72\x72\x61\x79\x20\x64\x61\x74\x61");
 
   size_t length = args[1]->Uint32Value();
   enum ExternalArrayType array_type;
@@ -331,8 +331,8 @@ void Alloc(Environment* env,
 
   char* data = static_cast<char*>(malloc(length));
   if (data == NULL) {
-    FatalError("node::smalloc::Alloc(v8::Handle<v8::Object>, size_t,"
-               " v8::ExternalArrayType)", "Out Of Memory");
+    FatalError("\x6e\x6f\x64\x65\x3a\x3a\x73\x6d\x61\x6c\x6c\x6f\x63\x3a\x3a\x41\x6c\x6c\x6f\x63\x28\x76\x38\x3a\x3a\x48\x61\x6e\x64\x6c\x65\x3c\x76\x38\x3a\x3a\x4f\x62\x6a\x65\x63\x74\x3e\x2c\x20\x73\x69\x7a\x65\x5f\x74\x2c"
+               "\x20\x76\x38\x3a\x3a\x45\x78\x74\x65\x72\x6e\x61\x6c\x41\x72\x72\x61\x79\x54\x79\x70\x65\x29", "\x4f\x75\x74\x20\x4f\x66\x20\x4d\x65\x6d\x6f\x72\x79");
   }
 
   Alloc(env, obj, data, length, type);
@@ -458,7 +458,7 @@ void AllocTruncate(const FunctionCallbackInfo<Value>& args) {
 
   // can't perform this check in JS
   if (!obj->HasIndexedPropertiesInExternalArrayData())
-    return env->ThrowTypeError("object has no external array data");
+    return env->ThrowTypeError("\x6f\x62\x6a\x65\x63\x74\x20\x68\x61\x73\x20\x6e\x6f\x20\x65\x78\x74\x65\x72\x6e\x61\x6c\x20\x61\x72\x72\x61\x79\x20\x64\x61\x74\x61");
 
   char* data = static_cast<char*>(obj->GetIndexedPropertiesExternalArrayData());
   enum ExternalArrayType array_type =
@@ -467,10 +467,10 @@ void AllocTruncate(const FunctionCallbackInfo<Value>& args) {
 
   unsigned int new_len = args[1]->Uint32Value();
   if (new_len > kMaxLength)
-    return env->ThrowRangeError("truncate length is bigger than kMaxLength");
+    return env->ThrowRangeError("\x74\x72\x75\x6e\x63\x61\x74\x65\x20\x6c\x65\x6e\x67\x74\x68\x20\x69\x73\x20\x62\x69\x67\x67\x65\x72\x20\x74\x68\x61\x6e\x20\x6b\x4d\x61\x78\x4c\x65\x6e\x67\x74\x68");
 
   if (static_cast<int>(new_len) > length)
-    return env->ThrowRangeError("truncate length is bigger than current one");
+    return env->ThrowRangeError("\x74\x72\x75\x6e\x63\x61\x74\x65\x20\x6c\x65\x6e\x67\x74\x68\x20\x69\x73\x20\x62\x69\x67\x67\x65\x72\x20\x74\x68\x61\x6e\x20\x63\x75\x72\x72\x65\x6e\x74\x20\x6f\x6e\x65");
 
   obj->SetIndexedPropertiesToExternalArrayData(data,
                                                array_type,
@@ -496,7 +496,7 @@ class RetainedAllocInfo: public RetainedObjectInfo {
 };
 
 
-const char RetainedAllocInfo::label_[] = "smalloc";
+const char RetainedAllocInfo::label_[] = "\x73\x6d\x61\x6c\x6c\x6f\x63";
 
 
 RetainedAllocInfo::RetainedAllocInfo(Handle<Value> wrapper) {
@@ -592,17 +592,17 @@ void Initialize(Handle<Object> exports,
                 Handle<Context> context) {
   Environment* env = Environment::GetCurrent(context);
 
-  NODE_SET_METHOD(exports, "copyOnto", CopyOnto);
-  NODE_SET_METHOD(exports, "sliceOnto", SliceOnto);
+  NODE_SET_METHOD(exports, "\x63\x6f\x70\x79\x4f\x6e\x74\x6f", CopyOnto);
+  NODE_SET_METHOD(exports, "\x73\x6c\x69\x63\x65\x4f\x6e\x74\x6f", SliceOnto);
 
-  NODE_SET_METHOD(exports, "alloc", Alloc);
-  NODE_SET_METHOD(exports, "dispose", AllocDispose);
-  NODE_SET_METHOD(exports, "truncate", AllocTruncate);
+  NODE_SET_METHOD(exports, "\x61\x6c\x6c\x6f\x63", Alloc);
+  NODE_SET_METHOD(exports, "\x64\x69\x73\x70\x6f\x73\x65", AllocDispose);
+  NODE_SET_METHOD(exports, "\x74\x72\x75\x6e\x63\x61\x74\x65", AllocTruncate);
 
-  NODE_SET_METHOD(exports, "hasExternalData", HasExternalData);
-  NODE_SET_METHOD(exports, "isTypedArray", IsTypedArray);
+  NODE_SET_METHOD(exports, "\x68\x61\x73\x45\x78\x74\x65\x72\x6e\x61\x6c\x44\x61\x74\x61", HasExternalData);
+  NODE_SET_METHOD(exports, "\x69\x73\x54\x79\x70\x65\x64\x41\x72\x72\x61\x79", IsTypedArray);
 
-  exports->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "kMaxLength"),
+  exports->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x6b\x4d\x61\x78\x4c\x65\x6e\x67\x74\x68"),
                Uint32::NewFromUnsigned(env->isolate(), kMaxLength));
 
   HeapProfiler* heap_profiler = env->isolate()->GetHeapProfiler();

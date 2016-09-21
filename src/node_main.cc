@@ -37,7 +37,7 @@ int wmain(int argc, wchar_t *wargv[]) {
                                      NULL);
     if (size == 0) {
       // This should never happen.
-      fprintf(stderr, "Could not convert arguments to utf8.");
+      fprintf(stderr, "\x43\x6f\x75\x6c\x64\x20\x6e\x6f\x74\x20\x63\x6f\x6e\x76\x65\x72\x74\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x73\x20\x74\x6f\x20\x75\x74\x66\x38\x2e");
       exit(1);
     }
     // Do the actual conversion
@@ -52,7 +52,7 @@ int wmain(int argc, wchar_t *wargv[]) {
                                        NULL);
     if (result == 0) {
       // This should never happen.
-      fprintf(stderr, "Could not convert arguments to utf8.");
+      fprintf(stderr, "\x43\x6f\x75\x6c\x64\x20\x6e\x6f\x74\x20\x63\x6f\x6e\x76\x65\x72\x74\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x73\x20\x74\x6f\x20\x75\x74\x66\x38\x2e");
       exit(1);
     }
   }

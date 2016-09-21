@@ -65,7 +65,7 @@ using v8::Value;
 static void GetEndianness(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args.GetIsolate());
   HandleScope scope(env->isolate());
-  const char* rval = IsBigEndian() ? "BE" : "LE";
+  const char* rval = IsBigEndian() ? "\x42\x45" : "\x4c\x45";
   args.GetReturnValue().Set(OneByteString(env->isolate(), rval));
 }
 
@@ -81,9 +81,9 @@ static void GetHostname(const FunctionCallbackInfo<Value>& args) {
 #else  // __MINGW32__
     int errorno = WSAGetLastError();
 #endif  // __POSIX__
-    return env->ThrowErrnoException(errorno, "gethostname");
+    return env->ThrowErrnoException(errorno, "\x67\x65\x74\x68\x6f\x73\x74\x6e\x61\x6d\x65");
   }
-  buf[sizeof(buf) - 1] = '\0';
+  buf[sizeof(buf) - 1] = '\x0';
 
   args.GetReturnValue().Set(OneByteString(env->isolate(), buf));
 }
@@ -97,11 +97,11 @@ static void GetOSType(const FunctionCallbackInfo<Value>& args) {
 #ifdef __POSIX__
   struct utsname info;
   if (uname(&info) < 0) {
-    return env->ThrowErrnoException(errno, "uname");
+    return env->ThrowErrnoException(errno, "\x75\x6e\x61\x6d\x65");
   }
   rval = info.sysname;
 #else  // __MINGW32__
-  rval ="Windows_NT";
+  rval ="\x57\x69\x6e\x64\x6f\x77\x73\x5f\x4e\x54";
 #endif  // __POSIX__
 
   args.GetReturnValue().Set(OneByteString(env->isolate(), rval));
@@ -116,7 +116,7 @@ static void GetOSRelease(const FunctionCallbackInfo<Value>& args) {
 #ifdef __POSIX__
   struct utsname info;
   if (uname(&info) < 0) {
-    return env->ThrowErrnoException(errno, "uname");
+    return env->ThrowErrnoException(errno, "\x75\x6e\x61\x6d\x65");
   }
   rval = info.release;
 #else  // __MINGW32__
@@ -129,7 +129,7 @@ static void GetOSRelease(const FunctionCallbackInfo<Value>& args) {
 
   snprintf(release,
            sizeof(release),
-           "%d.%d.%d",
+           "\x6c\x84\x2e\x6c\x84\x2e\x6c\x84",
            static_cast<int>(info.dwMajorVersion),
            static_cast<int>(info.dwMinorVersion),
            static_cast<int>(info.dwBuildNumber));
@@ -243,7 +243,7 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
   if (err == UV_ENOSYS) {
     args.GetReturnValue().Set(ret);
   } else if (err) {
-    return env->ThrowUVException(err, "uv_interface_addresses");
+    return env->ThrowUVException(err, "\x75\x76\x5f\x69\x6e\x74\x65\x72\x66\x61\x63\x65\x5f\x61\x64\x64\x72\x65\x73\x73\x65\x73");
   }
 
   for (i = 0; i < count; i++) {
@@ -257,7 +257,7 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
 
     snprintf(mac,
              18,
-             "%02x:%02x:%02x:%02x:%02x:%02x",
+             "\x6c\xf0\xf2\xa7\x3a\x6c\xf0\xf2\xa7\x3a\x6c\xf0\xf2\xa7\x3a\x6c\xf0\xf2\xa7\x3a\x6c\xf0\xf2\xa7\x3a\x6c\xf0\xf2\xa7",
              static_cast<unsigned char>(interfaces[i].phys_addr[0]),
              static_cast<unsigned char>(interfaces[i].phys_addr[1]),
              static_cast<unsigned char>(interfaces[i].phys_addr[2]),
@@ -274,7 +274,7 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
       uv_ip6_name(&interfaces[i].netmask.netmask6, netmask, sizeof(netmask));
       family = env->ipv6_string();
     } else {
-      strncpy(ip, "<unknown sa family>", INET6_ADDRSTRLEN);
+      strncpy(ip, "\x3c\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x73\x61\x20\x66\x61\x6d\x69\x6c\x79\x3e", INET6_ADDRSTRLEN);
       family = env->unknown_string();
     }
 
@@ -305,16 +305,16 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
 void Initialize(Handle<Object> target,
                 Handle<Value> unused,
                 Handle<Context> context) {
-  NODE_SET_METHOD(target, "getEndianness", GetEndianness);
-  NODE_SET_METHOD(target, "getHostname", GetHostname);
-  NODE_SET_METHOD(target, "getLoadAvg", GetLoadAvg);
-  NODE_SET_METHOD(target, "getUptime", GetUptime);
-  NODE_SET_METHOD(target, "getTotalMem", GetTotalMemory);
-  NODE_SET_METHOD(target, "getFreeMem", GetFreeMemory);
-  NODE_SET_METHOD(target, "getCPUs", GetCPUInfo);
-  NODE_SET_METHOD(target, "getOSType", GetOSType);
-  NODE_SET_METHOD(target, "getOSRelease", GetOSRelease);
-  NODE_SET_METHOD(target, "getInterfaceAddresses", GetInterfaceAddresses);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x45\x6e\x64\x69\x61\x6e\x6e\x65\x73\x73", GetEndianness);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x48\x6f\x73\x74\x6e\x61\x6d\x65", GetHostname);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x4c\x6f\x61\x64\x41\x76\x67", GetLoadAvg);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x55\x70\x74\x69\x6d\x65", GetUptime);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x54\x6f\x74\x61\x6c\x4d\x65\x6d", GetTotalMemory);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x46\x72\x65\x65\x4d\x65\x6d", GetFreeMemory);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x43\x50\x55\x73", GetCPUInfo);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x4f\x53\x54\x79\x70\x65", GetOSType);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x4f\x53\x52\x65\x6c\x65\x61\x73\x65", GetOSRelease);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x49\x6e\x74\x65\x72\x66\x61\x63\x65\x41\x64\x64\x72\x65\x73\x73\x65\x73", GetInterfaceAddresses);
 }
 
 }  // namespace os

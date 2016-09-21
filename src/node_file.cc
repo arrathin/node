@@ -64,7 +64,7 @@ using v8::Value;
 
 #define TYPE_ERROR(msg) env->ThrowTypeError(msg)
 
-#define THROW_BAD_ARGS TYPE_ERROR("Bad argument")
+#define THROW_BAD_ARGS TYPE_ERROR("\x42\x61\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74")
 
 class FSReqWrap: public ReqWrap<uv_fs_t> {
  public:
@@ -109,11 +109,11 @@ static void NewFSReqWrap(const FunctionCallbackInfo<Value>& args) {
 
 #define ASSERT_OFFSET(a) \
   if (!(a)->IsUndefined() && !(a)->IsNull() && !IsInt64((a)->NumberValue())) { \
-    return env->ThrowTypeError("Not an integer"); \
+    return env->ThrowTypeError("\x4e\x6f\x74\x20\x61\x6e\x20\x69\x6e\x74\x65\x67\x65\x72"); \
   }
 #define ASSERT_TRUNCATE_LENGTH(a) \
   if (!(a)->IsUndefined() && !(a)->IsNull() && !IsInt64((a)->NumberValue())) { \
-    return env->ThrowTypeError("Not an integer"); \
+    return env->ThrowTypeError("\x4e\x6f\x74\x20\x61\x6e\x20\x69\x6e\x74\x65\x67\x65\x72"); \
   }
 #define GET_OFFSET(a) ((a)->IsNumber() ? (a)->IntegerValue() : -1)
 #define GET_TRUNCATE_LENGTH(a) ((a)->IntegerValue())
@@ -247,7 +247,7 @@ static void After(uv_fs_t *req) {
         break;
 
       default:
-        assert(0 && "Unhandled eio response");
+        assert(0 && "\x55\x6e\x68\x61\x6e\x64\x6c\x65\x64\x20\x65\x69\x6f\x20\x72\x65\x73\x70\x6f\x6e\x73\x65");
     }
   }
 
@@ -331,9 +331,9 @@ static void Access(const FunctionCallbackInfo<Value>& args) {
   if (args.Length() < 2)
     return THROW_BAD_ARGS;
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   if (!args[1]->IsInt32())
-    return TYPE_ERROR("mode must be an integer");
+    return TYPE_ERROR("\x6d\x6f\x64\x65\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x69\x6e\x74\x65\x67\x65\x72");
 
   node::Utf8Value path(args[0]);
   int mode = static_cast<int>(args[1]->Int32Value());
@@ -467,9 +467,9 @@ static void Stat(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (args.Length() < 1)
-    return TYPE_ERROR("path required");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value path(args[0]);
 
@@ -487,9 +487,9 @@ static void LStat(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (args.Length() < 1)
-    return TYPE_ERROR("path required");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value path(args[0]);
 
@@ -527,13 +527,13 @@ static void Symlink(const FunctionCallbackInfo<Value>& args) {
 
   int len = args.Length();
   if (len < 1)
-    return TYPE_ERROR("dest path required");
+    return TYPE_ERROR("\x64\x65\x73\x74\x20\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 2)
-    return TYPE_ERROR("src path required");
+    return TYPE_ERROR("\x73\x72\x63\x20\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("dest path must be a string");
+    return TYPE_ERROR("\x64\x65\x73\x74\x20\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   if (!args[1]->IsString())
-    return TYPE_ERROR("src path must be a string");
+    return TYPE_ERROR("\x73\x72\x63\x20\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value dest(args[0]);
   node::Utf8Value path(args[1]);
@@ -541,12 +541,12 @@ static void Symlink(const FunctionCallbackInfo<Value>& args) {
 
   if (args[2]->IsString()) {
     node::Utf8Value mode(args[2]);
-    if (strcmp(*mode, "dir") == 0) {
+    if (strcmp(*mode, "\x64\x69\x72") == 0) {
       flags |= UV_FS_SYMLINK_DIR;
-    } else if (strcmp(*mode, "junction") == 0) {
+    } else if (strcmp(*mode, "\x6a\x75\x6e\x63\x74\x69\x6f\x6e") == 0) {
       flags |= UV_FS_SYMLINK_JUNCTION;
-    } else if (strcmp(*mode, "file") != 0) {
-      return env->ThrowError("Unknown symlink type");
+    } else if (strcmp(*mode, "\x66\x69\x6c\x65") != 0) {
+      return env->ThrowError("\x55\x6e\x6b\x6e\x6f\x77\x6e\x20\x73\x79\x6d\x6c\x69\x6e\x6b\x20\x74\x79\x70\x65");
     }
   }
 
@@ -563,13 +563,13 @@ static void Link(const FunctionCallbackInfo<Value>& args) {
 
   int len = args.Length();
   if (len < 1)
-    return TYPE_ERROR("dest path required");
+    return TYPE_ERROR("\x64\x65\x73\x74\x20\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 2)
-    return TYPE_ERROR("src path required");
+    return TYPE_ERROR("\x73\x72\x63\x20\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("dest path must be a string");
+    return TYPE_ERROR("\x64\x65\x73\x74\x20\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   if (!args[1]->IsString())
-    return TYPE_ERROR("src path must be a string");
+    return TYPE_ERROR("\x73\x72\x63\x20\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value orig_path(args[0]);
   node::Utf8Value new_path(args[1]);
@@ -586,9 +586,9 @@ static void ReadLink(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (args.Length() < 1)
-    return TYPE_ERROR("path required");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value path(args[0]);
 
@@ -608,13 +608,13 @@ static void Rename(const FunctionCallbackInfo<Value>& args) {
 
   int len = args.Length();
   if (len < 1)
-    return TYPE_ERROR("old path required");
+    return TYPE_ERROR("\x6f\x6c\x64\x20\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 2)
-    return TYPE_ERROR("new path required");
+    return TYPE_ERROR("\x6e\x65\x77\x20\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("old path must be a string");
+    return TYPE_ERROR("\x6f\x6c\x64\x20\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   if (!args[1]->IsString())
-    return TYPE_ERROR("new path must be a string");
+    return TYPE_ERROR("\x6e\x65\x77\x20\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value old_path(args[0]);
   node::Utf8Value new_path(args[1]);
@@ -685,9 +685,9 @@ static void Unlink(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (args.Length() < 1)
-    return TYPE_ERROR("path required");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value path(args[0]);
 
@@ -703,9 +703,9 @@ static void RMDir(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (args.Length() < 1)
-    return TYPE_ERROR("path required");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value path(args[0]);
 
@@ -739,9 +739,9 @@ static void ReadDir(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (args.Length() < 1)
-    return TYPE_ERROR("path required");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value path(args[0]);
 
@@ -761,7 +761,7 @@ static void ReadDir(const FunctionCallbackInfo<Value>& args) {
       if (r == UV_EOF)
         break;
       if (r != 0)
-        return env->ThrowUVException(r, "readdir", "", *path);
+        return env->ThrowUVException(r, "\x72\x65\x61\x64\x64\x69\x72", "", *path);
 
       Local<String> name = String::NewFromUtf8(env->isolate(),
                                                ent.name);
@@ -778,17 +778,17 @@ static void Open(const FunctionCallbackInfo<Value>& args) {
 
   int len = args.Length();
   if (len < 1)
-    return TYPE_ERROR("path required");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 2)
-    return TYPE_ERROR("flags required");
+    return TYPE_ERROR("\x66\x6c\x61\x67\x73\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 3)
-    return TYPE_ERROR("mode required");
+    return TYPE_ERROR("\x6d\x6f\x64\x65\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   if (!args[1]->IsInt32())
-    return TYPE_ERROR("flags must be an int");
+    return TYPE_ERROR("\x66\x6c\x61\x67\x73\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x69\x6e\x74");
   if (!args[2]->IsInt32())
-    return TYPE_ERROR("mode must be an int");
+    return TYPE_ERROR("\x6d\x6f\x64\x65\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x69\x6e\x74");
 
   node::Utf8Value path(args[0]);
   int flags = args[1]->Int32Value();
@@ -829,13 +829,13 @@ static void WriteBuffer(const FunctionCallbackInfo<Value>& args) {
   Local<Value> req = args[5];
 
   if (off > buffer_length)
-    return env->ThrowRangeError("offset out of bounds");
+    return env->ThrowRangeError("\x6f\x66\x66\x73\x65\x74\x20\x6f\x75\x74\x20\x6f\x66\x20\x62\x6f\x75\x6e\x64\x73");
   if (len > buffer_length)
-    return env->ThrowRangeError("length out of bounds");
+    return env->ThrowRangeError("\x6c\x65\x6e\x67\x74\x68\x20\x6f\x75\x74\x20\x6f\x66\x20\x62\x6f\x75\x6e\x64\x73");
   if (off + len < off)
-    return env->ThrowRangeError("off + len overflow");
+    return env->ThrowRangeError("\x6f\x66\x66\x20\x2b\x20\x6c\x65\x6e\x20\x6f\x76\x65\x72\x66\x6c\x6f\x77");
   if (!Buffer::IsWithinBounds(off, len, buffer_length))
-    return env->ThrowRangeError("off + len > buffer.length");
+    return env->ThrowRangeError("\x6f\x66\x66\x20\x2b\x20\x6c\x65\x6e\x20\x3e\x20\x62\x75\x66\x66\x65\x72\x2e\x6c\x65\x6e\x67\x74\x68");
 
   buf += off;
 
@@ -864,7 +864,7 @@ static void WriteString(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args.GetIsolate());
 
   if (!args[0]->IsInt32())
-    return env->ThrowTypeError("First argument must be file descriptor");
+    return env->ThrowTypeError("\x46\x69\x72\x73\x74\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x66\x69\x6c\x65\x20\x64\x65\x73\x63\x72\x69\x70\x74\x6f\x72");
 
   Local<Value> req;
   Local<Value> string = args[1];
@@ -900,7 +900,7 @@ static void WriteString(const FunctionCallbackInfo<Value>& args) {
   }
 
   FSReqWrap* req_wrap =
-      new FSReqWrap(env, req.As<Object>(), "write", must_free ? buf : NULL);
+      new FSReqWrap(env, req.As<Object>(), "\x77\x72\x69\x74\x65", must_free ? buf : NULL);
   int err = uv_fs_write(env->event_loop(),
                         &req_wrap->req_,
                         fd,
@@ -950,7 +950,7 @@ static void Read(const FunctionCallbackInfo<Value>& args) {
   char * buf = NULL;
 
   if (!Buffer::HasInstance(args[1])) {
-    return env->ThrowError("Second argument needs to be a buffer");
+    return env->ThrowError("\x53\x65\x63\x6f\x6e\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x6e\x65\x65\x64\x73\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x62\x75\x66\x66\x65\x72");
   }
 
   Local<Object> buffer_obj = args[1]->ToObject();
@@ -959,12 +959,12 @@ static void Read(const FunctionCallbackInfo<Value>& args) {
 
   size_t off = args[2]->Int32Value();
   if (off >= buffer_length) {
-    return env->ThrowError("Offset is out of bounds");
+    return env->ThrowError("\x4f\x66\x66\x73\x65\x74\x20\x69\x73\x20\x6f\x75\x74\x20\x6f\x66\x20\x62\x6f\x75\x6e\x64\x73");
   }
 
   len = args[3]->Int32Value();
   if (!Buffer::IsWithinBounds(off, len, buffer_length))
-    return env->ThrowRangeError("Length extends beyond buffer");
+    return env->ThrowRangeError("\x4c\x65\x6e\x67\x74\x68\x20\x65\x78\x74\x65\x6e\x64\x73\x20\x62\x65\x79\x6f\x6e\x64\x20\x62\x75\x66\x66\x65\x72");
 
   pos = GET_OFFSET(args[4]);
 
@@ -1034,17 +1034,17 @@ static void Chown(const FunctionCallbackInfo<Value>& args) {
 
   int len = args.Length();
   if (len < 1)
-    return TYPE_ERROR("path required");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 2)
-    return TYPE_ERROR("uid required");
+    return TYPE_ERROR("\x75\x69\x64\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 3)
-    return TYPE_ERROR("gid required");
+    return TYPE_ERROR("\x67\x69\x64\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   if (!args[1]->IsUint32())
-    return TYPE_ERROR("uid must be an unsigned int");
+    return TYPE_ERROR("\x75\x69\x64\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x75\x6e\x73\x69\x67\x6e\x65\x64\x20\x69\x6e\x74");
   if (!args[2]->IsUint32())
-    return TYPE_ERROR("gid must be an unsigned int");
+    return TYPE_ERROR("\x67\x69\x64\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x75\x6e\x73\x69\x67\x6e\x65\x64\x20\x69\x6e\x74");
 
   node::Utf8Value path(args[0]);
   uv_uid_t uid = static_cast<uv_uid_t>(args[1]->Uint32Value());
@@ -1067,17 +1067,17 @@ static void FChown(const FunctionCallbackInfo<Value>& args) {
 
   int len = args.Length();
   if (len < 1)
-    return TYPE_ERROR("fd required");
+    return TYPE_ERROR("\x66\x64\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 2)
-    return TYPE_ERROR("uid required");
+    return TYPE_ERROR("\x75\x69\x64\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 3)
-    return TYPE_ERROR("gid required");
+    return TYPE_ERROR("\x67\x69\x64\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsInt32())
-    return TYPE_ERROR("fd must be an int");
+    return TYPE_ERROR("\x66\x64\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x69\x6e\x74");
   if (!args[1]->IsUint32())
-    return TYPE_ERROR("uid must be an unsigned int");
+    return TYPE_ERROR("\x75\x69\x64\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x75\x6e\x73\x69\x67\x6e\x65\x64\x20\x69\x6e\x74");
   if (!args[2]->IsUint32())
-    return TYPE_ERROR("gid must be an unsigned int");
+    return TYPE_ERROR("\x67\x69\x64\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x75\x6e\x73\x69\x67\x6e\x65\x64\x20\x69\x6e\x74");
 
   int fd = args[0]->Int32Value();
   uv_uid_t uid = static_cast<uv_uid_t>(args[1]->Uint32Value());
@@ -1097,17 +1097,17 @@ static void UTimes(const FunctionCallbackInfo<Value>& args) {
 
   int len = args.Length();
   if (len < 1)
-    return TYPE_ERROR("path required");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 2)
-    return TYPE_ERROR("atime required");
+    return TYPE_ERROR("\x61\x74\x69\x6d\x65\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 3)
-    return TYPE_ERROR("mtime required");
+    return TYPE_ERROR("\x6d\x74\x69\x6d\x65\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsString())
-    return TYPE_ERROR("path must be a string");
+    return TYPE_ERROR("\x70\x61\x74\x68\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   if (!args[1]->IsNumber())
-    return TYPE_ERROR("atime must be a number");
+    return TYPE_ERROR("\x61\x74\x69\x6d\x65\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72");
   if (!args[2]->IsNumber())
-    return TYPE_ERROR("mtime must be a number");
+    return TYPE_ERROR("\x6d\x74\x69\x6d\x65\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72");
 
   const node::Utf8Value path(args[0]);
   const double atime = static_cast<double>(args[1]->NumberValue());
@@ -1126,17 +1126,17 @@ static void FUTimes(const FunctionCallbackInfo<Value>& args) {
 
   int len = args.Length();
   if (len < 1)
-    return TYPE_ERROR("fd required");
+    return TYPE_ERROR("\x66\x64\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 2)
-    return TYPE_ERROR("atime required");
+    return TYPE_ERROR("\x61\x74\x69\x6d\x65\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (len < 3)
-    return TYPE_ERROR("mtime required");
+    return TYPE_ERROR("\x6d\x74\x69\x6d\x65\x20\x72\x65\x71\x75\x69\x72\x65\x64");
   if (!args[0]->IsInt32())
-    return TYPE_ERROR("fd must be an int");
+    return TYPE_ERROR("\x66\x64\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x69\x6e\x74");
   if (!args[1]->IsNumber())
-    return TYPE_ERROR("atime must be a number");
+    return TYPE_ERROR("\x61\x74\x69\x6d\x65\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72");
   if (!args[2]->IsNumber())
-    return TYPE_ERROR("mtime must be a number");
+    return TYPE_ERROR("\x6d\x74\x69\x6d\x65\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72");
 
   const int fd = args[0]->Int32Value();
   const double atime = static_cast<double>(args[1]->NumberValue());
@@ -1165,40 +1165,40 @@ void InitFs(Handle<Object> target,
 
   // Function which creates a new Stats object.
   target->Set(
-      FIXED_ONE_BYTE_STRING(env->isolate(), "FSInitialize"),
+      FIXED_ONE_BYTE_STRING(env->isolate(), "\x46\x53\x49\x6e\x69\x74\x69\x61\x6c\x69\x7a\x65"),
       FunctionTemplate::New(env->isolate(), FSInitialize)->GetFunction());
 
-  NODE_SET_METHOD(target, "access", Access);
-  NODE_SET_METHOD(target, "close", Close);
-  NODE_SET_METHOD(target, "open", Open);
-  NODE_SET_METHOD(target, "read", Read);
-  NODE_SET_METHOD(target, "fdatasync", Fdatasync);
-  NODE_SET_METHOD(target, "fsync", Fsync);
-  NODE_SET_METHOD(target, "rename", Rename);
-  NODE_SET_METHOD(target, "ftruncate", FTruncate);
-  NODE_SET_METHOD(target, "rmdir", RMDir);
-  NODE_SET_METHOD(target, "mkdir", MKDir);
-  NODE_SET_METHOD(target, "readdir", ReadDir);
-  NODE_SET_METHOD(target, "stat", Stat);
-  NODE_SET_METHOD(target, "lstat", LStat);
-  NODE_SET_METHOD(target, "fstat", FStat);
-  NODE_SET_METHOD(target, "link", Link);
-  NODE_SET_METHOD(target, "symlink", Symlink);
-  NODE_SET_METHOD(target, "readlink", ReadLink);
-  NODE_SET_METHOD(target, "unlink", Unlink);
-  NODE_SET_METHOD(target, "writeBuffer", WriteBuffer);
-  NODE_SET_METHOD(target, "writeString", WriteString);
+  NODE_SET_METHOD(target, "\x61\x63\x63\x65\x73\x73", Access);
+  NODE_SET_METHOD(target, "\x63\x6c\x6f\x73\x65", Close);
+  NODE_SET_METHOD(target, "\x6f\x70\x65\x6e", Open);
+  NODE_SET_METHOD(target, "\x72\x65\x61\x64", Read);
+  NODE_SET_METHOD(target, "\x66\x64\x61\x74\x61\x73\x79\x6e\x63", Fdatasync);
+  NODE_SET_METHOD(target, "\x66\x73\x79\x6e\x63", Fsync);
+  NODE_SET_METHOD(target, "\x72\x65\x6e\x61\x6d\x65", Rename);
+  NODE_SET_METHOD(target, "\x66\x74\x72\x75\x6e\x63\x61\x74\x65", FTruncate);
+  NODE_SET_METHOD(target, "\x72\x6d\x64\x69\x72", RMDir);
+  NODE_SET_METHOD(target, "\x6d\x6b\x64\x69\x72", MKDir);
+  NODE_SET_METHOD(target, "\x72\x65\x61\x64\x64\x69\x72", ReadDir);
+  NODE_SET_METHOD(target, "\x73\x74\x61\x74", Stat);
+  NODE_SET_METHOD(target, "\x6c\x73\x74\x61\x74", LStat);
+  NODE_SET_METHOD(target, "\x66\x73\x74\x61\x74", FStat);
+  NODE_SET_METHOD(target, "\x6c\x69\x6e\x6b", Link);
+  NODE_SET_METHOD(target, "\x73\x79\x6d\x6c\x69\x6e\x6b", Symlink);
+  NODE_SET_METHOD(target, "\x72\x65\x61\x64\x6c\x69\x6e\x6b", ReadLink);
+  NODE_SET_METHOD(target, "\x75\x6e\x6c\x69\x6e\x6b", Unlink);
+  NODE_SET_METHOD(target, "\x77\x72\x69\x74\x65\x42\x75\x66\x66\x65\x72", WriteBuffer);
+  NODE_SET_METHOD(target, "\x77\x72\x69\x74\x65\x53\x74\x72\x69\x6e\x67", WriteString);
 
-  NODE_SET_METHOD(target, "chmod", Chmod);
-  NODE_SET_METHOD(target, "fchmod", FChmod);
+  NODE_SET_METHOD(target, "\x63\x68\x6d\x6f\x64", Chmod);
+  NODE_SET_METHOD(target, "\x66\x63\x68\x6d\x6f\x64", FChmod);
   // NODE_SET_METHOD(target, "lchmod", LChmod);
 
-  NODE_SET_METHOD(target, "chown", Chown);
-  NODE_SET_METHOD(target, "fchown", FChown);
+  NODE_SET_METHOD(target, "\x63\x68\x6f\x77\x6e", Chown);
+  NODE_SET_METHOD(target, "\x66\x63\x68\x6f\x77\x6e", FChown);
   // NODE_SET_METHOD(target, "lchown", LChown);
 
-  NODE_SET_METHOD(target, "utimes", UTimes);
-  NODE_SET_METHOD(target, "futimes", FUTimes);
+  NODE_SET_METHOD(target, "\x75\x74\x69\x6d\x65\x73", UTimes);
+  NODE_SET_METHOD(target, "\x66\x75\x74\x69\x6d\x65\x73", FUTimes);
 
   StatWatcher::Initialize(env, target);
 
@@ -1206,8 +1206,8 @@ void InitFs(Handle<Object> target,
   Local<FunctionTemplate> fst =
       FunctionTemplate::New(env->isolate(), NewFSReqWrap);
   fst->InstanceTemplate()->SetInternalFieldCount(1);
-  fst->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "FSReqWrap"));
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "FSReqWrap"),
+  fst->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x46\x53\x52\x65\x71\x57\x72\x61\x70"));
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x46\x53\x52\x65\x71\x57\x72\x61\x70"),
               fst->GetFunction());
 }
 

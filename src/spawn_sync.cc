@@ -364,7 +364,7 @@ void SyncProcessStdioPipe::CloseCallback(uv_handle_t* handle) {
 void SyncProcessRunner::Initialize(Handle<Object> target,
                                    Handle<Value> unused,
                                    Handle<Context> context) {
-  NODE_SET_METHOD(target, "spawn", Spawn);
+  NODE_SET_METHOD(target, "\x73\x70\x61\x77\x6e", Spawn);
 }
 
 
@@ -877,7 +877,7 @@ int SyncProcessRunner::ParseStdioOption(int child_fd,
     return AddStdioInheritFD(child_fd, inherit_fd);
 
   } else {
-    assert(0 && "invalid child stdio type");
+    assert(0 && "\x69\x6e\x76\x61\x6c\x69\x64\x20\x63\x68\x69\x6c\x64\x20\x73\x74\x64\x69\x6f\x20\x74\x79\x70\x65");
     return UV_EINVAL;
   }
 }
@@ -975,7 +975,7 @@ int SyncProcessRunner::CopyJsString(Local<Value> js_value,
   buffer = new char[size];
 
   written = StringBytes::Write(isolate, buffer, -1, js_string, UTF8);
-  buffer[written] = '\0';
+  buffer[written] = '\x0';
 
   *target = buffer;
   return 0;
@@ -1028,7 +1028,7 @@ int SyncProcessRunner::CopyJsStringArray(Local<Value> js_value,
                                       -1,
                                       js_array->Get(i),
                                       UTF8);
-    buffer[data_offset++] = '\0';
+    buffer[data_offset++] = '\x0';
     data_offset = ROUND_UP(data_offset,
                            sizeof(void*));  // NOLINT(runtime/sizeof)
   }

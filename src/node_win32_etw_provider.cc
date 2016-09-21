@@ -47,11 +47,11 @@ struct v8tags {
 // The trace_codes array specifies which types are written.
 struct v8tags trace_codes[] = {
 #define MAKE_V8TAG(s) { s, sizeof(s) - 1 }
-  MAKE_V8TAG("LazyCompile:"),
-  MAKE_V8TAG("Script:"),
-  MAKE_V8TAG("Function:"),
-  MAKE_V8TAG("RegExp:"),
-  MAKE_V8TAG("Eval:")
+  MAKE_V8TAG("\x4c\x61\x7a\x79\x43\x6f\x6d\x70\x69\x6c\x65\x3a"),
+  MAKE_V8TAG("\x53\x63\x72\x69\x70\x74\x3a"),
+  MAKE_V8TAG("\x46\x75\x6e\x63\x74\x69\x6f\x6e\x3a"),
+  MAKE_V8TAG("\x52\x65\x67\x45\x78\x70\x3a"),
+  MAKE_V8TAG("\x45\x76\x61\x6c\x3a")
 #undef MAKE_V8TAG
 };
 
@@ -70,8 +70,8 @@ struct v8tags trace_codes[] = {
  */
 
 // v8 sometimes puts a '*' or '~' in front of the name.
-#define V8_MARKER1 '*'
-#define V8_MARKER2 '~'
+#define V8_MARKER1 '\x2a'
+#define V8_MARKER2 '\x7e'
 
 
 // If prefix is not in filtered list return -1,
@@ -164,13 +164,13 @@ void NTAPI etw_events_enable_callback(
 void init_etw() {
   events_enabled = 0;
 
-  advapi = LoadLibrary("advapi32.dll");
+  advapi = LoadLibrary("\x61\x64\x76\x61\x70\x69\x33\x32\x2e\x64\x6c\x6c");
   if (advapi) {
     event_register = (EventRegisterFunc)
-      GetProcAddress(advapi, "EventRegister");
+      GetProcAddress(advapi, "\x45\x76\x65\x6e\x74\x52\x65\x67\x69\x73\x74\x65\x72");
     event_unregister = (EventUnregisterFunc)
-      GetProcAddress(advapi, "EventUnregister");
-    event_write = (EventWriteFunc)GetProcAddress(advapi, "EventWrite");
+      GetProcAddress(advapi, "\x45\x76\x65\x6e\x74\x55\x6e\x72\x65\x67\x69\x73\x74\x65\x72");
+    event_write = (EventWriteFunc)GetProcAddress(advapi, "\x45\x76\x65\x6e\x74\x57\x72\x69\x74\x65");
 
     // create async object used to invoke main thread from callback
     uv_async_init(uv_default_loop(),

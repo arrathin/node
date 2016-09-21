@@ -43,7 +43,7 @@ void ErrName(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
   int err = args[0]->Int32Value();
   if (err >= 0)
-    return env->ThrowError("err >= 0");
+    return env->ThrowError("\x65\x72\x72\x20\x3e\x3d\x20\x30");
   const char* name = uv_err_name(err);
   args.GetReturnValue().Set(OneByteString(env->isolate(), name));
 }
@@ -53,10 +53,10 @@ void Initialize(Handle<Object> target,
                 Handle<Value> unused,
                 Handle<Context> context) {
   Environment* env = Environment::GetCurrent(context);
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "errname"),
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x65\x72\x72\x6e\x61\x6d\x65"),
               FunctionTemplate::New(env->isolate(), ErrName)->GetFunction());
 #define V(name, _)                                                            \
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "UV_" # name),            \
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x55\x56\x5f" # name),            \
               Integer::New(env->isolate(), UV_ ## name));
   UV_ERRNO_MAP(V)
 #undef V

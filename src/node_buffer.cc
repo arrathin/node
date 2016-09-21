@@ -38,7 +38,7 @@
 
 #define CHECK_NOT_OOB(r)                                                    \
   do {                                                                      \
-    if (!(r)) return env->ThrowRangeError("out of range index");            \
+    if (!(r)) return env->ThrowRangeError("\x6f\x75\x74\x20\x6f\x66\x20\x72\x61\x6e\x67\x65\x20\x69\x6e\x64\x65\x78");            \
   } while (0)
 
 #define ARGS_THIS(argT)                                                     \
@@ -154,7 +154,7 @@ Local<Object> New(Environment* env, size_t length) {
   if (length > 0) {
     data = static_cast<char*>(malloc(length));
     if (data == NULL)
-      FatalError("node::Buffer::New(size_t)", "Out Of Memory");
+      FatalError("\x6e\x6f\x64\x65\x3a\x3a\x42\x75\x66\x66\x65\x72\x3a\x3a\x4e\x65\x77\x28\x73\x69\x7a\x65\x5f\x74\x29", "\x4f\x75\x74\x20\x4f\x66\x20\x4d\x65\x6d\x6f\x72\x79");
   } else {
     data = NULL;
   }
@@ -190,7 +190,7 @@ Local<Object> New(Environment* env, const char* data, size_t length) {
   if (length > 0) {
     new_data = static_cast<char*>(malloc(length));
     if (new_data == NULL)
-      FatalError("node::Buffer::New(const char*, size_t)", "Out Of Memory");
+      FatalError("\x6e\x6f\x64\x65\x3a\x3a\x42\x75\x66\x66\x65\x72\x3a\x3a\x4e\x65\x77\x28\x63\x6f\x6e\x73\x74\x20\x63\x68\x61\x72\x2a\x2c\x20\x73\x69\x7a\x65\x5f\x74\x29", "\x4f\x75\x74\x20\x4f\x66\x20\x4d\x65\x6d\x6f\x72\x79");
     memcpy(new_data, data, length);
   } else {
     new_data = NULL;
@@ -305,7 +305,7 @@ void Copy(const FunctionCallbackInfo<Value> &args) {
   Local<Object> target = args[0]->ToObject();
 
   if (!HasInstance(target))
-    return env->ThrowTypeError("first arg should be a Buffer");
+    return env->ThrowTypeError("\x66\x69\x72\x73\x74\x20\x61\x72\x67\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x42\x75\x66\x66\x65\x72");
 
   ARGS_THIS(args.This())
   size_t target_length = target->GetIndexedPropertiesExternalArrayDataLength();
@@ -324,7 +324,7 @@ void Copy(const FunctionCallbackInfo<Value> &args) {
     return args.GetReturnValue().Set(0);
 
   if (source_start > obj_length)
-    return env->ThrowRangeError("out of range index");
+    return env->ThrowRangeError("\x6f\x75\x74\x20\x6f\x66\x20\x72\x61\x6e\x67\x65\x20\x69\x6e\x64\x65\x78");
 
   if (source_end - source_start > target_length - target_start)
     source_end = source_start + target_length - target_start;
@@ -386,12 +386,12 @@ void StringWrite(const FunctionCallbackInfo<Value>& args) {
   ARGS_THIS(args.This())
 
   if (!args[0]->IsString())
-    return env->ThrowTypeError("Argument must be a string");
+    return env->ThrowTypeError("\x41\x72\x67\x75\x6d\x65\x6e\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   Local<String> str = args[0]->ToString();
 
   if (encoding == HEX && str->Length() % 2 != 0)
-    return env->ThrowTypeError("Invalid hex string");
+    return env->ThrowTypeError("\x49\x6e\x76\x61\x6c\x69\x64\x20\x68\x65\x78\x20\x73\x74\x72\x69\x6e\x67");
 
   size_t offset;
   size_t max_length;
@@ -408,7 +408,7 @@ void StringWrite(const FunctionCallbackInfo<Value>& args) {
     max_length = max_length / 2;
 
   if (offset >= obj_length)
-    return env->ThrowRangeError("Offset is out of bounds");
+    return env->ThrowRangeError("\x4f\x66\x66\x73\x65\x74\x20\x69\x73\x20\x6f\x75\x74\x20\x6f\x66\x20\x62\x6f\x75\x6e\x64\x73");
 
   uint32_t written = StringBytes::Write(env->isolate(),
                                         obj_data + offset,
@@ -549,7 +549,7 @@ void ByteLength(const FunctionCallbackInfo<Value> &args) {
   HandleScope scope(env->isolate());
 
   if (!args[0]->IsString())
-    return env->ThrowTypeError("Argument must be a string");
+    return env->ThrowTypeError("\x41\x72\x67\x75\x6d\x65\x6e\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   Local<String> s = args[0]->ToString();
   enum encoding e = ParseEncoding(env->isolate(), args[1], UTF8);
@@ -607,21 +607,21 @@ void SetupBufferJS(const FunctionCallbackInfo<Value>& args) {
 
   Local<Object> proto = proto_v.As<Object>();
 
-  NODE_SET_METHOD(proto, "asciiSlice", AsciiSlice);
-  NODE_SET_METHOD(proto, "base64Slice", Base64Slice);
-  NODE_SET_METHOD(proto, "binarySlice", BinarySlice);
-  NODE_SET_METHOD(proto, "hexSlice", HexSlice);
-  NODE_SET_METHOD(proto, "ucs2Slice", Ucs2Slice);
-  NODE_SET_METHOD(proto, "utf8Slice", Utf8Slice);
+  NODE_SET_METHOD(proto, "\x61\x73\x63\x69\x69\x53\x6c\x69\x63\x65", AsciiSlice);
+  NODE_SET_METHOD(proto, "\x62\x61\x73\x65\x36\x34\x53\x6c\x69\x63\x65", Base64Slice);
+  NODE_SET_METHOD(proto, "\x62\x69\x6e\x61\x72\x79\x53\x6c\x69\x63\x65", BinarySlice);
+  NODE_SET_METHOD(proto, "\x68\x65\x78\x53\x6c\x69\x63\x65", HexSlice);
+  NODE_SET_METHOD(proto, "\x75\x63\x73\x32\x53\x6c\x69\x63\x65", Ucs2Slice);
+  NODE_SET_METHOD(proto, "\x75\x74\x66\x38\x53\x6c\x69\x63\x65", Utf8Slice);
 
-  NODE_SET_METHOD(proto, "asciiWrite", AsciiWrite);
-  NODE_SET_METHOD(proto, "base64Write", Base64Write);
-  NODE_SET_METHOD(proto, "binaryWrite", BinaryWrite);
-  NODE_SET_METHOD(proto, "hexWrite", HexWrite);
-  NODE_SET_METHOD(proto, "ucs2Write", Ucs2Write);
-  NODE_SET_METHOD(proto, "utf8Write", Utf8Write);
+  NODE_SET_METHOD(proto, "\x61\x73\x63\x69\x69\x57\x72\x69\x74\x65", AsciiWrite);
+  NODE_SET_METHOD(proto, "\x62\x61\x73\x65\x36\x34\x57\x72\x69\x74\x65", Base64Write);
+  NODE_SET_METHOD(proto, "\x62\x69\x6e\x61\x72\x79\x57\x72\x69\x74\x65", BinaryWrite);
+  NODE_SET_METHOD(proto, "\x68\x65\x78\x57\x72\x69\x74\x65", HexWrite);
+  NODE_SET_METHOD(proto, "\x75\x63\x73\x32\x57\x72\x69\x74\x65", Ucs2Write);
+  NODE_SET_METHOD(proto, "\x75\x74\x66\x38\x57\x72\x69\x74\x65", Utf8Write);
 
-  NODE_SET_METHOD(proto, "copy", Copy);
+  NODE_SET_METHOD(proto, "\x63\x6f\x70\x79", Copy);
 
   // for backwards compatibility
   proto->ForceSet(env->offset_string(),
@@ -633,19 +633,19 @@ void SetupBufferJS(const FunctionCallbackInfo<Value>& args) {
   Local<Object> internal = args[1].As<Object>();
   ASSERT(internal->IsObject());
 
-  NODE_SET_METHOD(internal, "byteLength", ByteLength);
-  NODE_SET_METHOD(internal, "compare", Compare);
-  NODE_SET_METHOD(internal, "fill", Fill);
+  NODE_SET_METHOD(internal, "\x62\x79\x74\x65\x4c\x65\x6e\x67\x74\x68", ByteLength);
+  NODE_SET_METHOD(internal, "\x63\x6f\x6d\x70\x61\x72\x65", Compare);
+  NODE_SET_METHOD(internal, "\x66\x69\x6c\x6c", Fill);
 
-  NODE_SET_METHOD(internal, "readDoubleBE", ReadDoubleBE);
-  NODE_SET_METHOD(internal, "readDoubleLE", ReadDoubleLE);
-  NODE_SET_METHOD(internal, "readFloatBE", ReadFloatBE);
-  NODE_SET_METHOD(internal, "readFloatLE", ReadFloatLE);
+  NODE_SET_METHOD(internal, "\x72\x65\x61\x64\x44\x6f\x75\x62\x6c\x65\x42\x45", ReadDoubleBE);
+  NODE_SET_METHOD(internal, "\x72\x65\x61\x64\x44\x6f\x75\x62\x6c\x65\x4c\x45", ReadDoubleLE);
+  NODE_SET_METHOD(internal, "\x72\x65\x61\x64\x46\x6c\x6f\x61\x74\x42\x45", ReadFloatBE);
+  NODE_SET_METHOD(internal, "\x72\x65\x61\x64\x46\x6c\x6f\x61\x74\x4c\x45", ReadFloatLE);
 
-  NODE_SET_METHOD(internal, "writeDoubleBE", WriteDoubleBE);
-  NODE_SET_METHOD(internal, "writeDoubleLE", WriteDoubleLE);
-  NODE_SET_METHOD(internal, "writeFloatBE", WriteFloatBE);
-  NODE_SET_METHOD(internal, "writeFloatLE", WriteFloatLE);
+  NODE_SET_METHOD(internal, "\x77\x72\x69\x74\x65\x44\x6f\x75\x62\x6c\x65\x42\x45", WriteDoubleBE);
+  NODE_SET_METHOD(internal, "\x77\x72\x69\x74\x65\x44\x6f\x75\x62\x6c\x65\x4c\x45", WriteDoubleLE);
+  NODE_SET_METHOD(internal, "\x77\x72\x69\x74\x65\x46\x6c\x6f\x61\x74\x42\x45", WriteFloatBE);
+  NODE_SET_METHOD(internal, "\x77\x72\x69\x74\x65\x46\x6c\x6f\x61\x74\x4c\x45", WriteFloatLE);
 }
 
 
@@ -653,7 +653,7 @@ void Initialize(Handle<Object> target,
                 Handle<Value> unused,
                 Handle<Context> context) {
   Environment* env = Environment::GetCurrent(context);
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "setupBufferJS"),
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x73\x65\x74\x75\x70\x42\x75\x66\x66\x65\x72\x4a\x53"),
               FunctionTemplate::New(env->isolate(), SetupBufferJS)
                   ->GetFunction());
 }

@@ -211,14 +211,14 @@ void TLSCallbacks::Wrap(const FunctionCallbackInfo<Value>& args) {
 
   if (args.Length() < 1 || !args[0]->IsObject()) {
     return env->ThrowTypeError(
-        "First argument should be a StreamWrap instance");
+        "\x46\x69\x72\x73\x74\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x53\x74\x72\x65\x61\x6d\x57\x72\x61\x70\x20\x69\x6e\x73\x74\x61\x6e\x63\x65");
   }
   if (args.Length() < 2 || !args[1]->IsObject()) {
     return env->ThrowTypeError(
-        "Second argument should be a SecureContext instance");
+        "\x53\x65\x63\x6f\x6e\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x53\x65\x63\x75\x72\x65\x43\x6f\x6e\x74\x65\x78\x74\x20\x69\x6e\x73\x74\x61\x6e\x63\x65");
   }
   if (args.Length() < 3 || !args[2]->IsBoolean())
-    return env->ThrowTypeError("Third argument should be boolean");
+    return env->ThrowTypeError("\x54\x68\x69\x72\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x62\x6f\x6f\x6c\x65\x61\x6e");
 
   Local<Object> stream = args[0].As<Object>();
   Local<Object> sc = args[1].As<Object>();
@@ -272,7 +272,7 @@ void TLSCallbacks::Start(const FunctionCallbackInfo<Value>& args) {
   TLSCallbacks* wrap = Unwrap<TLSCallbacks>(args.Holder());
 
   if (wrap->started_)
-    return env->ThrowError("Already started.");
+    return env->ThrowError("\x41\x6c\x72\x65\x61\x64\x79\x20\x73\x74\x61\x72\x74\x65\x64\x2e");
   wrap->started_ = true;
 
   // Send ClientHello handshake
@@ -394,7 +394,7 @@ int TLSCallbacks::PrintErrorsCb(const char* str, size_t len, void* arg) {
   assert(error_off_ < sizeof(error_buf_));
 
   // Zero-terminate
-  error_buf_[error_off_] = '\0';
+  error_buf_[error_off_] = '\x0';
 
   return 0;
 }
@@ -690,7 +690,7 @@ void TLSCallbacks::SetVerifyMode(const FunctionCallbackInfo<Value>& args) {
   TLSCallbacks* wrap = Unwrap<TLSCallbacks>(args.Holder());
 
   if (args.Length() < 2 || !args[0]->IsBoolean() || !args[1]->IsBoolean())
-    return env->ThrowTypeError("Bad arguments, expected two booleans");
+    return env->ThrowTypeError("\x42\x61\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x73\x2c\x20\x65\x78\x70\x65\x63\x74\x65\x64\x20\x74\x77\x6f\x20\x62\x6f\x6f\x6c\x65\x61\x6e\x73");
 
   int verify_mode;
   if (wrap->is_server()) {
@@ -769,10 +769,10 @@ void TLSCallbacks::SetServername(const FunctionCallbackInfo<Value>& args) {
   TLSCallbacks* wrap = Unwrap<TLSCallbacks>(args.Holder());
 
   if (args.Length() < 1 || !args[0]->IsString())
-    return env->ThrowTypeError("First argument should be a string");
+    return env->ThrowTypeError("\x46\x69\x72\x73\x74\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   if (wrap->started_)
-    return env->ThrowError("Already started.");
+    return env->ThrowError("\x41\x6c\x72\x65\x61\x64\x79\x20\x73\x74\x61\x72\x74\x65\x64\x2e");
 
   if (!wrap->is_client())
     return;
@@ -826,27 +826,27 @@ void TLSCallbacks::Initialize(Handle<Object> target,
                               Handle<Context> context) {
   Environment* env = Environment::GetCurrent(context);
 
-  NODE_SET_METHOD(target, "wrap", TLSCallbacks::Wrap);
+  NODE_SET_METHOD(target, "\x77\x72\x61\x70", TLSCallbacks::Wrap);
 
   Local<FunctionTemplate> t = FunctionTemplate::New(env->isolate());
   t->InstanceTemplate()->SetInternalFieldCount(1);
-  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "TLSWrap"));
+  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x4c\x53\x57\x72\x61\x70"));
 
-  NODE_SET_PROTOTYPE_METHOD(t, "receive", Receive);
-  NODE_SET_PROTOTYPE_METHOD(t, "start", Start);
-  NODE_SET_PROTOTYPE_METHOD(t, "setVerifyMode", SetVerifyMode);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x63\x65\x69\x76\x65", Receive);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x74\x61\x72\x74", Start);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x65\x74\x56\x65\x72\x69\x66\x79\x4d\x6f\x64\x65", SetVerifyMode);
   NODE_SET_PROTOTYPE_METHOD(t,
-                            "enableSessionCallbacks",
+                            "\x65\x6e\x61\x62\x6c\x65\x53\x65\x73\x73\x69\x6f\x6e\x43\x61\x6c\x6c\x62\x61\x63\x6b\x73",
                             EnableSessionCallbacks);
   NODE_SET_PROTOTYPE_METHOD(t,
-                            "enableHelloParser",
+                            "\x65\x6e\x61\x62\x6c\x65\x48\x65\x6c\x6c\x6f\x50\x61\x72\x73\x65\x72",
                             EnableHelloParser);
 
   SSLWrap<TLSCallbacks>::AddMethods(env, t);
 
 #ifdef SSL_CTRL_SET_TLSEXT_SERVERNAME_CB
-  NODE_SET_PROTOTYPE_METHOD(t, "getServername", GetServername);
-  NODE_SET_PROTOTYPE_METHOD(t, "setServername", SetServername);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x67\x65\x74\x53\x65\x72\x76\x65\x72\x6e\x61\x6d\x65", GetServername);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x65\x74\x53\x65\x72\x76\x65\x72\x6e\x61\x6d\x65", SetServername);
 #endif  // SSL_CRT_SET_TLSEXT_SERVERNAME_CB
 
   env->set_tls_wrap_constructor_function(t->GetFunction());

@@ -89,7 +89,7 @@ void TCPWrap::Initialize(Handle<Object> target,
   Environment* env = Environment::GetCurrent(context);
 
   Local<FunctionTemplate> t = FunctionTemplate::New(env->isolate(), New);
-  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "TCP"));
+  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x43\x50"));
   t->InstanceTemplate()->SetInternalFieldCount(1);
 
   enum PropertyAttribute attributes =
@@ -102,63 +102,63 @@ void TCPWrap::Initialize(Handle<Object> target,
                                      attributes);
 
   // Init properties
-  t->InstanceTemplate()->Set(String::NewFromUtf8(env->isolate(), "reading"),
+  t->InstanceTemplate()->Set(String::NewFromUtf8(env->isolate(), "\x72\x65\x61\x64\x69\x6e\x67"),
                              Boolean::New(env->isolate(), false));
-  t->InstanceTemplate()->Set(String::NewFromUtf8(env->isolate(), "owner"),
+  t->InstanceTemplate()->Set(String::NewFromUtf8(env->isolate(), "\x6f\x77\x6e\x65\x72"),
                              Null(env->isolate()));
-  t->InstanceTemplate()->Set(String::NewFromUtf8(env->isolate(), "onread"),
+  t->InstanceTemplate()->Set(String::NewFromUtf8(env->isolate(), "\x6f\x6e\x72\x65\x61\x64"),
                              Null(env->isolate()));
   t->InstanceTemplate()->Set(String::NewFromUtf8(env->isolate(),
-                                                 "onconnection"),
+                                                 "\x6f\x6e\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e"),
                              Null(env->isolate()));
 
 
-  NODE_SET_PROTOTYPE_METHOD(t, "close", HandleWrap::Close);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x63\x6c\x6f\x73\x65", HandleWrap::Close);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "ref", HandleWrap::Ref);
-  NODE_SET_PROTOTYPE_METHOD(t, "unref", HandleWrap::Unref);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x66", HandleWrap::Ref);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x75\x6e\x72\x65\x66", HandleWrap::Unref);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "readStart", StreamWrap::ReadStart);
-  NODE_SET_PROTOTYPE_METHOD(t, "readStop", StreamWrap::ReadStop);
-  NODE_SET_PROTOTYPE_METHOD(t, "shutdown", StreamWrap::Shutdown);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x61\x64\x53\x74\x61\x72\x74", StreamWrap::ReadStart);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x61\x64\x53\x74\x6f\x70", StreamWrap::ReadStop);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x68\x75\x74\x64\x6f\x77\x6e", StreamWrap::Shutdown);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "writeBuffer", StreamWrap::WriteBuffer);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x42\x75\x66\x66\x65\x72", StreamWrap::WriteBuffer);
   NODE_SET_PROTOTYPE_METHOD(t,
-                            "writeAsciiString",
+                            "\x77\x72\x69\x74\x65\x41\x73\x63\x69\x69\x53\x74\x72\x69\x6e\x67",
                             StreamWrap::WriteAsciiString);
-  NODE_SET_PROTOTYPE_METHOD(t, "writeUtf8String", StreamWrap::WriteUtf8String);
-  NODE_SET_PROTOTYPE_METHOD(t, "writeUcs2String", StreamWrap::WriteUcs2String);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x55\x74\x66\x38\x53\x74\x72\x69\x6e\x67", StreamWrap::WriteUtf8String);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x55\x63\x73\x32\x53\x74\x72\x69\x6e\x67", StreamWrap::WriteUcs2String);
   NODE_SET_PROTOTYPE_METHOD(t,
-                            "writeBinaryString",
+                            "\x77\x72\x69\x74\x65\x42\x69\x6e\x61\x72\x79\x53\x74\x72\x69\x6e\x67",
                             StreamWrap::WriteBinaryString);
-  NODE_SET_PROTOTYPE_METHOD(t, "writev", StreamWrap::Writev);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x76", StreamWrap::Writev);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "open", Open);
-  NODE_SET_PROTOTYPE_METHOD(t, "bind", Bind);
-  NODE_SET_PROTOTYPE_METHOD(t, "listen", Listen);
-  NODE_SET_PROTOTYPE_METHOD(t, "connect", Connect);
-  NODE_SET_PROTOTYPE_METHOD(t, "bind6", Bind6);
-  NODE_SET_PROTOTYPE_METHOD(t, "connect6", Connect6);
-  NODE_SET_PROTOTYPE_METHOD(t, "getsockname", GetSockName);
-  NODE_SET_PROTOTYPE_METHOD(t, "getpeername", GetPeerName);
-  NODE_SET_PROTOTYPE_METHOD(t, "setNoDelay", SetNoDelay);
-  NODE_SET_PROTOTYPE_METHOD(t, "setKeepAlive", SetKeepAlive);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x6f\x70\x65\x6e", Open);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x62\x69\x6e\x64", Bind);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x6c\x69\x73\x74\x65\x6e", Listen);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x63\x6f\x6e\x6e\x65\x63\x74", Connect);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x62\x69\x6e\x64\x36", Bind6);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x63\x6f\x6e\x6e\x65\x63\x74\x36", Connect6);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x67\x65\x74\x73\x6f\x63\x6b\x6e\x61\x6d\x65", GetSockName);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x67\x65\x74\x70\x65\x65\x72\x6e\x61\x6d\x65", GetPeerName);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x65\x74\x4e\x6f\x44\x65\x6c\x61\x79", SetNoDelay);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x65\x74\x4b\x65\x65\x70\x41\x6c\x69\x76\x65", SetKeepAlive);
 
 #ifdef _WIN32
   NODE_SET_PROTOTYPE_METHOD(t,
-                            "setSimultaneousAccepts",
+                            "\x73\x65\x74\x53\x69\x6d\x75\x6c\x74\x61\x6e\x65\x6f\x75\x73\x41\x63\x63\x65\x70\x74\x73",
                             SetSimultaneousAccepts);
 #endif
 
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "TCP"), t->GetFunction());
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x43\x50"), t->GetFunction());
   env->set_tcp_constructor_template(t);
 
   // Create FunctionTemplate for TCPConnectWrap.
   Local<FunctionTemplate> cwt =
       FunctionTemplate::New(env->isolate(), NewTCPConnectWrap);
   cwt->InstanceTemplate()->SetInternalFieldCount(1);
-  cwt->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "TCPConnectWrap"));
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "TCPConnectWrap"),
+  cwt->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x43\x50\x43\x6f\x6e\x6e\x65\x63\x74\x57\x72\x61\x70"));
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x43\x50\x43\x6f\x6e\x6e\x65\x63\x74\x57\x72\x61\x70"),
               cwt->GetFunction());
 }
 

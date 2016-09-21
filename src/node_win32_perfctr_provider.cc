@@ -128,37 +128,37 @@ void InitPerfCountersWin32() {
   // create instance name using pid
 #define INST_MAX_LEN       32
 #define INST_PREFIX_LEN    5
-#define INST_PREFIX        L"node_"
+#define INST_PREFIX        L"\x6e\x6f\x64\x65\x5f"
 
   wchar_t Inst[INST_MAX_LEN];
   DWORD pid = GetCurrentProcessId();
   wcscpy_s(Inst, INST_MAX_LEN, INST_PREFIX);
   _itow_s(pid, Inst + INST_PREFIX_LEN, INST_MAX_LEN - INST_PREFIX_LEN, 10);
 
-  advapimod = LoadLibrary("advapi32.dll");
+  advapimod = LoadLibrary("\x61\x64\x76\x61\x70\x69\x33\x32\x2e\x64\x6c\x6c");
   if (advapimod) {
     perfctr_startProvider = (PerfStartProviderExFunc)
-      GetProcAddress(advapimod, "PerfStartProviderEx");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x53\x74\x61\x72\x74\x50\x72\x6f\x76\x69\x64\x65\x72\x45\x78");
     perfctr_stopProvider = (PerfStopProviderFunc)
-      GetProcAddress(advapimod, "PerfStopProvider");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x53\x74\x6f\x70\x50\x72\x6f\x76\x69\x64\x65\x72");
     perfctr_setCounterSetInfo = (PerfSetCounterSetInfoFunc)
-      GetProcAddress(advapimod, "PerfSetCounterSetInfo");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x53\x65\x74\x43\x6f\x75\x6e\x74\x65\x72\x53\x65\x74\x49\x6e\x66\x6f");
     perfctr_createInstance = (PerfCreateInstanceFunc)
-      GetProcAddress(advapimod, "PerfCreateInstance");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x43\x72\x65\x61\x74\x65\x49\x6e\x73\x74\x61\x6e\x63\x65");
     perfctr_deleteInstance = (PerfDeleteInstanceFunc)
-      GetProcAddress(advapimod, "PerfDeleteInstance");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x44\x65\x6c\x65\x74\x65\x49\x6e\x73\x74\x61\x6e\x63\x65");
     perfctr_setULongValue = (PerfSetULongCounterValueFunc)
-      GetProcAddress(advapimod, "PerfSetULongCounterValue");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x53\x65\x74\x55\x4c\x6f\x6e\x67\x43\x6f\x75\x6e\x74\x65\x72\x56\x61\x6c\x75\x65");
     perfctr_setULongLongValue = (PerfSetULongLongCounterValueFunc)
-      GetProcAddress(advapimod, "PerfSetULongLongCounterValue");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x53\x65\x74\x55\x4c\x6f\x6e\x67\x4c\x6f\x6e\x67\x43\x6f\x75\x6e\x74\x65\x72\x56\x61\x6c\x75\x65");
     perfctr_incrementULongValue = (PerfIncrementULongCounterValueFunc)
-      GetProcAddress(advapimod, "PerfIncrementULongCounterValue");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x49\x6e\x63\x72\x65\x6d\x65\x6e\x74\x55\x4c\x6f\x6e\x67\x43\x6f\x75\x6e\x74\x65\x72\x56\x61\x6c\x75\x65");
     perfctr_incrementULongLongValue = (PerfIncrementULongLongCounterValueFunc)
-      GetProcAddress(advapimod, "PerfIncrementULongLongCounterValue");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x49\x6e\x63\x72\x65\x6d\x65\x6e\x74\x55\x4c\x6f\x6e\x67\x4c\x6f\x6e\x67\x43\x6f\x75\x6e\x74\x65\x72\x56\x61\x6c\x75\x65");
     perfctr_decrementULongValue = (PerfDecrementULongCounterValueFunc)
-      GetProcAddress(advapimod, "PerfDecrementULongCounterValue");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x44\x65\x63\x72\x65\x6d\x65\x6e\x74\x55\x4c\x6f\x6e\x67\x43\x6f\x75\x6e\x74\x65\x72\x56\x61\x6c\x75\x65");
     perfctr_decrementULongLongValue = (PerfDecrementULongLongCounterValueFunc)
-      GetProcAddress(advapimod, "PerfDecrementULongLongCounterValue");
+      GetProcAddress(advapimod, "\x50\x65\x72\x66\x44\x65\x63\x72\x65\x6d\x65\x6e\x74\x55\x4c\x6f\x6e\x67\x4c\x6f\x6e\x67\x43\x6f\x75\x6e\x74\x65\x72\x56\x61\x6c\x75\x65");
 
     ZeroMemory(&providerContext, sizeof(providerContext));
     providerContext.ContextSize = sizeof(providerContext);

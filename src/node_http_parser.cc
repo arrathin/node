@@ -588,19 +588,19 @@ void InitHttpParser(Handle<Object> target,
   Local<FunctionTemplate> t = FunctionTemplate::New(env->isolate(),
                                                     Parser::New);
   t->InstanceTemplate()->SetInternalFieldCount(1);
-  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "HTTPParser"));
+  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x48\x54\x54\x50\x50\x61\x72\x73\x65\x72"));
 
-  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "REQUEST"),
+  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x52\x45\x51\x55\x45\x53\x54"),
          Integer::New(env->isolate(), HTTP_REQUEST));
-  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "RESPONSE"),
+  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x52\x45\x53\x50\x4f\x4e\x53\x45"),
          Integer::New(env->isolate(), HTTP_RESPONSE));
-  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "kOnHeaders"),
+  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x6b\x4f\x6e\x48\x65\x61\x64\x65\x72\x73"),
          Integer::NewFromUnsigned(env->isolate(), kOnHeaders));
-  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "kOnHeadersComplete"),
+  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x6b\x4f\x6e\x48\x65\x61\x64\x65\x72\x73\x43\x6f\x6d\x70\x6c\x65\x74\x65"),
          Integer::NewFromUnsigned(env->isolate(), kOnHeadersComplete));
-  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "kOnBody"),
+  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x6b\x4f\x6e\x42\x6f\x64\x79"),
          Integer::NewFromUnsigned(env->isolate(), kOnBody));
-  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "kOnMessageComplete"),
+  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x6b\x4f\x6e\x4d\x65\x73\x73\x61\x67\x65\x43\x6f\x6d\x70\x6c\x65\x74\x65"),
          Integer::NewFromUnsigned(env->isolate(), kOnMessageComplete));
 
   Local<Array> methods = Array::New(env->isolate());
@@ -608,16 +608,16 @@ void InitHttpParser(Handle<Object> target,
     methods->Set(num, FIXED_ONE_BYTE_STRING(env->isolate(), #string));
   HTTP_METHOD_MAP(V)
 #undef V
-  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "methods"), methods);
+  t->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x6d\x65\x74\x68\x6f\x64\x73"), methods);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "close", Parser::Close);
-  NODE_SET_PROTOTYPE_METHOD(t, "execute", Parser::Execute);
-  NODE_SET_PROTOTYPE_METHOD(t, "finish", Parser::Finish);
-  NODE_SET_PROTOTYPE_METHOD(t, "reinitialize", Parser::Reinitialize);
-  NODE_SET_PROTOTYPE_METHOD(t, "pause", Parser::Pause<true>);
-  NODE_SET_PROTOTYPE_METHOD(t, "resume", Parser::Pause<false>);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x63\x6c\x6f\x73\x65", Parser::Close);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x65\x78\x65\x63\x75\x74\x65", Parser::Execute);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x66\x69\x6e\x69\x73\x68", Parser::Finish);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x69\x6e\x69\x74\x69\x61\x6c\x69\x7a\x65", Parser::Reinitialize);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x70\x61\x75\x73\x65", Parser::Pause<true>);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x73\x75\x6d\x65", Parser::Pause<false>);
 
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "HTTPParser"),
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x48\x54\x54\x50\x50\x61\x72\x73\x65\x72"),
               t->GetFunction());
 }
 

@@ -54,7 +54,7 @@ void TTYWrap::Initialize(Handle<Object> target,
   Environment* env = Environment::GetCurrent(context);
 
   Local<FunctionTemplate> t = FunctionTemplate::New(env->isolate(), New);
-  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "TTY"));
+  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x54\x59"));
   t->InstanceTemplate()->SetInternalFieldCount(1);
 
   enum PropertyAttribute attributes =
@@ -66,29 +66,29 @@ void TTYWrap::Initialize(Handle<Object> target,
                                      v8::DEFAULT,
                                      attributes);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "close", HandleWrap::Close);
-  NODE_SET_PROTOTYPE_METHOD(t, "unref", HandleWrap::Unref);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x63\x6c\x6f\x73\x65", HandleWrap::Close);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x75\x6e\x72\x65\x66", HandleWrap::Unref);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "readStart", StreamWrap::ReadStart);
-  NODE_SET_PROTOTYPE_METHOD(t, "readStop", StreamWrap::ReadStop);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x61\x64\x53\x74\x61\x72\x74", StreamWrap::ReadStart);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x61\x64\x53\x74\x6f\x70", StreamWrap::ReadStop);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "writeBuffer", StreamWrap::WriteBuffer);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x42\x75\x66\x66\x65\x72", StreamWrap::WriteBuffer);
   NODE_SET_PROTOTYPE_METHOD(t,
-                            "writeAsciiString",
+                            "\x77\x72\x69\x74\x65\x41\x73\x63\x69\x69\x53\x74\x72\x69\x6e\x67",
                             StreamWrap::WriteAsciiString);
-  NODE_SET_PROTOTYPE_METHOD(t, "writeUtf8String", StreamWrap::WriteUtf8String);
-  NODE_SET_PROTOTYPE_METHOD(t, "writeUcs2String", StreamWrap::WriteUcs2String);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x55\x74\x66\x38\x53\x74\x72\x69\x6e\x67", StreamWrap::WriteUtf8String);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x55\x63\x73\x32\x53\x74\x72\x69\x6e\x67", StreamWrap::WriteUcs2String);
   NODE_SET_PROTOTYPE_METHOD(t,
-                            "writeBinaryString",
+                            "\x77\x72\x69\x74\x65\x42\x69\x6e\x61\x72\x79\x53\x74\x72\x69\x6e\x67",
                             StreamWrap::WriteBinaryString);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "getWindowSize", TTYWrap::GetWindowSize);
-  NODE_SET_PROTOTYPE_METHOD(t, "setRawMode", SetRawMode);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x67\x65\x74\x57\x69\x6e\x64\x6f\x77\x53\x69\x7a\x65", TTYWrap::GetWindowSize);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x65\x74\x52\x61\x77\x4d\x6f\x64\x65", SetRawMode);
 
-  NODE_SET_METHOD(target, "isTTY", IsTTY);
-  NODE_SET_METHOD(target, "guessHandleType", GuessHandleType);
+  NODE_SET_METHOD(target, "\x69\x73\x54\x54\x59", IsTTY);
+  NODE_SET_METHOD(target, "\x67\x75\x65\x73\x73\x48\x61\x6e\x64\x6c\x65\x54\x79\x70\x65", GuessHandleType);
 
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "TTY"), t->GetFunction());
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x54\x59"), t->GetFunction());
   env->set_tty_constructor_template(t);
 }
 
@@ -108,12 +108,12 @@ void TTYWrap::GuessHandleType(const FunctionCallbackInfo<Value>& args) {
   const char* type = NULL;
 
   switch (t) {
-  case UV_TCP: type = "TCP"; break;
-  case UV_TTY: type = "TTY"; break;
-  case UV_UDP: type = "UDP"; break;
-  case UV_FILE: type = "FILE"; break;
-  case UV_NAMED_PIPE: type = "PIPE"; break;
-  case UV_UNKNOWN_HANDLE: type = "UNKNOWN"; break;
+  case UV_TCP: type = "\x54\x43\x50"; break;
+  case UV_TTY: type = "\x54\x54\x59"; break;
+  case UV_UDP: type = "\x55\x44\x50"; break;
+  case UV_FILE: type = "\x46\x49\x4c\x45"; break;
+  case UV_NAMED_PIPE: type = "\x50\x49\x50\x45"; break;
+  case UV_UNKNOWN_HANDLE: type = "\x55\x4e\x4b\x4e\x4f\x57\x4e"; break;
   default:
     abort();
   }

@@ -211,12 +211,12 @@ void InitializeV8Bindings(Handle<Object> target,
                           Handle<Value> unused,
                           Handle<Context> context) {
   NODE_SET_METHOD(target,
-                  "startGarbageCollectionTracking",
+                  "\x73\x74\x61\x72\x74\x47\x61\x72\x62\x61\x67\x65\x43\x6f\x6c\x6c\x65\x63\x74\x69\x6f\x6e\x54\x72\x61\x63\x6b\x69\x6e\x67",
                   StartGarbageCollectionTracking);
   NODE_SET_METHOD(target,
-                  "stopGarbageCollectionTracking",
+                  "\x73\x74\x6f\x70\x47\x61\x72\x62\x61\x67\x65\x43\x6f\x6c\x6c\x65\x63\x74\x69\x6f\x6e\x54\x72\x61\x63\x6b\x69\x6e\x67",
                   StopGarbageCollectionTracking);
-  NODE_SET_METHOD(target, "getHeapStatistics", GetHeapStatistics);
+  NODE_SET_METHOD(target, "\x67\x65\x74\x48\x65\x61\x70\x53\x74\x61\x74\x69\x73\x74\x69\x63\x73", GetHeapStatistics);
 }
 
 }  // namespace node

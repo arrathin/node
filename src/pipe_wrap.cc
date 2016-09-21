@@ -94,7 +94,7 @@ void PipeWrap::Initialize(Handle<Object> target,
   Environment* env = Environment::GetCurrent(context);
 
   Local<FunctionTemplate> t = FunctionTemplate::New(env->isolate(), New);
-  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "Pipe"));
+  t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x50\x69\x70\x65"));
   t->InstanceTemplate()->SetInternalFieldCount(1);
 
   enum PropertyAttribute attributes =
@@ -106,44 +106,44 @@ void PipeWrap::Initialize(Handle<Object> target,
                                      v8::DEFAULT,
                                      attributes);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "close", HandleWrap::Close);
-  NODE_SET_PROTOTYPE_METHOD(t, "unref", HandleWrap::Unref);
-  NODE_SET_PROTOTYPE_METHOD(t, "ref", HandleWrap::Ref);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x63\x6c\x6f\x73\x65", HandleWrap::Close);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x75\x6e\x72\x65\x66", HandleWrap::Unref);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x66", HandleWrap::Ref);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "setBlocking", StreamWrap::SetBlocking);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x65\x74\x42\x6c\x6f\x63\x6b\x69\x6e\x67", StreamWrap::SetBlocking);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "readStart", StreamWrap::ReadStart);
-  NODE_SET_PROTOTYPE_METHOD(t, "readStop", StreamWrap::ReadStop);
-  NODE_SET_PROTOTYPE_METHOD(t, "shutdown", StreamWrap::Shutdown);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x61\x64\x53\x74\x61\x72\x74", StreamWrap::ReadStart);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x72\x65\x61\x64\x53\x74\x6f\x70", StreamWrap::ReadStop);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x68\x75\x74\x64\x6f\x77\x6e", StreamWrap::Shutdown);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "writeBuffer", StreamWrap::WriteBuffer);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x42\x75\x66\x66\x65\x72", StreamWrap::WriteBuffer);
   NODE_SET_PROTOTYPE_METHOD(t,
-                            "writeAsciiString",
+                            "\x77\x72\x69\x74\x65\x41\x73\x63\x69\x69\x53\x74\x72\x69\x6e\x67",
                             StreamWrap::WriteAsciiString);
-  NODE_SET_PROTOTYPE_METHOD(t, "writeUtf8String", StreamWrap::WriteUtf8String);
-  NODE_SET_PROTOTYPE_METHOD(t, "writeUcs2String", StreamWrap::WriteUcs2String);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x55\x74\x66\x38\x53\x74\x72\x69\x6e\x67", StreamWrap::WriteUtf8String);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x77\x72\x69\x74\x65\x55\x63\x73\x32\x53\x74\x72\x69\x6e\x67", StreamWrap::WriteUcs2String);
   NODE_SET_PROTOTYPE_METHOD(t,
-                            "writeBinaryString",
+                            "\x77\x72\x69\x74\x65\x42\x69\x6e\x61\x72\x79\x53\x74\x72\x69\x6e\x67",
                             StreamWrap::WriteBinaryString);
 
-  NODE_SET_PROTOTYPE_METHOD(t, "bind", Bind);
-  NODE_SET_PROTOTYPE_METHOD(t, "listen", Listen);
-  NODE_SET_PROTOTYPE_METHOD(t, "connect", Connect);
-  NODE_SET_PROTOTYPE_METHOD(t, "open", Open);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x62\x69\x6e\x64", Bind);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x6c\x69\x73\x74\x65\x6e", Listen);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x63\x6f\x6e\x6e\x65\x63\x74", Connect);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x6f\x70\x65\x6e", Open);
 
 #ifdef _WIN32
-  NODE_SET_PROTOTYPE_METHOD(t, "setPendingInstances", SetPendingInstances);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x65\x74\x50\x65\x6e\x64\x69\x6e\x67\x49\x6e\x73\x74\x61\x6e\x63\x65\x73", SetPendingInstances);
 #endif
 
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "Pipe"), t->GetFunction());
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x50\x69\x70\x65"), t->GetFunction());
   env->set_pipe_constructor_template(t);
 
   // Create FunctionTemplate for PipeConnectWrap.
   Local<FunctionTemplate> cwt =
       FunctionTemplate::New(env->isolate(), NewPipeConnectWrap);
   cwt->InstanceTemplate()->SetInternalFieldCount(1);
-  cwt->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "PipeConnectWrap"));
-  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "PipeConnectWrap"),
+  cwt->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x50\x69\x70\x65\x43\x6f\x6e\x6e\x65\x63\x74\x57\x72\x61\x70"));
+  target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x50\x69\x70\x65\x43\x6f\x6e\x6e\x65\x63\x74\x57\x72\x61\x70"),
               cwt->GetFunction());
 }
 
@@ -305,7 +305,7 @@ void PipeWrap::Open(const FunctionCallbackInfo<Value>& args) {
   int err = uv_pipe_open(&wrap->handle_, fd);
 
   if (err != 0)
-    env->isolate()->ThrowException(UVException(err, "uv_pipe_open"));
+    env->isolate()->ThrowException(UVException(err, "\x75\x76\x5f\x70\x69\x70\x65\x5f\x6f\x70\x65\x6e"));
 }
 
 

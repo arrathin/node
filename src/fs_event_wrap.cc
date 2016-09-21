@@ -87,8 +87,8 @@ void FSEventWrap::Initialize(Handle<Object> target,
   t->InstanceTemplate()->SetInternalFieldCount(1);
   t->SetClassName(env->fsevent_string());
 
-  NODE_SET_PROTOTYPE_METHOD(t, "start", Start);
-  NODE_SET_PROTOTYPE_METHOD(t, "close", Close);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x73\x74\x61\x72\x74", Start);
+  NODE_SET_PROTOTYPE_METHOD(t, "\x63\x6c\x6f\x73\x65", Close);
 
   target->Set(env->fsevent_string(), t->GetFunction());
 }
@@ -109,7 +109,7 @@ void FSEventWrap::Start(const FunctionCallbackInfo<Value>& args) {
   FSEventWrap* wrap = Unwrap<FSEventWrap>(args.Holder());
 
   if (args.Length() < 1 || !args[0]->IsString()) {
-    return env->ThrowTypeError("Bad arguments");
+    return env->ThrowTypeError("\x42\x61\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x73");
   }
 
   node::Utf8Value path(args[0]);
@@ -167,7 +167,7 @@ void FSEventWrap::OnEvent(uv_fs_event_t* handle, const char* filename,
   } else if (events & UV_CHANGE) {
     event_string = env->change_string();
   } else {
-    assert(0 && "bad fs events flag");
+    assert(0 && "\x62\x61\x64\x20\x66\x73\x20\x65\x76\x65\x6e\x74\x73\x20\x66\x6c\x61\x67");
     abort();
   }
 

@@ -141,9 +141,9 @@ size_t base64_decoded_size(const TypeName* src, size_t size) {
   if (size == 0)
     return 0;
 
-  if (src[size - 1] == '=')
+  if (src[size - 1] == '\x3d')
     size--;
-  if (size > 0 && src[size - 1] == '=')
+  if (size > 0 && src[size - 1] == '\x3d')
     size--;
 
   return base64_decoded_size_fast(size);
@@ -187,13 +187,13 @@ size_t base64_decode(char* buf,
 
     while (unbase64(*src) < 0 && src < srcEnd)
       src++, remaining--;
-    if (remaining == 0 || *src == '=')
+    if (remaining == 0 || *src == '\x3d')
       break;
     a = unbase64(*src++);
 
     while (unbase64(*src) < 0 && src < srcEnd)
       src++, remaining--;
-    if (remaining <= 1 || *src == '=')
+    if (remaining <= 1 || *src == '\x3d')
       break;
     b = unbase64(*src++);
 
@@ -203,7 +203,7 @@ size_t base64_decode(char* buf,
 
     while (unbase64(*src) < 0 && src < srcEnd)
       src++, remaining--;
-    if (remaining <= 2 || *src == '=')
+    if (remaining <= 2 || *src == '\x3d')
       break;
     c = unbase64(*src++);
 
@@ -213,7 +213,7 @@ size_t base64_decode(char* buf,
 
     while (unbase64(*src) < 0 && src < srcEnd)
       src++, remaining--;
-    if (remaining <= 3 || *src == '=')
+    if (remaining <= 3 || *src == '\x3d')
       break;
     d = unbase64(*src++);
 
@@ -228,12 +228,12 @@ size_t base64_decode(char* buf,
 
 template <typename TypeName>
 unsigned hex2bin(TypeName c) {
-  if (c >= '0' && c <= '9')
-    return c - '0';
-  if (c >= 'A' && c <= 'F')
-    return 10 + (c - 'A');
-  if (c >= 'a' && c <= 'f')
-    return 10 + (c - 'a');
+  if (c >= '\x30' && c <= '\x39')
+    return c - '\x30';
+  if (c >= '\x41' && c <= '\x46')
+    return 10 + (c - '\x41');
+  if (c >= '\x61' && c <= '\x66')
+    return 10 + (c - '\x61');
   return static_cast<unsigned>(-1);
 }
 
@@ -378,7 +378,7 @@ size_t StringBytes::Write(Isolate* isolate,
       break;
 
     default:
-      assert(0 && "unknown encoding");
+      assert(0 && "\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x65\x6e\x63\x6f\x64\x69\x6e\x67");
       break;
   }
 
@@ -435,12 +435,12 @@ size_t StringBytes::StorageSize(Isolate* isolate,
       break;
 
     case HEX:
-      assert(str->Length() % 2 == 0 && "invalid hex string length");
+      assert(str->Length() % 2 == 0 && "\x69\x6e\x76\x61\x6c\x69\x64\x20\x68\x65\x78\x20\x73\x74\x72\x69\x6e\x67\x20\x6c\x65\x6e\x67\x74\x68");
       data_size = str->Length() / 2;
       break;
 
     default:
-      assert(0 && "unknown encoding");
+      assert(0 && "\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x65\x6e\x63\x6f\x64\x69\x6e\x67");
       break;
   }
 
@@ -490,7 +490,7 @@ size_t StringBytes::Size(Isolate* isolate,
       break;
 
     default:
-      assert(0 && "unknown encoding");
+      assert(0 && "\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x65\x6e\x63\x6f\x64\x69\x6e\x67");
       break;
   }
 
@@ -611,7 +611,7 @@ static size_t base64_encode(const char* src,
                             size_t dlen) {
   // We know how much we'll write, just make sure that there's space.
   assert(dlen >= base64_encoded_size(slen) &&
-      "not enough space provided for base64 encode");
+      "\x6e\x6f\x74\x20\x65\x6e\x6f\x75\x67\x68\x20\x73\x70\x61\x63\x65\x20\x70\x72\x6f\x76\x69\x64\x65\x64\x20\x66\x6f\x72\x20\x62\x61\x73\x65\x36\x34\x20\x65\x6e\x63\x6f\x64\x65");
 
   dlen = base64_encoded_size(slen);
 
@@ -622,9 +622,9 @@ static size_t base64_encode(const char* src,
   unsigned k;
   unsigned n;
 
-  static const char table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                              "abcdefghijklmnopqrstuvwxyz"
-                              "0123456789+/";
+  static const char table[] = "\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a"
+                              "\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a"
+                              "\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x2b\x2f";
 
   i = 0;
   k = 0;
@@ -650,8 +650,8 @@ static size_t base64_encode(const char* src,
         a = src[i + 0] & 0xff;
         dst[k + 0] = table[a >> 2];
         dst[k + 1] = table[(a & 3) << 4];
-        dst[k + 2] = '=';
-        dst[k + 3] = '=';
+        dst[k + 2] = '\x3d';
+        dst[k + 3] = '\x3d';
         break;
 
       case 2:
@@ -660,7 +660,7 @@ static size_t base64_encode(const char* src,
         dst[k + 0] = table[a >> 2];
         dst[k + 1] = table[((a & 3) << 4) | (b >> 4)];
         dst[k + 2] = table[(b & 0x0f) << 2];
-        dst[k + 3] = '=';
+        dst[k + 3] = '\x3d';
         break;
     }
   }
@@ -672,11 +672,11 @@ static size_t base64_encode(const char* src,
 static size_t hex_encode(const char* src, size_t slen, char* dst, size_t dlen) {
   // We know how much we'll write, just make sure that there's space.
   assert(dlen >= slen * 2 &&
-      "not enough space provided for hex encode");
+      "\x6e\x6f\x74\x20\x65\x6e\x6f\x75\x67\x68\x20\x73\x70\x61\x63\x65\x20\x70\x72\x6f\x76\x69\x64\x65\x64\x20\x66\x6f\x72\x20\x68\x65\x78\x20\x65\x6e\x63\x6f\x64\x65");
 
   dlen = slen * 2;
   for (uint32_t i = 0, k = 0; k < dlen; i += 1, k += 2) {
-    static const char hex[] = "0123456789abcdef";
+    static const char hex[] = "\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x61\x62\x63\x64\x65\x66";
     uint8_t val = static_cast<uint8_t>(src[i]);
     dst[k + 0] = hex[val >> 4];
     dst[k + 1] = hex[val & 15];
@@ -792,7 +792,7 @@ Local<Value> StringBytes::Encode(Isolate* isolate,
     }
 
     default:
-      assert(0 && "unknown encoding");
+      assert(0 && "\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x65\x6e\x63\x6f\x64\x69\x6e\x67");
       break;
   }
 

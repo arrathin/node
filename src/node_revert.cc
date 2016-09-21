@@ -27,18 +27,18 @@ namespace node {
 unsigned int reverted = 0;
 
 const char* RevertMessage(const unsigned int cve) {
-#define V(code, label, msg) case REVERT_ ## code: return label ": " msg;
+#define V(code, label, msg) case REVERT_ ## code: return label "\x3a\x20" msg;
   switch (cve) {
     REVERSIONS(V)
     default:
-      return "Unknown";
+      return "\x55\x6e\x6b\x6e\x6f\x77\x6e";
   }
 #undef V
 }
 
 void Revert(const unsigned int cve) {
   reverted |= 1 << cve;
-  printf("SECURITY WARNING: Reverting %s\n", RevertMessage(cve));
+  printf("\x53\x45\x43\x55\x52\x49\x54\x59\x20\x57\x41\x52\x4e\x49\x4e\x47\x3a\x20\x52\x65\x76\x65\x72\x74\x69\x6e\x67\x20\x6c\xa2\xa", RevertMessage(cve));
 }
 
 void Revert(const char* cve) {
@@ -51,7 +51,7 @@ void Revert(const char* cve) {
   } while (0);
   REVERSIONS(V)
 #undef V
-  printf("Error: Attempt to revert an unknown CVE [%s]\n", cve);
+  printf("\x45\x72\x72\x6f\x72\x3a\x20\x41\x74\x74\x65\x6d\x70\x74\x20\x74\x6f\x20\x72\x65\x76\x65\x72\x74\x20\x61\x6e\x20\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x43\x56\x45\x20\x5b\x6c\xa2\x5d\xa", cve);
   exit(12);
 }
 

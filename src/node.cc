@@ -748,22 +748,22 @@ Local<Value> ErrnoException(Isolate* isolate,
 
   Local<Value> e;
   Local<String> estring = OneByteString(env->isolate(), errno_string(errorno));
-  if (msg == NULL || msg[0] == '\0') {
+  if (msg == NULL || msg[0] == '\x0') {
     msg = strerror(errorno);
   }
   Local<String> message = OneByteString(env->isolate(), msg);
 
   Local<String> cons1 =
-      String::Concat(estring, FIXED_ONE_BYTE_STRING(env->isolate(), ", "));
+      String::Concat(estring, FIXED_ONE_BYTE_STRING(env->isolate(), "\x2c\x20"));
   Local<String> cons2 = String::Concat(cons1, message);
 
   if (path) {
     Local<String> cons3 =
-        String::Concat(cons2, FIXED_ONE_BYTE_STRING(env->isolate(), " '"));
+        String::Concat(cons2, FIXED_ONE_BYTE_STRING(env->isolate(), "\x20\x27"));
     Local<String> cons4 =
         String::Concat(cons3, String::NewFromUtf8(env->isolate(), path));
     Local<String> cons5 =
-        String::Concat(cons4, FIXED_ONE_BYTE_STRING(env->isolate(), "'"));
+        String::Concat(cons4, FIXED_ONE_BYTE_STRING(env->isolate(), "\x27"));
     e = v8::Exception::Error(cons5);
   } else {
     e = v8::Exception::Error(cons2);
@@ -799,7 +799,7 @@ Local<Value> UVException(Isolate* isolate,
   Local<String> estring = OneByteString(env->isolate(), uv_err_name(errorno));
   Local<String> message = OneByteString(env->isolate(), msg);
   Local<String> cons1 =
-      String::Concat(estring, FIXED_ONE_BYTE_STRING(env->isolate(), ", "));
+      String::Concat(estring, FIXED_ONE_BYTE_STRING(env->isolate(), "\x2c\x20"));
   Local<String> cons2 = String::Concat(cons1, message);
 
   Local<Value> e;
@@ -821,11 +821,11 @@ Local<Value> UVException(Isolate* isolate,
 #endif
 
     Local<String> cons3 =
-        String::Concat(cons2, FIXED_ONE_BYTE_STRING(env->isolate(), " '"));
+        String::Concat(cons2, FIXED_ONE_BYTE_STRING(env->isolate(), "\x20\x27"));
     Local<String> cons4 =
         String::Concat(cons3, path_str);
     Local<String> cons5 =
-        String::Concat(cons4, FIXED_ONE_BYTE_STRING(env->isolate(), "'"));
+        String::Concat(cons4, FIXED_ONE_BYTE_STRING(env->isolate(), "\x27"));
     e = v8::Exception::Error(cons5);
   } else {
     e = v8::Exception::Error(cons2);
@@ -863,15 +863,15 @@ static const char *winapi_strerror(const int errorno, bool* must_free) {
 
     // Remove trailing newlines
     for (int i = strlen(errmsg) - 1;
-        i >= 0 && (errmsg[i] == '\n' || errmsg[i] == '\r'); i--) {
-      errmsg[i] = '\0';
+        i >= 0 && (errmsg[i] == '\xa' || errmsg[i] == '\xd'); i--) {
+      errmsg[i] = '\x0';
     }
 
     return errmsg;
   } else {
     // FormatMessage failed
     *must_free = false;
-    return "Unknown error";
+    return "\x55\x6e\x6b\x6e\x6f\x77\x6e\x20\x65\x72\x72\x6f\x72";
   }
 }
 
@@ -891,11 +891,11 @@ Local<Value> WinapiErrnoException(Isolate* isolate,
 
   if (path) {
     Local<String> cons1 =
-        String::Concat(message, FIXED_ONE_BYTE_STRING(isolate, " '"));
+        String::Concat(message, FIXED_ONE_BYTE_STRING(isolate, "\x20\x27"));
     Local<String> cons2 =
         String::Concat(cons1, String::NewFromUtf8(isolate, path));
     Local<String> cons3 =
-        String::Concat(cons2, FIXED_ONE_BYTE_STRING(isolate, "'"));
+        String::Concat(cons2, FIXED_ONE_BYTE_STRING(isolate, "\x27"));
     e = v8::Exception::Error(cons3);
   } else {
     e = v8::Exception::Error(message);
@@ -996,7 +996,7 @@ void SetupDomainUse(const FunctionCallbackInfo<Value>& args) {
       process_object->Get(tick_callback_function_key).As<Function>();
 
   if (!tick_callback_function->IsFunction()) {
-    fprintf(stderr, "process._tickDomainCallback assigned to non-function\n");
+    fprintf(stderr, "\x70\x72\x6f\x63\x65\x73\x73\x2e\x5f\x74\x69\x63\x6b\x44\x6f\x6d\x61\x69\x6e\x43\x61\x6c\x6c\x62\x61\x63\x6b\x20\x61\x73\x73\x69\x67\x6e\x65\x64\x20\x74\x6f\x20\x6e\x6f\x6e\x2d\x66\x75\x6e\x63\x74\x69\x6f\x6e\xa");
     abort();
   }
 
@@ -1019,7 +1019,7 @@ void SetupDomainUse(const FunctionCallbackInfo<Value>& args) {
 
   // Do a little housekeeping.
   env->process_object()->Delete(
-      FIXED_ONE_BYTE_STRING(args.GetIsolate(), "_setupDomainUse"));
+      FIXED_ONE_BYTE_STRING(args.GetIsolate(), "\x5f\x73\x65\x74\x75\x70\x44\x6f\x6d\x61\x69\x6e\x55\x73\x65"));
 }
 
 void RunMicrotasks(const FunctionCallbackInfo<Value>& args) {
@@ -1044,11 +1044,11 @@ void SetupNextTick(const FunctionCallbackInfo<Value>& args) {
 
   env->set_tick_callback_function(args[1].As<Function>());
 
-  NODE_SET_METHOD(args[2].As<Object>(), "runMicrotasks", RunMicrotasks);
+  NODE_SET_METHOD(args[2].As<Object>(), "\x72\x75\x6e\x4d\x69\x63\x72\x6f\x74\x61\x73\x6b\x73", RunMicrotasks);
 
   // Do a little housekeeping.
   env->process_object()->Delete(
-      FIXED_ONE_BYTE_STRING(args.GetIsolate(), "_setupNextTick"));
+      FIXED_ONE_BYTE_STRING(args.GetIsolate(), "\x5f\x73\x65\x74\x75\x70\x4e\x65\x78\x74\x54\x69\x63\x6b"));
 }
 
 
@@ -1099,7 +1099,7 @@ Handle<Value> MakeCallback(Environment* env,
     try_catch.SetVerbose(false);
     env->async_hooks_pre_function()->Call(object, 0, NULL);
     if (try_catch.HasCaught())
-      FatalError("node:;MakeCallback", "pre hook threw");
+      FatalError("\x6e\x6f\x64\x65\x3a\x3b\x4d\x61\x6b\x65\x43\x61\x6c\x6c\x62\x61\x63\x6b", "\x70\x72\x65\x20\x68\x6f\x6f\x6b\x20\x74\x68\x72\x65\x77");
     try_catch.SetVerbose(true);
   }
 
@@ -1109,7 +1109,7 @@ Handle<Value> MakeCallback(Environment* env,
     try_catch.SetVerbose(false);
     env->async_hooks_post_function()->Call(object, 0, NULL);
     if (try_catch.HasCaught())
-      FatalError("node::MakeCallback", "post hook threw");
+      FatalError("\x6e\x6f\x64\x65\x3a\x3a\x4d\x61\x6b\x65\x43\x61\x6c\x6c\x62\x61\x63\x6b", "\x70\x6f\x73\x74\x20\x68\x6f\x6f\x6b\x20\x74\x68\x72\x65\x77");
     try_catch.SetVerbose(true);
   }
 
@@ -1243,38 +1243,38 @@ enum encoding ParseEncoding(Isolate* isolate,
 
   node::Utf8Value encoding(encoding_v);
 
-  if (strcasecmp(*encoding, "utf8") == 0) {
+  if (strcasecmp(*encoding, "\x75\x74\x66\x38") == 0) {
     return UTF8;
-  } else if (strcasecmp(*encoding, "utf-8") == 0) {
+  } else if (strcasecmp(*encoding, "\x75\x74\x66\x2d\x38") == 0) {
     return UTF8;
-  } else if (strcasecmp(*encoding, "ascii") == 0) {
+  } else if (strcasecmp(*encoding, "\x61\x73\x63\x69\x69") == 0) {
     return ASCII;
-  } else if (strcasecmp(*encoding, "base64") == 0) {
+  } else if (strcasecmp(*encoding, "\x62\x61\x73\x65\x36\x34") == 0) {
     return BASE64;
-  } else if (strcasecmp(*encoding, "ucs2") == 0) {
+  } else if (strcasecmp(*encoding, "\x75\x63\x73\x32") == 0) {
     return UCS2;
-  } else if (strcasecmp(*encoding, "ucs-2") == 0) {
+  } else if (strcasecmp(*encoding, "\x75\x63\x73\x2d\x32") == 0) {
     return UCS2;
-  } else if (strcasecmp(*encoding, "utf16le") == 0) {
+  } else if (strcasecmp(*encoding, "\x75\x74\x66\x31\x36\x6c\x65") == 0) {
     return UCS2;
-  } else if (strcasecmp(*encoding, "utf-16le") == 0) {
+  } else if (strcasecmp(*encoding, "\x75\x74\x66\x2d\x31\x36\x6c\x65") == 0) {
     return UCS2;
-  } else if (strcasecmp(*encoding, "binary") == 0) {
+  } else if (strcasecmp(*encoding, "\x62\x69\x6e\x61\x72\x79") == 0) {
     return BINARY;
-  } else if (strcasecmp(*encoding, "buffer") == 0) {
+  } else if (strcasecmp(*encoding, "\x62\x75\x66\x66\x65\x72") == 0) {
     return BUFFER;
-  } else if (strcasecmp(*encoding, "hex") == 0) {
+  } else if (strcasecmp(*encoding, "\x68\x65\x78") == 0) {
     return HEX;
-  } else if (strcasecmp(*encoding, "raw") == 0) {
+  } else if (strcasecmp(*encoding, "\x72\x61\x77") == 0) {
     if (!no_deprecation) {
-      fprintf(stderr, "'raw' (array of integers) has been removed. "
-                      "Use 'binary'.\n");
+      fprintf(stderr, "\x27\x72\x61\x77\x27\x20\x28\x61\x72\x72\x61\x79\x20\x6f\x66\x20\x69\x6e\x74\x65\x67\x65\x72\x73\x29\x20\x68\x61\x73\x20\x62\x65\x65\x6e\x20\x72\x65\x6d\x6f\x76\x65\x64\x2e\x20"
+                      "\x55\x73\x65\x20\x27\x62\x69\x6e\x61\x72\x79\x27\x2e\xa");
     }
     return BINARY;
-  } else if (strcasecmp(*encoding, "raws") == 0) {
+  } else if (strcasecmp(*encoding, "\x72\x61\x77\x73") == 0) {
     if (!no_deprecation) {
-      fprintf(stderr, "'raws' encoding has been renamed to 'binary'. "
-                      "Please update your code.\n");
+      fprintf(stderr, "\x27\x72\x61\x77\x73\x27\x20\x65\x6e\x63\x6f\x64\x69\x6e\x67\x20\x68\x61\x73\x20\x62\x65\x65\x6e\x20\x72\x65\x6e\x61\x6d\x65\x64\x20\x74\x6f\x20\x27\x62\x69\x6e\x61\x72\x79\x27\x2e\x20"
+                      "\x50\x6c\x65\x61\x73\x65\x20\x75\x70\x64\x61\x74\x65\x20\x79\x6f\x75\x72\x20\x63\x6f\x64\x65\x2e\xa");
     }
     return BINARY;
   } else {
@@ -1299,8 +1299,8 @@ ssize_t DecodeBytes(Isolate* isolate,
   HandleScope scope(isolate);
 
   if (val->IsArray()) {
-    fprintf(stderr, "'raw' encoding (array of integers) has been removed. "
-                    "Use 'binary'.\n");
+    fprintf(stderr, "\x27\x72\x61\x77\x27\x20\x65\x6e\x63\x6f\x64\x69\x6e\x67\x20\x28\x61\x72\x72\x61\x79\x20\x6f\x66\x20\x69\x6e\x74\x65\x67\x65\x72\x73\x29\x20\x68\x61\x73\x20\x62\x65\x65\x6e\x20\x72\x65\x6d\x6f\x76\x65\x64\x2e\x20"
+                    "\x55\x73\x65\x20\x27\x62\x69\x6e\x61\x72\x79\x27\x2e\xa");
     assert(0);
     return -1;
   }
@@ -1374,7 +1374,7 @@ void AppendExceptionLine(Environment* env,
 
   int off = snprintf(arrow,
                      sizeof(arrow),
-                     "%s:%i\n%s\n",
+                     "\x6c\xa2\x3a\x6c\x89\xa\x6c\xa2\xa",
                      filename_string,
                      linenum,
                      sourceline_string);
@@ -1382,24 +1382,24 @@ void AppendExceptionLine(Environment* env,
 
   // Print wavy underline (GetUnderline is deprecated).
   for (int i = 0; i < start; i++) {
-    if (sourceline_string[i] == '\0' ||
+    if (sourceline_string[i] == '\x0' ||
         static_cast<size_t>(off) >= sizeof(arrow)) {
       break;
     }
     assert(static_cast<size_t>(off) < sizeof(arrow));
-    arrow[off++] = (sourceline_string[i] == '\t') ? '\t' : ' ';
+    arrow[off++] = (sourceline_string[i] == '\x9') ? '\x9' : '\x20';
   }
   for (int i = start; i < end; i++) {
-    if (sourceline_string[i] == '\0' ||
+    if (sourceline_string[i] == '\x0' ||
         static_cast<size_t>(off) >= sizeof(arrow)) {
       break;
     }
     assert(static_cast<size_t>(off) < sizeof(arrow));
-    arrow[off++] = '^';
+    arrow[off++] = '\x5e';
   }
   assert(static_cast<size_t>(off - 1) <= sizeof(arrow) - 1);
-  arrow[off++] = '\n';
-  arrow[off] = '\0';
+  arrow[off++] = '\xa';
+  arrow[off] = '\x0';
 
   Local<String> arrow_str = String::NewFromUtf8(env->isolate(), arrow);
   Local<Value> msg;
@@ -1426,7 +1426,7 @@ void AppendExceptionLine(Environment* env,
     return;
   env->set_printed_error(true);
   uv_tty_reset_mode();
-  fprintf(stderr, "\n%s", arrow);
+  fprintf(stderr, "\xa\x6c\xa2", arrow);
 }
 
 
@@ -1448,7 +1448,7 @@ static void ReportException(Environment* env,
 
   // range errors have a trace member set to undefined
   if (trace.length() > 0 && !trace_value->IsUndefined()) {
-    fprintf(stderr, "%s\n", *trace);
+    fprintf(stderr, "\x6c\xa2\xa", *trace);
   } else {
     // this really only happens for RangeErrors, since they're the only
     // kind that won't have all this info in the trace, or when non-Error
@@ -1459,7 +1459,7 @@ static void ReportException(Environment* env,
     if (er->IsObject()) {
       Local<Object> err_obj = er.As<Object>();
       message = err_obj->Get(env->message_string());
-      name = err_obj->Get(FIXED_ONE_BYTE_STRING(env->isolate(), "name"));
+      name = err_obj->Get(FIXED_ONE_BYTE_STRING(env->isolate(), "\x6e\x61\x6d\x65"));
     }
 
     if (message.IsEmpty() ||
@@ -1468,11 +1468,11 @@ static void ReportException(Environment* env,
         name->IsUndefined()) {
       // Not an error object. Just print as-is.
       node::Utf8Value message(er);
-      fprintf(stderr, "%s\n", *message);
+      fprintf(stderr, "\x6c\xa2\xa", *message);
     } else {
       node::Utf8Value name_string(name);
       node::Utf8Value message_string(message);
-      fprintf(stderr, "%s: %s\n", *name_string, *message_string);
+      fprintf(stderr, "\x6c\xa2\x3a\x20\x6c\xa2\xa", *name_string, *message_string);
     }
   }
 
@@ -1569,13 +1569,13 @@ static void Chdir(const FunctionCallbackInfo<Value>& args) {
 
   if (args.Length() != 1 || !args[0]->IsString()) {
     // FIXME(bnoordhuis) ThrowTypeError?
-    return env->ThrowError("Bad argument.");
+    return env->ThrowError("\x42\x61\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x2e");
   }
 
   node::Utf8Value path(args[0]);
   int err = uv_chdir(*path);
   if (err) {
-    return env->ThrowUVException(err, "uv_chdir");
+    return env->ThrowUVException(err, "\x75\x76\x5f\x63\x68\x64\x69\x72");
   }
 }
 
@@ -1593,7 +1593,7 @@ static void Cwd(const FunctionCallbackInfo<Value>& args) {
   size_t cwd_len = sizeof(buf);
   int err = uv_cwd(buf, &cwd_len);
   if (err) {
-    return env->ThrowUVException(err, "uv_cwd");
+    return env->ThrowUVException(err, "\x75\x76\x5f\x63\x77\x64");
   }
 
   Local<String> cwd = String::NewFromUtf8(env->isolate(),
@@ -1613,7 +1613,7 @@ static void Umask(const FunctionCallbackInfo<Value>& args) {
     old = umask(0);
     umask(static_cast<mode_t>(old));
   } else if (!args[0]->IsInt32() && !args[0]->IsString()) {
-    return env->ThrowTypeError("argument must be an integer or octal string.");
+    return env->ThrowTypeError("\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x69\x6e\x74\x65\x67\x65\x72\x20\x6f\x72\x20\x6f\x63\x74\x61\x6c\x20\x73\x74\x72\x69\x6e\x67\x2e");
   } else {
     int oct;
     if (args[0]->IsInt32()) {
@@ -1625,11 +1625,11 @@ static void Umask(const FunctionCallbackInfo<Value>& args) {
       // Parse the octal string.
       for (size_t i = 0; i < str.length(); i++) {
         char c = (*str)[i];
-        if (c > '7' || c < '0') {
-          return env->ThrowTypeError("invalid octal string");
+        if (c > '\x37' || c < '\x30') {
+          return env->ThrowTypeError("\x69\x6e\x76\x61\x6c\x69\x64\x20\x6f\x63\x74\x61\x6c\x20\x73\x74\x72\x69\x6e\x67");
         }
         oct *= 8;
-        oct += c - '0';
+        oct += c - '\x30';
       }
     }
     old = umask(static_cast<mode_t>(oct));
@@ -1758,17 +1758,17 @@ static void SetGid(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (!args[0]->IsUint32() && !args[0]->IsString()) {
-    return env->ThrowTypeError("setgid argument must be a number or a string");
+    return env->ThrowTypeError("\x73\x65\x74\x67\x69\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72\x20\x6f\x72\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   }
 
   gid_t gid = gid_by_name(args[0]);
 
   if (gid == gid_not_found) {
-    return env->ThrowError("setgid group id does not exist");
+    return env->ThrowError("\x73\x65\x74\x67\x69\x64\x20\x67\x72\x6f\x75\x70\x20\x69\x64\x20\x64\x6f\x65\x73\x20\x6e\x6f\x74\x20\x65\x78\x69\x73\x74");
   }
 
   if (setgid(gid)) {
-    return env->ThrowErrnoException(errno, "setgid");
+    return env->ThrowErrnoException(errno, "\x73\x65\x74\x67\x69\x64");
   }
 }
 
@@ -1778,17 +1778,17 @@ static void SetUid(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (!args[0]->IsUint32() && !args[0]->IsString()) {
-    return env->ThrowTypeError("setuid argument must be a number or a string");
+    return env->ThrowTypeError("\x73\x65\x74\x75\x69\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72\x20\x6f\x72\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   }
 
   uid_t uid = uid_by_name(args[0]);
 
   if (uid == uid_not_found) {
-    return env->ThrowError("setuid user id does not exist");
+    return env->ThrowError("\x73\x65\x74\x75\x69\x64\x20\x75\x73\x65\x72\x20\x69\x64\x20\x64\x6f\x65\x73\x20\x6e\x6f\x74\x20\x65\x78\x69\x73\x74");
   }
 
   if (setuid(uid)) {
-    return env->ThrowErrnoException(errno, "setuid");
+    return env->ThrowErrnoException(errno, "\x73\x65\x74\x75\x69\x64");
   }
 }
 
@@ -1800,7 +1800,7 @@ static void GetGroups(const FunctionCallbackInfo<Value>& args) {
   int ngroups = getgroups(0, NULL);
 
   if (ngroups == -1) {
-    return env->ThrowErrnoException(errno, "getgroups");
+    return env->ThrowErrnoException(errno, "\x67\x65\x74\x67\x72\x6f\x75\x70\x73");
   }
 
   gid_t* groups = new gid_t[ngroups];
@@ -1809,7 +1809,7 @@ static void GetGroups(const FunctionCallbackInfo<Value>& args) {
 
   if (ngroups == -1) {
     delete[] groups;
-    return env->ThrowErrnoException(errno, "getgroups");
+    return env->ThrowErrnoException(errno, "\x67\x65\x74\x67\x72\x6f\x75\x70\x73");
   }
 
   Local<Array> groups_list = Array::New(env->isolate(), ngroups);
@@ -1837,7 +1837,7 @@ static void SetGroups(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (!args[0]->IsArray()) {
-    return env->ThrowTypeError("argument 1 must be an array");
+    return env->ThrowTypeError("\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x31\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x6e\x20\x61\x72\x72\x61\x79");
   }
 
   Local<Array> groups_list = args[0].As<Array>();
@@ -1849,7 +1849,7 @@ static void SetGroups(const FunctionCallbackInfo<Value>& args) {
 
     if (gid == gid_not_found) {
       delete[] groups;
-      return env->ThrowError("group name not found");
+      return env->ThrowError("\x67\x72\x6f\x75\x70\x20\x6e\x61\x6d\x65\x20\x6e\x6f\x74\x20\x66\x6f\x75\x6e\x64");
     }
 
     groups[i] = gid;
@@ -1859,7 +1859,7 @@ static void SetGroups(const FunctionCallbackInfo<Value>& args) {
   delete[] groups;
 
   if (rc == -1) {
-    return env->ThrowErrnoException(errno, "setgroups");
+    return env->ThrowErrnoException(errno, "\x73\x65\x74\x67\x72\x6f\x75\x70\x73");
   }
 }
 
@@ -1869,11 +1869,11 @@ static void InitGroups(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (!args[0]->IsUint32() && !args[0]->IsString()) {
-    return env->ThrowTypeError("argument 1 must be a number or a string");
+    return env->ThrowTypeError("\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x31\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72\x20\x6f\x72\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   }
 
   if (!args[1]->IsUint32() && !args[1]->IsString()) {
-    return env->ThrowTypeError("argument 2 must be a number or a string");
+    return env->ThrowTypeError("\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x32\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72\x20\x6f\x72\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
   }
 
   node::Utf8Value arg0(args[0]);
@@ -1890,7 +1890,7 @@ static void InitGroups(const FunctionCallbackInfo<Value>& args) {
   }
 
   if (user == NULL) {
-    return env->ThrowError("initgroups user not found");
+    return env->ThrowError("\x69\x6e\x69\x74\x67\x72\x6f\x75\x70\x73\x20\x75\x73\x65\x72\x20\x6e\x6f\x74\x20\x66\x6f\x75\x6e\x64");
   }
 
   extra_group = gid_by_name(args[1]);
@@ -1898,7 +1898,7 @@ static void InitGroups(const FunctionCallbackInfo<Value>& args) {
   if (extra_group == gid_not_found) {
     if (must_free)
       free(user);
-    return env->ThrowError("initgroups extra group not found");
+    return env->ThrowError("\x69\x6e\x69\x74\x67\x72\x6f\x75\x70\x73\x20\x65\x78\x74\x72\x61\x20\x67\x72\x6f\x75\x70\x20\x6e\x6f\x74\x20\x66\x6f\x75\x6e\x64");
   }
 
   int rc = initgroups(user, extra_group);
@@ -1908,7 +1908,7 @@ static void InitGroups(const FunctionCallbackInfo<Value>& args) {
   }
 
   if (rc) {
-    return env->ThrowErrnoException(errno, "initgroups");
+    return env->ThrowErrnoException(errno, "\x69\x6e\x69\x74\x67\x72\x6f\x75\x70\x73");
   }
 }
 
@@ -1941,7 +1941,7 @@ void MemoryUsage(const FunctionCallbackInfo<Value>& args) {
   size_t rss;
   int err = uv_resident_set_memory(&rss);
   if (err) {
-    return env->ThrowUVException(err, "uv_resident_set_memory");
+    return env->ThrowUVException(err, "\x75\x76\x5f\x72\x65\x73\x69\x64\x65\x6e\x74\x5f\x73\x65\x74\x5f\x6d\x65\x6d\x6f\x72\x79");
   }
 
   // V8 memory usage
@@ -1967,7 +1967,7 @@ void Kill(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (args.Length() != 2) {
-    return env->ThrowError("Bad argument.");
+    return env->ThrowError("\x42\x61\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x2e");
   }
 
   int pid = args[0]->Int32Value();
@@ -1994,7 +1994,7 @@ void Hrtime(const FunctionCallbackInfo<Value>& args) {
     // return a time diff tuple
     if (!args[0]->IsArray()) {
       return env->ThrowTypeError(
-          "process.hrtime() only accepts an Array tuple.");
+          "\x70\x72\x6f\x63\x65\x73\x73\x2e\x68\x72\x74\x69\x6d\x65\x28\x29\x20\x6f\x6e\x6c\x79\x20\x61\x63\x63\x65\x70\x74\x73\x20\x61\x6e\x20\x41\x72\x72\x61\x79\x20\x74\x75\x70\x6c\x65\x2e");
     }
     Local<Array> inArray = Local<Array>::Cast(args[0]);
     uint64_t seconds = inArray->Get(0)->Uint32Value();
@@ -2067,7 +2067,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   uv_lib_t lib;
 
   if (args.Length() < 2) {
-    env->ThrowError("process.dlopen takes exactly 2 arguments.");
+    env->ThrowError("\x70\x72\x6f\x63\x65\x73\x73\x2e\x64\x6c\x6f\x70\x65\x6e\x20\x74\x61\x6b\x65\x73\x20\x65\x78\x61\x63\x74\x6c\x79\x20\x32\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x73\x2e");
     return;
   }
 
@@ -2096,20 +2096,20 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   modpending = NULL;
 
   if (mp == NULL) {
-    env->ThrowError("Module did not self-register.");
+    env->ThrowError("\x4d\x6f\x64\x75\x6c\x65\x20\x64\x69\x64\x20\x6e\x6f\x74\x20\x73\x65\x6c\x66\x2d\x72\x65\x67\x69\x73\x74\x65\x72\x2e");
     return;
   }
   if (mp->nm_version != NODE_MODULE_VERSION) {
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
-             "Module version mismatch. Expected %d, got %d.",
+             "\x4d\x6f\x64\x75\x6c\x65\x20\x76\x65\x72\x73\x69\x6f\x6e\x20\x6d\x69\x73\x6d\x61\x74\x63\x68\x2e\x20\x45\x78\x70\x65\x63\x74\x65\x64\x20\x6c\x84\x2c\x20\x67\x6f\x74\x20\x6c\x84\x2e",
              NODE_MODULE_VERSION, mp->nm_version);
     env->ThrowError(errmsg);
     return;
   }
   if (mp->nm_flags & NM_F_BUILTIN) {
-    env->ThrowError("Built-in module self-registered.");
+    env->ThrowError("\x42\x75\x69\x6c\x74\x2d\x69\x6e\x20\x6d\x6f\x64\x75\x6c\x65\x20\x73\x65\x6c\x66\x2d\x72\x65\x67\x69\x73\x74\x65\x72\x65\x64\x2e");
     return;
   }
 
@@ -2122,7 +2122,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   } else if (mp->nm_register_func != NULL) {
     mp->nm_register_func(exports, module, mp->nm_priv);
   } else {
-    env->ThrowError("Module has no declared entry point.");
+    env->ThrowError("\x4d\x6f\x64\x75\x6c\x65\x20\x68\x61\x73\x20\x6e\x6f\x20\x64\x65\x63\x6c\x61\x72\x65\x64\x20\x65\x6e\x74\x72\x79\x20\x70\x6f\x69\x6e\x74\x2e");
     return;
   }
 
@@ -2133,9 +2133,9 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
 
 static void OnFatalError(const char* location, const char* message) {
   if (location) {
-    fprintf(stderr, "FATAL ERROR: %s %s\n", location, message);
+    fprintf(stderr, "\x46\x41\x54\x41\x4c\x20\x45\x52\x52\x4f\x52\x3a\x20\x6c\xa2\x20\x6c\xa2\xa", location, message);
   } else {
-    fprintf(stderr, "FATAL ERROR: %s\n", message);
+    fprintf(stderr, "\x46\x41\x54\x41\x4c\x20\x45\x52\x52\x4f\x52\x3a\x20\x6c\xa2\xa", message);
   }
   fflush(stderr);
   abort();
@@ -2222,7 +2222,7 @@ static void Binding(const FunctionCallbackInfo<Value>& args) {
 
   // Append a string to process.moduleLoadList
   char buf[1024];
-  snprintf(buf, sizeof(buf), "Binding %s", *module_v);
+  snprintf(buf, sizeof(buf), "\x42\x69\x6e\x64\x69\x6e\x67\x20\x6c\xa2", *module_v);
 
   Local<Array> modules = env->module_load_list_array();
   uint32_t l = modules->Length();
@@ -2238,11 +2238,11 @@ static void Binding(const FunctionCallbackInfo<Value>& args) {
     mod->nm_context_register_func(exports, unused,
       env->context(), mod->nm_priv);
     cache->Set(module, exports);
-  } else if (!strcmp(*module_v, "constants")) {
+  } else if (!strcmp(*module_v, "\x63\x6f\x6e\x73\x74\x61\x6e\x74\x73")) {
     exports = Object::New(env->isolate());
     DefineConstants(exports);
     cache->Set(module, exports);
-  } else if (!strcmp(*module_v, "natives")) {
+  } else if (!strcmp(*module_v, "\x6e\x61\x74\x69\x76\x65\x73")) {
     exports = Object::New(env->isolate());
     DefineJavaScript(env, exports);
     cache->Set(module, exports);
@@ -2250,7 +2250,7 @@ static void Binding(const FunctionCallbackInfo<Value>& args) {
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
-             "No such module: %s",
+             "\x4e\x6f\x20\x73\x75\x63\x68\x20\x6d\x6f\x64\x75\x6c\x65\x3a\x20\x6c\xa2",
              *module_v);
     return env->ThrowError(errmsg);
   }
@@ -2276,7 +2276,7 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
-             "No such module was linked: %s",
+             "\x4e\x6f\x20\x73\x75\x63\x68\x20\x6d\x6f\x64\x75\x6c\x65\x20\x77\x61\x73\x20\x6c\x69\x6e\x6b\x65\x64\x3a\x20\x6c\xa2",
              *module_v);
     return env->ThrowError(errmsg);
   }
@@ -2291,7 +2291,7 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
   } else if (mod->nm_register_func != NULL) {
     mod->nm_register_func(exports, module, mod->nm_priv);
   } else {
-    return env->ThrowError("Linked module has no declared entry point.");
+    return env->ThrowError("\x4c\x69\x6e\x6b\x65\x64\x20\x6d\x6f\x64\x75\x6c\x65\x20\x68\x61\x73\x20\x6e\x6f\x20\x64\x65\x63\x6c\x61\x72\x65\x64\x20\x65\x6e\x74\x72\x79\x20\x70\x6f\x69\x6e\x74\x2e");
   }
 
   cache->Set(module, exports);
@@ -2366,7 +2366,7 @@ static void EnvSetter(Local<String> property,
   String::Value val(value);
   WCHAR* key_ptr = reinterpret_cast<WCHAR*>(*key);
   // Environment variables that start with '=' are read-only.
-  if (key_ptr[0] != L'=') {
+  if (key_ptr[0] != L'\x3d') {
     SetEnvironmentVariableW(key_ptr, reinterpret_cast<WCHAR*>(*val));
   }
 #endif
@@ -2390,7 +2390,7 @@ static void EnvQuery(Local<String> property,
   if (GetEnvironmentVariableW(key_ptr, NULL, 0) > 0 ||
       GetLastError() == ERROR_SUCCESS) {
     rc = 0;
-    if (key_ptr[0] == L'=') {
+    if (key_ptr[0] == L'\x3d') {
       // Environment variables that start with '=' are hidden and read-only.
       rc = static_cast<int32_t>(v8::ReadOnly) |
            static_cast<int32_t>(v8::DontDelete) |
@@ -2416,7 +2416,7 @@ static void EnvDeleter(Local<String> property,
 #else
   String::Value key(property);
   WCHAR* key_ptr = reinterpret_cast<WCHAR*>(*key);
-  if (key_ptr[0] == L'=' || !SetEnvironmentVariableW(key_ptr, NULL)) {
+  if (key_ptr[0] == L'\x3d' || !SetEnvironmentVariableW(key_ptr, NULL)) {
     // Deletion failed. Return true if the key wasn't there in the first place,
     // false if it is still there.
     rc = GetEnvironmentVariableW(key_ptr, NULL, NULL) == 0 &&
@@ -2439,7 +2439,7 @@ static void EnvEnumerator(const PropertyCallbackInfo<Array>& info) {
 
   for (int i = 0; i < size; ++i) {
     const char* var = environ[i];
-    const char* s = strchr(var, '=');
+    const char* s = strchr(var, '\x3d');
     const int length = s ? s - var : strlen(var);
     Local<String> name = String::NewFromUtf8(env->isolate(),
                                              var,
@@ -2456,12 +2456,12 @@ static void EnvEnumerator(const PropertyCallbackInfo<Array>& info) {
   int i = 0;
   while (*p != NULL) {
     WCHAR *s;
-    if (*p == L'=') {
+    if (*p == L'\x3d') {
       // If the key starts with '=' it is a hidden environment variable.
       p += wcslen(p) + 1;
       continue;
     } else {
-      s = wcschr(p, L'=');
+      s = wcschr(p, L'\x3d');
     }
     if (!s) {
       s = p + wcslen(p);
@@ -2520,7 +2520,7 @@ static Handle<Object> GetFeatures(Environment* env) {
   obj->Set(env->tls_ocsp_string(), tls_ocsp);
 
   obj->Set(env->tls_string(),
-           Boolean::New(env->isolate(), get_builtin_module("crypto") != NULL));
+           Boolean::New(env->isolate(), get_builtin_module("\x63\x72\x79\x70\x74\x6f") != NULL));
 
   return scope.Escape(obj);
 }
@@ -2645,43 +2645,43 @@ void SetupProcessObject(Environment* env,
 
   // process.version
   READONLY_PROPERTY(process,
-                    "version",
+                    "\x76\x65\x72\x73\x69\x6f\x6e",
                     FIXED_ONE_BYTE_STRING(env->isolate(), NODE_VERSION));
 
   // process.moduleLoadList
   READONLY_PROPERTY(process,
-                    "moduleLoadList",
+                    "\x6d\x6f\x64\x75\x6c\x65\x4c\x6f\x61\x64\x4c\x69\x73\x74",
                     env->module_load_list_array());
 
   // process.versions
   Local<Object> versions = Object::New(env->isolate());
-  READONLY_PROPERTY(process, "versions", versions);
+  READONLY_PROPERTY(process, "\x76\x65\x72\x73\x69\x6f\x6e\x73", versions);
 
   const char http_parser_version[] = NODE_STRINGIFY(HTTP_PARSER_VERSION_MAJOR)
-                                     "."
+                                     "\x2e"
                                      NODE_STRINGIFY(HTTP_PARSER_VERSION_MINOR);
   READONLY_PROPERTY(versions,
-                    "http_parser",
+                    "\x68\x74\x74\x70\x5f\x70\x61\x72\x73\x65\x72",
                     FIXED_ONE_BYTE_STRING(env->isolate(), http_parser_version));
 
   // +1 to get rid of the leading 'v'
   READONLY_PROPERTY(versions,
-                    "node",
+                    "\x6e\x6f\x64\x65",
                     OneByteString(env->isolate(), NODE_VERSION + 1));
   READONLY_PROPERTY(versions,
-                    "v8",
+                    "\x76\x38",
                     OneByteString(env->isolate(), V8::GetVersion()));
   READONLY_PROPERTY(versions,
-                    "uv",
+                    "\x75\x76",
                     OneByteString(env->isolate(), uv_version_string()));
   READONLY_PROPERTY(versions,
-                    "zlib",
+                    "\x7a\x6c\x69\x62",
                     FIXED_ONE_BYTE_STRING(env->isolate(), ZLIB_VERSION));
 
   const char node_modules_version[] = NODE_STRINGIFY(NODE_MODULE_VERSION);
   READONLY_PROPERTY(
       versions,
-      "modules",
+      "\x6d\x6f\x64\x75\x6c\x65\x73",
       FIXED_ONE_BYTE_STRING(env->isolate(), node_modules_version));
 
 #if HAVE_OPENSSL
@@ -2691,10 +2691,10 @@ void SetupProcessObject(Environment* env,
     int c;
     for (i = j = 0, k = sizeof(OPENSSL_VERSION_TEXT) - 1; i < k; ++i) {
       c = OPENSSL_VERSION_TEXT[i];
-      if ('0' <= c && c <= '9') {
+      if ('\x30' <= c && c <= '\x39') {
         for (j = i + 1; j < k; ++j) {
           c = OPENSSL_VERSION_TEXT[j];
-          if (c == ' ')
+          if (c == '\x20')
             break;
         }
         break;
@@ -2702,17 +2702,17 @@ void SetupProcessObject(Environment* env,
     }
     READONLY_PROPERTY(
         versions,
-        "openssl",
+        "\x6f\x70\x65\x6e\x73\x73\x6c",
         OneByteString(env->isolate(), &OPENSSL_VERSION_TEXT[i], j - i));
   }
 #endif
 
   // process.arch
-  READONLY_PROPERTY(process, "arch", OneByteString(env->isolate(), ARCH));
+  READONLY_PROPERTY(process, "\x61\x72\x63\x68", OneByteString(env->isolate(), ARCH));
 
   // process.platform
   READONLY_PROPERTY(process,
-                    "platform",
+                    "\x70\x6c\x61\x74\x66\x6f\x72\x6d",
                     OneByteString(env->isolate(), PLATFORM));
 
   // process.argv
@@ -2741,8 +2741,8 @@ void SetupProcessObject(Environment* env,
   Local<Object> process_env = process_env_template->NewInstance();
   process->Set(env->env_string(), process_env);
 
-  READONLY_PROPERTY(process, "pid", Integer::New(env->isolate(), getpid()));
-  READONLY_PROPERTY(process, "features", GetFeatures(env));
+  READONLY_PROPERTY(process, "\x70\x69\x64", Integer::New(env->isolate(), getpid()));
+  READONLY_PROPERTY(process, "\x66\x65\x61\x74\x75\x72\x65\x73", GetFeatures(env));
   process->SetAccessor(env->need_imm_cb_string(),
       NeedImmediateCallbackGetter,
       NeedImmediateCallbackSetter);
@@ -2750,40 +2750,40 @@ void SetupProcessObject(Environment* env,
   // -e, --eval
   if (eval_string) {
     READONLY_PROPERTY(process,
-                      "_eval",
+                      "\x5f\x65\x76\x61\x6c",
                       String::NewFromUtf8(env->isolate(), eval_string));
   }
 
   // -p, --print
   if (print_eval) {
-    READONLY_PROPERTY(process, "_print_eval", True(env->isolate()));
+    READONLY_PROPERTY(process, "\x5f\x70\x72\x69\x6e\x74\x5f\x65\x76\x61\x6c", True(env->isolate()));
   }
 
   // -i, --interactive
   if (force_repl) {
-    READONLY_PROPERTY(process, "_forceRepl", True(env->isolate()));
+    READONLY_PROPERTY(process, "\x5f\x66\x6f\x72\x63\x65\x52\x65\x70\x6c", True(env->isolate()));
   }
 
   // --no-deprecation
   if (no_deprecation) {
-    READONLY_PROPERTY(process, "noDeprecation", True(env->isolate()));
+    READONLY_PROPERTY(process, "\x6e\x6f\x44\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e", True(env->isolate()));
   }
 
   // --throw-deprecation
   if (throw_deprecation) {
-    READONLY_PROPERTY(process, "throwDeprecation", True(env->isolate()));
+    READONLY_PROPERTY(process, "\x74\x68\x72\x6f\x77\x44\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e", True(env->isolate()));
   }
 
   // --trace-deprecation
   if (trace_deprecation) {
-    READONLY_PROPERTY(process, "traceDeprecation", True(env->isolate()));
+    READONLY_PROPERTY(process, "\x74\x72\x61\x63\x65\x44\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e", True(env->isolate()));
   }
 
   // --security-revert flags
 #define V(code, _, __)                                                        \
   do {                                                                        \
     if (IsReverted(REVERT_ ## code)) {                                        \
-      READONLY_PROPERTY(process, "REVERT_" #code, True(env->isolate()));      \
+      READONLY_PROPERTY(process, "\x52\x45\x56\x45\x52\x54\x5f" #code, True(env->isolate()));      \
     }                                                                         \
   } while (0);
   REVERSIONS(V)
@@ -2809,50 +2809,50 @@ void SetupProcessObject(Environment* env,
 
   // define various internal methods
   NODE_SET_METHOD(process,
-                  "_startProfilerIdleNotifier",
+                  "\x5f\x73\x74\x61\x72\x74\x50\x72\x6f\x66\x69\x6c\x65\x72\x49\x64\x6c\x65\x4e\x6f\x74\x69\x66\x69\x65\x72",
                   StartProfilerIdleNotifier);
   NODE_SET_METHOD(process,
-                  "_stopProfilerIdleNotifier",
+                  "\x5f\x73\x74\x6f\x70\x50\x72\x6f\x66\x69\x6c\x65\x72\x49\x64\x6c\x65\x4e\x6f\x74\x69\x66\x69\x65\x72",
                   StopProfilerIdleNotifier);
-  NODE_SET_METHOD(process, "_getActiveRequests", GetActiveRequests);
-  NODE_SET_METHOD(process, "_getActiveHandles", GetActiveHandles);
-  NODE_SET_METHOD(process, "reallyExit", Exit);
-  NODE_SET_METHOD(process, "abort", Abort);
-  NODE_SET_METHOD(process, "chdir", Chdir);
-  NODE_SET_METHOD(process, "cwd", Cwd);
+  NODE_SET_METHOD(process, "\x5f\x67\x65\x74\x41\x63\x74\x69\x76\x65\x52\x65\x71\x75\x65\x73\x74\x73", GetActiveRequests);
+  NODE_SET_METHOD(process, "\x5f\x67\x65\x74\x41\x63\x74\x69\x76\x65\x48\x61\x6e\x64\x6c\x65\x73", GetActiveHandles);
+  NODE_SET_METHOD(process, "\x72\x65\x61\x6c\x6c\x79\x45\x78\x69\x74", Exit);
+  NODE_SET_METHOD(process, "\x61\x62\x6f\x72\x74", Abort);
+  NODE_SET_METHOD(process, "\x63\x68\x64\x69\x72", Chdir);
+  NODE_SET_METHOD(process, "\x63\x77\x64", Cwd);
 
-  NODE_SET_METHOD(process, "umask", Umask);
+  NODE_SET_METHOD(process, "\x75\x6d\x61\x73\x6b", Umask);
 
 #if defined(__POSIX__) && !defined(__ANDROID__)
-  NODE_SET_METHOD(process, "getuid", GetUid);
-  NODE_SET_METHOD(process, "setuid", SetUid);
+  NODE_SET_METHOD(process, "\x67\x65\x74\x75\x69\x64", GetUid);
+  NODE_SET_METHOD(process, "\x73\x65\x74\x75\x69\x64", SetUid);
 
-  NODE_SET_METHOD(process, "setgid", SetGid);
-  NODE_SET_METHOD(process, "getgid", GetGid);
+  NODE_SET_METHOD(process, "\x73\x65\x74\x67\x69\x64", SetGid);
+  NODE_SET_METHOD(process, "\x67\x65\x74\x67\x69\x64", GetGid);
 
-  NODE_SET_METHOD(process, "getgroups", GetGroups);
-  NODE_SET_METHOD(process, "setgroups", SetGroups);
-  NODE_SET_METHOD(process, "initgroups", InitGroups);
+  NODE_SET_METHOD(process, "\x67\x65\x74\x67\x72\x6f\x75\x70\x73", GetGroups);
+  NODE_SET_METHOD(process, "\x73\x65\x74\x67\x72\x6f\x75\x70\x73", SetGroups);
+  NODE_SET_METHOD(process, "\x69\x6e\x69\x74\x67\x72\x6f\x75\x70\x73", InitGroups);
 #endif  // __POSIX__ && !defined(__ANDROID__)
 
-  NODE_SET_METHOD(process, "_kill", Kill);
+  NODE_SET_METHOD(process, "\x5f\x6b\x69\x6c\x6c", Kill);
 
-  NODE_SET_METHOD(process, "_debugProcess", DebugProcess);
-  NODE_SET_METHOD(process, "_debugPause", DebugPause);
-  NODE_SET_METHOD(process, "_debugEnd", DebugEnd);
+  NODE_SET_METHOD(process, "\x5f\x64\x65\x62\x75\x67\x50\x72\x6f\x63\x65\x73\x73", DebugProcess);
+  NODE_SET_METHOD(process, "\x5f\x64\x65\x62\x75\x67\x50\x61\x75\x73\x65", DebugPause);
+  NODE_SET_METHOD(process, "\x5f\x64\x65\x62\x75\x67\x45\x6e\x64", DebugEnd);
 
-  NODE_SET_METHOD(process, "hrtime", Hrtime);
+  NODE_SET_METHOD(process, "\x68\x72\x74\x69\x6d\x65", Hrtime);
 
-  NODE_SET_METHOD(process, "dlopen", DLOpen);
+  NODE_SET_METHOD(process, "\x64\x6c\x6f\x70\x65\x6e", DLOpen);
 
-  NODE_SET_METHOD(process, "uptime", Uptime);
-  NODE_SET_METHOD(process, "memoryUsage", MemoryUsage);
+  NODE_SET_METHOD(process, "\x75\x70\x74\x69\x6d\x65", Uptime);
+  NODE_SET_METHOD(process, "\x6d\x65\x6d\x6f\x72\x79\x55\x73\x61\x67\x65", MemoryUsage);
 
-  NODE_SET_METHOD(process, "binding", Binding);
-  NODE_SET_METHOD(process, "_linkedBinding", LinkedBinding);
+  NODE_SET_METHOD(process, "\x62\x69\x6e\x64\x69\x6e\x67", Binding);
+  NODE_SET_METHOD(process, "\x5f\x6c\x69\x6e\x6b\x65\x64\x42\x69\x6e\x64\x69\x6e\x67", LinkedBinding);
 
-  NODE_SET_METHOD(process, "_setupNextTick", SetupNextTick);
-  NODE_SET_METHOD(process, "_setupDomainUse", SetupDomainUse);
+  NODE_SET_METHOD(process, "\x5f\x73\x65\x74\x75\x70\x4e\x65\x78\x74\x54\x69\x63\x6b", SetupNextTick);
+  NODE_SET_METHOD(process, "\x5f\x73\x65\x74\x75\x70\x44\x6f\x6d\x61\x69\x6e\x55\x73\x65", SetupDomainUse);
 
   // pre-set _events object for faster emit checks
   process->Set(env->events_string(), Object::New(env->isolate()));
@@ -2892,10 +2892,10 @@ static void RawDebug(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   assert(args.Length() == 1 && args[0]->IsString() &&
-         "must be called with a single string");
+         "\x6d\x75\x73\x74\x20\x62\x65\x20\x63\x61\x6c\x6c\x65\x64\x20\x77\x69\x74\x68\x20\x61\x20\x73\x69\x6e\x67\x6c\x65\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value message(args[0]);
-  fprintf(stderr, "%s\n", *message);
+  fprintf(stderr, "\x6c\xa2\xa", *message);
   fflush(stderr);
 }
 
@@ -2920,7 +2920,7 @@ void LoadEnvironment(Environment* env) {
   // are not safe to ignore.
   try_catch.SetVerbose(false);
 
-  Local<String> script_name = FIXED_ONE_BYTE_STRING(env->isolate(), "node.js");
+  Local<String> script_name = FIXED_ONE_BYTE_STRING(env->isolate(), "\x6e\x6f\x64\x65\x2e\x6a\x73");
   Local<Value> f_value = ExecuteString(env, MainSource(env), script_name);
   if (try_catch.HasCaught())  {
     ReportException(env, try_catch);
@@ -2956,7 +2956,7 @@ void LoadEnvironment(Environment* env) {
   // thrown during process startup.
   try_catch.SetVerbose(true);
 
-  NODE_SET_METHOD(env->process_object(), "_rawDebug", RawDebug);
+  NODE_SET_METHOD(env->process_object(), "\x5f\x72\x61\x77\x44\x65\x62\x75\x67", RawDebug);
 
   Local<Value> arg = env->process_object();
   f->Call(global, 1, &arg);
@@ -2967,20 +2967,20 @@ static void PrintHelp();
 static bool ParseDebugOpt(const char* arg) {
   const char* port = NULL;
 
-  if (!strcmp(arg, "--debug")) {
+  if (!strcmp(arg, "\x2d\x2d\x64\x65\x62\x75\x67")) {
     use_debug_agent = true;
-  } else if (!strncmp(arg, "--debug=", sizeof("--debug=") - 1)) {
+  } else if (!strncmp(arg, "\x2d\x2d\x64\x65\x62\x75\x67\x3d", sizeof("\x2d\x2d\x64\x65\x62\x75\x67\x3d") - 1)) {
     use_debug_agent = true;
-    port = arg + sizeof("--debug=") - 1;
-  } else if (!strcmp(arg, "--debug-brk")) {
-    use_debug_agent = true;
-    debug_wait_connect = true;
-  } else if (!strncmp(arg, "--debug-brk=", sizeof("--debug-brk=") - 1)) {
+    port = arg + sizeof("\x2d\x2d\x64\x65\x62\x75\x67\x3d") - 1;
+  } else if (!strcmp(arg, "\x2d\x2d\x64\x65\x62\x75\x67\x2d\x62\x72\x6b")) {
     use_debug_agent = true;
     debug_wait_connect = true;
-    port = arg + sizeof("--debug-brk=") - 1;
-  } else if (!strncmp(arg, "--debug-port=", sizeof("--debug-port=") - 1)) {
-    port = arg + sizeof("--debug-port=") - 1;
+  } else if (!strncmp(arg, "\x2d\x2d\x64\x65\x62\x75\x67\x2d\x62\x72\x6b\x3d", sizeof("\x2d\x2d\x64\x65\x62\x75\x67\x2d\x62\x72\x6b\x3d") - 1)) {
+    use_debug_agent = true;
+    debug_wait_connect = true;
+    port = arg + sizeof("\x2d\x2d\x64\x65\x62\x75\x67\x2d\x62\x72\x6b\x3d") - 1;
+  } else if (!strncmp(arg, "\x2d\x2d\x64\x65\x62\x75\x67\x2d\x70\x6f\x72\x74\x3d", sizeof("\x2d\x2d\x64\x65\x62\x75\x67\x2d\x70\x6f\x72\x74\x3d") - 1)) {
+    port = arg + sizeof("\x2d\x2d\x64\x65\x62\x75\x67\x2d\x70\x6f\x72\x74\x3d") - 1;
   } else {
     return false;
   }
@@ -2988,7 +2988,7 @@ static bool ParseDebugOpt(const char* arg) {
   if (port != NULL) {
     debug_port = atoi(port);
     if (debug_port < 1024 || debug_port > 65535) {
-      fprintf(stderr, "Debug port must be in range 1024 to 65535.\n");
+      fprintf(stderr, "\x44\x65\x62\x75\x67\x20\x70\x6f\x72\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x69\x6e\x20\x72\x61\x6e\x67\x65\x20\x31\x30\x32\x34\x20\x74\x6f\x20\x36\x35\x35\x33\x35\x2e\xa");
       PrintHelp();
       exit(12);
     }
@@ -2998,48 +2998,48 @@ static bool ParseDebugOpt(const char* arg) {
 }
 
 static void PrintHelp() {
-  printf("Usage: node [options] [ -e script | script.js ] [arguments] \n"
-         "       node debug script.js [arguments] \n"
-         "\n"
-         "Options:\n"
-         "  -v, --version        print node's version\n"
-         "  -e, --eval script    evaluate script\n"
-         "  -p, --print          evaluate script and print result\n"
-         "  -i, --interactive    always enter the REPL even if stdin\n"
-         "                       does not appear to be a terminal\n"
-         "  --no-deprecation     silence deprecation warnings\n"
-         "  --throw-deprecation  throw an exception anytime a deprecated "
-         "function is used\n"
-         "  --trace-deprecation  show stack traces on deprecations\n"
-         "  --v8-options         print v8 command line options\n"
+  printf("\x55\x73\x61\x67\x65\x3a\x20\x6e\x6f\x64\x65\x20\x5b\x6f\x70\x74\x69\x6f\x6e\x73\x5d\x20\x5b\x20\x2d\x65\x20\x73\x63\x72\x69\x70\x74\x20\x7c\x20\x73\x63\x72\x69\x70\x74\x2e\x6a\x73\x20\x5d\x20\x5b\x61\x72\x67\x75\x6d\x65\x6e\x74\x73\x5d\x20\xa"
+         "\x20\x20\x20\x20\x20\x20\x20\x6e\x6f\x64\x65\x20\x64\x65\x62\x75\x67\x20\x73\x63\x72\x69\x70\x74\x2e\x6a\x73\x20\x5b\x61\x72\x67\x75\x6d\x65\x6e\x74\x73\x5d\x20\xa"
+         "\xa"
+         "\x4f\x70\x74\x69\x6f\x6e\x73\x3a\xa"
+         "\x20\x20\x2d\x76\x2c\x20\x2d\x2d\x76\x65\x72\x73\x69\x6f\x6e\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x20\x6e\x6f\x64\x65\x27\x73\x20\x76\x65\x72\x73\x69\x6f\x6e\xa"
+         "\x20\x20\x2d\x65\x2c\x20\x2d\x2d\x65\x76\x61\x6c\x20\x73\x63\x72\x69\x70\x74\x20\x20\x20\x20\x65\x76\x61\x6c\x75\x61\x74\x65\x20\x73\x63\x72\x69\x70\x74\xa"
+         "\x20\x20\x2d\x70\x2c\x20\x2d\x2d\x70\x72\x69\x6e\x74\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x65\x76\x61\x6c\x75\x61\x74\x65\x20\x73\x63\x72\x69\x70\x74\x20\x61\x6e\x64\x20\x70\x72\x69\x6e\x74\x20\x72\x65\x73\x75\x6c\x74\xa"
+         "\x20\x20\x2d\x69\x2c\x20\x2d\x2d\x69\x6e\x74\x65\x72\x61\x63\x74\x69\x76\x65\x20\x20\x20\x20\x61\x6c\x77\x61\x79\x73\x20\x65\x6e\x74\x65\x72\x20\x74\x68\x65\x20\x52\x45\x50\x4c\x20\x65\x76\x65\x6e\x20\x69\x66\x20\x73\x74\x64\x69\x6e\xa"
+         "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x64\x6f\x65\x73\x20\x6e\x6f\x74\x20\x61\x70\x70\x65\x61\x72\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x74\x65\x72\x6d\x69\x6e\x61\x6c\xa"
+         "\x20\x20\x2d\x2d\x6e\x6f\x2d\x64\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e\x20\x20\x20\x20\x20\x73\x69\x6c\x65\x6e\x63\x65\x20\x64\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e\x20\x77\x61\x72\x6e\x69\x6e\x67\x73\xa"
+         "\x20\x20\x2d\x2d\x74\x68\x72\x6f\x77\x2d\x64\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e\x20\x20\x74\x68\x72\x6f\x77\x20\x61\x6e\x20\x65\x78\x63\x65\x70\x74\x69\x6f\x6e\x20\x61\x6e\x79\x74\x69\x6d\x65\x20\x61\x20\x64\x65\x70\x72\x65\x63\x61\x74\x65\x64\x20"
+         "\x66\x75\x6e\x63\x74\x69\x6f\x6e\x20\x69\x73\x20\x75\x73\x65\x64\xa"
+         "\x20\x20\x2d\x2d\x74\x72\x61\x63\x65\x2d\x64\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e\x20\x20\x73\x68\x6f\x77\x20\x73\x74\x61\x63\x6b\x20\x74\x72\x61\x63\x65\x73\x20\x6f\x6e\x20\x64\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e\x73\xa"
+         "\x20\x20\x2d\x2d\x76\x38\x2d\x6f\x70\x74\x69\x6f\x6e\x73\x20\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x20\x76\x38\x20\x63\x6f\x6d\x6d\x61\x6e\x64\x20\x6c\x69\x6e\x65\x20\x6f\x70\x74\x69\x6f\x6e\x73\xa"
 #if defined(NODE_HAVE_I18N_SUPPORT)
-         "  --icu-data-dir=dir   set ICU data load path to dir\n"
-         "                         (overrides NODE_ICU_DATA)\n"
+         "\x20\x20\x2d\x2d\x69\x63\x75\x2d\x64\x61\x74\x61\x2d\x64\x69\x72\x3d\x64\x69\x72\x20\x20\x20\x73\x65\x74\x20\x49\x43\x55\x20\x64\x61\x74\x61\x20\x6c\x6f\x61\x64\x20\x70\x61\x74\x68\x20\x74\x6f\x20\x64\x69\x72\xa"
+         "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x28\x6f\x76\x65\x72\x72\x69\x64\x65\x73\x20\x4e\x4f\x44\x45\x5f\x49\x43\x55\x5f\x44\x41\x54\x41\x29\xa"
 #if !defined(NODE_HAVE_SMALL_ICU)
-         "                       Note: linked-in ICU data is\n"
-         "                       present.\n"
+         "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x4e\x6f\x74\x65\x3a\x20\x6c\x69\x6e\x6b\x65\x64\x2d\x69\x6e\x20\x49\x43\x55\x20\x64\x61\x74\x61\x20\x69\x73\xa"
+         "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x65\x73\x65\x6e\x74\x2e\xa"
 #endif
 #endif
-         "  --enable-ssl3        enable ssl3\n"
-         "\n"
-         "Environment variables:\n"
+         "\x20\x20\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x73\x73\x6c\x33\x20\x20\x20\x20\x20\x20\x20\x20\x65\x6e\x61\x62\x6c\x65\x20\x73\x73\x6c\x33\xa"
+         "\xa"
+         "\x45\x6e\x76\x69\x72\x6f\x6e\x6d\x65\x6e\x74\x20\x76\x61\x72\x69\x61\x62\x6c\x65\x73\x3a\xa"
 #ifdef _WIN32
-         "NODE_PATH              ';'-separated list of directories\n"
+         "\x4e\x4f\x44\x45\x5f\x50\x41\x54\x48\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x27\x3b\x27\x2d\x73\x65\x70\x61\x72\x61\x74\x65\x64\x20\x6c\x69\x73\x74\x20\x6f\x66\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\xa"
 #else
-         "NODE_PATH              ':'-separated list of directories\n"
+         "\x4e\x4f\x44\x45\x5f\x50\x41\x54\x48\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x27\x3a\x27\x2d\x73\x65\x70\x61\x72\x61\x74\x65\x64\x20\x6c\x69\x73\x74\x20\x6f\x66\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\xa"
 #endif
-         "                       prefixed to the module search path.\n"
-         "NODE_MODULE_CONTEXTS   Set to 1 to load modules in their own\n"
-         "                       global contexts.\n"
-         "NODE_DISABLE_COLORS    Set to 1 to disable colors in the REPL\n"
+         "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x65\x66\x69\x78\x65\x64\x20\x74\x6f\x20\x74\x68\x65\x20\x6d\x6f\x64\x75\x6c\x65\x20\x73\x65\x61\x72\x63\x68\x20\x70\x61\x74\x68\x2e\xa"
+         "\x4e\x4f\x44\x45\x5f\x4d\x4f\x44\x55\x4c\x45\x5f\x43\x4f\x4e\x54\x45\x58\x54\x53\x20\x20\x20\x53\x65\x74\x20\x74\x6f\x20\x31\x20\x74\x6f\x20\x6c\x6f\x61\x64\x20\x6d\x6f\x64\x75\x6c\x65\x73\x20\x69\x6e\x20\x74\x68\x65\x69\x72\x20\x6f\x77\x6e\xa"
+         "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x67\x6c\x6f\x62\x61\x6c\x20\x63\x6f\x6e\x74\x65\x78\x74\x73\x2e\xa"
+         "\x4e\x4f\x44\x45\x5f\x44\x49\x53\x41\x42\x4c\x45\x5f\x43\x4f\x4c\x4f\x52\x53\x20\x20\x20\x20\x53\x65\x74\x20\x74\x6f\x20\x31\x20\x74\x6f\x20\x64\x69\x73\x61\x62\x6c\x65\x20\x63\x6f\x6c\x6f\x72\x73\x20\x69\x6e\x20\x74\x68\x65\x20\x52\x45\x50\x4c\xa"
 #if defined(NODE_HAVE_I18N_SUPPORT)
-         "NODE_ICU_DATA          Data path for ICU (Intl object) data\n"
+         "\x4e\x4f\x44\x45\x5f\x49\x43\x55\x5f\x44\x41\x54\x41\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x44\x61\x74\x61\x20\x70\x61\x74\x68\x20\x66\x6f\x72\x20\x49\x43\x55\x20\x28\x49\x6e\x74\x6c\x20\x6f\x62\x6a\x65\x63\x74\x29\x20\x64\x61\x74\x61\xa"
 #if !defined(NODE_HAVE_SMALL_ICU)
-         "                       (will extend linked-in data)\n"
+         "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x28\x77\x69\x6c\x6c\x20\x65\x78\x74\x65\x6e\x64\x20\x6c\x69\x6e\x6b\x65\x64\x2d\x69\x6e\x20\x64\x61\x74\x61\x29\xa"
 #endif
 #endif
-         "\n"
-         "Documentation can be found at http://nodejs.org/\n");
+         "\xa"
+         "\x44\x6f\x63\x75\x6d\x65\x6e\x74\x61\x74\x69\x6f\x6e\x20\x63\x61\x6e\x20\x62\x65\x20\x66\x6f\x75\x6e\x64\x20\x61\x74\x20\x68\x74\x74\x70\x3a\x2f\x2f\x6e\x6f\x64\x65\x6a\x73\x2e\x6f\x72\x67\x2f\xa");
 }
 
 
@@ -3079,74 +3079,74 @@ static void ParseArgs(int* argc,
   new_argv[0] = argv[0];
 
   unsigned int index = 1;
-  while (index < nargs && argv[index][0] == '-') {
+  while (index < nargs && argv[index][0] == '\x2d') {
     const char* const arg = argv[index];
     unsigned int args_consumed = 1;
 
     if (ParseDebugOpt(arg)) {
       // Done, consumed by ParseDebugOpt().
-    } else if (strcmp(arg, "--version") == 0 || strcmp(arg, "-v") == 0) {
-      printf("%s\n", NODE_VERSION);
+    } else if (strcmp(arg, "\x2d\x2d\x76\x65\x72\x73\x69\x6f\x6e") == 0 || strcmp(arg, "\x2d\x76") == 0) {
+      printf("\x6c\xa2\xa", NODE_VERSION);
       exit(0);
-    } else if (strcmp(arg, "--enable-ssl2") == 0) {
+    } else if (strcmp(arg, "\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x73\x73\x6c\x32") == 0) {
 #if HAVE_OPENSSL
       fprintf(stderr,
-              "Error: --enable-ssl2 is no longer supported (CVE-2016-0800).\n");
+              "\x45\x72\x72\x6f\x72\x3a\x20\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x73\x73\x6c\x32\x20\x69\x73\x20\x6e\x6f\x20\x6c\x6f\x6e\x67\x65\x72\x20\x73\x75\x70\x70\x6f\x72\x74\x65\x64\x20\x28\x43\x56\x45\x2d\x32\x30\x31\x36\x2d\x30\x38\x30\x30\x29\x2e\xa");
       exit(12);
 #endif
-    } else if (strcmp(arg, "--enable-ssl3") == 0) {
+    } else if (strcmp(arg, "\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x73\x73\x6c\x33") == 0) {
 #if HAVE_OPENSSL
       SSL3_ENABLE = true;
 #endif
-    } else if (strcmp(arg, "--allow-insecure-server-dhparam") == 0) {
+    } else if (strcmp(arg, "\x2d\x2d\x61\x6c\x6c\x6f\x77\x2d\x69\x6e\x73\x65\x63\x75\x72\x65\x2d\x73\x65\x72\x76\x65\x72\x2d\x64\x68\x70\x61\x72\x61\x6d") == 0) {
 #if HAVE_OPENSSL
       ALLOW_INSECURE_SERVER_DHPARAM = true;
 #endif
-    } else if (strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
+    } else if (strcmp(arg, "\x2d\x2d\x68\x65\x6c\x70") == 0 || strcmp(arg, "\x2d\x68") == 0) {
       PrintHelp();
       exit(0);
-    } else if (strcmp(arg, "--eval") == 0 ||
-               strcmp(arg, "-e") == 0 ||
-               strcmp(arg, "--print") == 0 ||
-               strcmp(arg, "-pe") == 0 ||
-               strcmp(arg, "-p") == 0) {
-      bool is_eval = strchr(arg, 'e') != NULL;
-      bool is_print = strchr(arg, 'p') != NULL;
+    } else if (strcmp(arg, "\x2d\x2d\x65\x76\x61\x6c") == 0 ||
+               strcmp(arg, "\x2d\x65") == 0 ||
+               strcmp(arg, "\x2d\x2d\x70\x72\x69\x6e\x74") == 0 ||
+               strcmp(arg, "\x2d\x70\x65") == 0 ||
+               strcmp(arg, "\x2d\x70") == 0) {
+      bool is_eval = strchr(arg, '\x65') != NULL;
+      bool is_print = strchr(arg, '\x70') != NULL;
       print_eval = print_eval || is_print;
       // --eval, -e and -pe always require an argument.
       if (is_eval == true) {
         args_consumed += 1;
         eval_string = argv[index + 1];
         if (eval_string == NULL) {
-          fprintf(stderr, "%s: %s requires an argument\n", argv[0], arg);
+          fprintf(stderr, "\x6c\xa2\x3a\x20\x6c\xa2\x20\x72\x65\x71\x75\x69\x72\x65\x73\x20\x61\x6e\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\xa", argv[0], arg);
           exit(9);
         }
       } else if ((index + 1 < nargs) &&
                  argv[index + 1] != NULL &&
-                 argv[index + 1][0] != '-') {
+                 argv[index + 1][0] != '\x2d') {
         args_consumed += 1;
         eval_string = argv[index + 1];
-        if (strncmp(eval_string, "\\-", 2) == 0) {
+        if (strncmp(eval_string, "\x5c\x2d", 2) == 0) {
           // Starts with "\\-": escaped expression, drop the backslash.
           eval_string += 1;
         }
       }
-    } else if (strcmp(arg, "--interactive") == 0 || strcmp(arg, "-i") == 0) {
+    } else if (strcmp(arg, "\x2d\x2d\x69\x6e\x74\x65\x72\x61\x63\x74\x69\x76\x65") == 0 || strcmp(arg, "\x2d\x69") == 0) {
       force_repl = true;
-    } else if (strcmp(arg, "--no-deprecation") == 0) {
+    } else if (strcmp(arg, "\x2d\x2d\x6e\x6f\x2d\x64\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e") == 0) {
       no_deprecation = true;
-    } else if (strcmp(arg, "--trace-deprecation") == 0) {
+    } else if (strcmp(arg, "\x2d\x2d\x74\x72\x61\x63\x65\x2d\x64\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e") == 0) {
       trace_deprecation = true;
-    } else if (strcmp(arg, "--throw-deprecation") == 0) {
+    } else if (strcmp(arg, "\x2d\x2d\x74\x68\x72\x6f\x77\x2d\x64\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e") == 0) {
       throw_deprecation = true;
-    } else if (strncmp(arg, "--security-revert=", 18) == 0) {
+    } else if (strncmp(arg, "\x2d\x2d\x73\x65\x63\x75\x72\x69\x74\x79\x2d\x72\x65\x76\x65\x72\x74\x3d", 18) == 0) {
       const char* cve = arg + 18;
       Revert(cve);
-    } else if (strcmp(arg, "--v8-options") == 0) {
-      new_v8_argv[new_v8_argc] = "--help";
+    } else if (strcmp(arg, "\x2d\x2d\x76\x38\x2d\x6f\x70\x74\x69\x6f\x6e\x73") == 0) {
+      new_v8_argv[new_v8_argc] = "\x2d\x2d\x68\x65\x6c\x70";
       new_v8_argc += 1;
 #if defined(NODE_HAVE_I18N_SUPPORT)
-    } else if (strncmp(arg, "--icu-data-dir=", 15) == 0) {
+    } else if (strncmp(arg, "\x2d\x2d\x69\x63\x75\x2d\x64\x61\x74\x61\x2d\x64\x69\x72\x3d", 15) == 0) {
       icu_data_dir = arg + 15;
 #endif
     } else {
@@ -3194,7 +3194,7 @@ static void StartDebug(Environment* env, bool wait) {
         DispatchMessagesDebugAgentCallback);
   debugger_running = env->debugger_agent()->Start(debug_port, wait);
   if (debugger_running == false) {
-    fprintf(stderr, "Starting debugger on port %d failed\n", debug_port);
+    fprintf(stderr, "\x53\x74\x61\x72\x74\x69\x6e\x67\x20\x64\x65\x62\x75\x67\x67\x65\x72\x20\x6f\x6e\x20\x70\x6f\x72\x74\x20\x6c\x84\x20\x66\x61\x69\x6c\x65\x64\xa", debug_port);
     fflush(stderr);
     return;
   }
@@ -3209,13 +3209,13 @@ static void EnableDebug(Environment* env) {
   HandleScope handle_scope(env->isolate());
 
   Local<Object> message = Object::New(env->isolate());
-  message->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "cmd"),
-               FIXED_ONE_BYTE_STRING(env->isolate(), "NODE_DEBUG_ENABLED"));
+  message->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x63\x6d\x64"),
+               FIXED_ONE_BYTE_STRING(env->isolate(), "\x4e\x4f\x44\x45\x5f\x44\x45\x42\x55\x47\x5f\x45\x4e\x41\x42\x4c\x45\x44"));
   Local<Value> argv[] = {
-    FIXED_ONE_BYTE_STRING(env->isolate(), "internalMessage"),
+    FIXED_ONE_BYTE_STRING(env->isolate(), "\x69\x6e\x74\x65\x72\x6e\x61\x6c\x4d\x65\x73\x73\x61\x67\x65"),
     message
   };
-  MakeCallback(env, env->process_object(), "emit", ARRAY_SIZE(argv), argv);
+  MakeCallback(env, env->process_object(), "\x65\x6d\x69\x74", ARRAY_SIZE(argv), argv);
 
   // Enabled debugger, possibly making it wait on a semaphore
   env->debugger_agent()->Enable();
@@ -3226,7 +3226,7 @@ static void EnableDebug(Environment* env) {
 static void DispatchDebugMessagesAsyncCallback(uv_async_t* handle) {
   HandleScope scope(node_isolate);
   if (debugger_running == false) {
-    fprintf(stderr, "Starting debugger agent.\n");
+    fprintf(stderr, "\x53\x74\x61\x72\x74\x69\x6e\x67\x20\x64\x65\x62\x75\x67\x67\x65\x72\x20\x61\x67\x65\x6e\x74\x2e\xa");
 
     Environment* env = Environment::GetCurrent(node_isolate);
     Context::Scope context_scope(env->context());
@@ -3285,7 +3285,7 @@ void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   if (args.Length() != 1) {
-    return env->ThrowError("Invalid number of arguments.");
+    return env->ThrowError("\x49\x6e\x76\x61\x6c\x69\x64\x20\x6e\x75\x6d\x62\x65\x72\x20\x6f\x66\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x73\x2e");
   }
 
   pid_t pid;
@@ -3294,7 +3294,7 @@ void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   pid = args[0]->IntegerValue();
   r = kill(pid, SIGUSR1);
   if (r != 0) {
-    return env->ThrowErrnoException(errno, "kill");
+    return env->ThrowErrnoException(errno, "\x6b\x69\x6c\x6c");
   }
 }
 
@@ -3321,7 +3321,7 @@ DWORD WINAPI EnableDebugThreadProc(void* arg) {
 
 static int GetDebugSignalHandlerMappingName(DWORD pid, wchar_t* buf,
     size_t buf_len) {
-  return _snwprintf(buf, buf_len, L"node-debug-handler-%u", pid);
+  return _snwprintf(buf, buf_len, L"\x6e\x6f\x64\x65\x2d\x64\x65\x62\x75\x67\x2d\x68\x61\x6e\x64\x6c\x65\x72\x2d\x6c\xa4", pid);
 }
 
 
@@ -3380,7 +3380,7 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   LPTHREAD_START_ROUTINE* handler = NULL;
 
   if (args.Length() != 1) {
-    env->ThrowError("Invalid number of arguments.");
+    env->ThrowError("\x49\x6e\x76\x61\x6c\x69\x64\x20\x6e\x75\x6d\x62\x65\x72\x20\x6f\x66\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x73\x2e");
     goto out;
   }
 
@@ -3393,14 +3393,14 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
                         pid);
   if (process == NULL) {
     isolate->ThrowException(
-        WinapiErrnoException(isolate, GetLastError(), "OpenProcess"));
+        WinapiErrnoException(isolate, GetLastError(), "\x4f\x70\x65\x6e\x50\x72\x6f\x63\x65\x73\x73"));
     goto out;
   }
 
   if (GetDebugSignalHandlerMappingName(pid,
                                        mapping_name,
                                        ARRAY_SIZE(mapping_name)) < 0) {
-    env->ThrowErrnoException(errno, "sprintf");
+    env->ThrowErrnoException(errno, "\x73\x70\x72\x69\x6e\x74\x66");
     goto out;
   }
 
@@ -3408,7 +3408,7 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   if (mapping == NULL) {
     isolate->ThrowException(WinapiErrnoException(isolate,
                                              GetLastError(),
-                                             "OpenFileMappingW"));
+                                             "\x4f\x70\x65\x6e\x46\x69\x6c\x65\x4d\x61\x70\x70\x69\x6e\x67\x57"));
     goto out;
   }
 
@@ -3420,7 +3420,7 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
                     sizeof *handler));
   if (handler == NULL || *handler == NULL) {
     isolate->ThrowException(
-        WinapiErrnoException(isolate, GetLastError(), "MapViewOfFile"));
+        WinapiErrnoException(isolate, GetLastError(), "\x4d\x61\x70\x56\x69\x65\x77\x4f\x66\x46\x69\x6c\x65"));
     goto out;
   }
 
@@ -3434,7 +3434,7 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   if (thread == NULL) {
     isolate->ThrowException(WinapiErrnoException(isolate,
                                                  GetLastError(),
-                                                 "CreateRemoteThread"));
+                                                 "\x43\x72\x65\x61\x74\x65\x52\x65\x6d\x6f\x74\x65\x54\x68\x72\x65\x61\x64"));
     goto out;
   }
 
@@ -3442,7 +3442,7 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   if (WaitForSingleObject(thread, INFINITE) != WAIT_OBJECT_0) {
     isolate->ThrowException(WinapiErrnoException(isolate,
                                                  GetLastError(),
-                                                 "WaitForSingleObject"));
+                                                 "\x57\x61\x69\x74\x46\x6f\x72\x53\x69\x6e\x67\x6c\x65\x4f\x62\x6a\x65\x63\x74"));
     goto out;
   }
 
@@ -3507,7 +3507,7 @@ void Init(int* argc,
   // behavior but it could also interfere with the user's intentions in ways
   // we fail to anticipate.  Dillema.
   for (int i = 1; i < v8_argc; ++i) {
-    if (strncmp(v8_argv[i], "--prof", sizeof("--prof") - 1) == 0) {
+    if (strncmp(v8_argv[i], "\x2d\x2d\x70\x72\x6f\x66", sizeof("\x2d\x2d\x70\x72\x6f\x66") - 1) == 0) {
       v8_is_profiling = true;
       break;
     }
@@ -3516,13 +3516,13 @@ void Init(int* argc,
 #if defined(NODE_HAVE_I18N_SUPPORT)
   if (icu_data_dir == NULL) {
     // if the parameter isn't given, use the env variable.
-    icu_data_dir = getenv("NODE_ICU_DATA");
+    icu_data_dir = getenv("\x4e\x4f\x44\x45\x5f\x49\x43\x55\x5f\x44\x41\x54\x41");
   }
   // Initialize ICU.
   // If icu_data_dir is NULL here, it will load the 'minimal' data.
   if (!i18n::InitializeICUDirectory(icu_data_dir)) {
-    FatalError(NULL, "Could not initialize ICU "
-                     "(check NODE_ICU_DATA or --icu-data-dir parameters)");
+    FatalError(NULL, "\x43\x6f\x75\x6c\x64\x20\x6e\x6f\x74\x20\x69\x6e\x69\x74\x69\x61\x6c\x69\x7a\x65\x20\x49\x43\x55\x20"
+                     "\x28\x63\x68\x65\x63\x6b\x20\x4e\x4f\x44\x45\x5f\x49\x43\x55\x5f\x44\x41\x54\x41\x20\x6f\x72\x20\x2d\x2d\x69\x63\x75\x2d\x64\x61\x74\x61\x2d\x64\x69\x72\x20\x70\x61\x72\x61\x6d\x65\x74\x65\x72\x73\x29");
   }
 #endif
   // The const_cast doesn't violate conceptual const-ness.  V8 doesn't modify
@@ -3531,7 +3531,7 @@ void Init(int* argc,
 
   // Anything that's still in v8_argv is not a V8 or a node option.
   for (int i = 1; i < v8_argc; i++) {
-    fprintf(stderr, "%s: bad option: %s\n", argv[0], v8_argv[i]);
+    fprintf(stderr, "\x6c\xa2\x3a\x20\x62\x61\x64\x20\x6f\x70\x74\x69\x6f\x6e\x3a\x20\x6c\xa2\xa", argv[0], v8_argv[i]);
   }
   delete[] v8_argv;
   v8_argv = NULL;
@@ -3541,7 +3541,7 @@ void Init(int* argc,
   }
 
   if (debug_wait_connect) {
-    const char expose_debug_as[] = "--expose_debug_as=v8debug";
+    const char expose_debug_as[] = "\x2d\x2d\x65\x78\x70\x6f\x73\x65\x5f\x64\x65\x62\x75\x67\x5f\x61\x73\x3d\x76\x38\x64\x65\x62\x75\x67";
     V8::SetFlagsFromString(expose_debug_as, sizeof(expose_debug_as) - 1);
   }
 
@@ -3623,12 +3623,12 @@ void EmitBeforeExit(Environment* env) {
   Context::Scope context_scope(env->context());
   HandleScope handle_scope(env->isolate());
   Local<Object> process_object = env->process_object();
-  Local<String> exit_code = FIXED_ONE_BYTE_STRING(env->isolate(), "exitCode");
+  Local<String> exit_code = FIXED_ONE_BYTE_STRING(env->isolate(), "\x65\x78\x69\x74\x43\x6f\x64\x65");
   Local<Value> args[] = {
-    FIXED_ONE_BYTE_STRING(env->isolate(), "beforeExit"),
+    FIXED_ONE_BYTE_STRING(env->isolate(), "\x62\x65\x66\x6f\x72\x65\x45\x78\x69\x74"),
     process_object->Get(exit_code)->ToInteger()
   };
-  MakeCallback(env, process_object, "emit", ARRAY_SIZE(args), args);
+  MakeCallback(env, process_object, "\x65\x6d\x69\x74", ARRAY_SIZE(args), args);
 }
 
 
@@ -3647,7 +3647,7 @@ int EmitExit(Environment* env) {
     Integer::New(env->isolate(), code)
   };
 
-  MakeCallback(env, process_object, "emit", ARRAY_SIZE(args), args);
+  MakeCallback(env, process_object, "\x65\x6d\x69\x74", ARRAY_SIZE(args), args);
 
   // Reload exit code, it may be changed by `emit('exit')`
   return process_object->Get(exitCode)->Int32Value();
@@ -3749,7 +3749,7 @@ Environment* CreateEnvironment(Isolate* isolate,
   }
 
   Local<FunctionTemplate> process_template = FunctionTemplate::New(isolate);
-  process_template->SetClassName(FIXED_ONE_BYTE_STRING(isolate, "process"));
+  process_template->SetClassName(FIXED_ONE_BYTE_STRING(isolate, "\x70\x72\x6f\x63\x65\x73\x73"));
 
   Local<Object> process_object = process_template->GetFunction()->NewInstance();
   env->set_process_object(process_object);
@@ -3761,7 +3761,7 @@ Environment* CreateEnvironment(Isolate* isolate,
 
 
 int Start(int argc, char** argv) {
-  const char* replaceInvalid = getenv("NODE_INVALID_UTF8");
+  const char* replaceInvalid = getenv("\x4e\x4f\x44\x45\x5f\x49\x4e\x56\x41\x4c\x49\x44\x5f\x55\x54\x46\x38");
 
   if (replaceInvalid == NULL)
     WRITE_UTF8_FLAGS |= String::REPLACE_INVALID_UTF8;

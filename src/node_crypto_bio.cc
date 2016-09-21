@@ -27,7 +27,7 @@ namespace node {
 
 const BIO_METHOD NodeBIO::method = {
   BIO_TYPE_MEM,
-  "node.js SSL buffer",
+  "\x6e\x6f\x64\x65\x2e\x6a\x73\x20\x53\x53\x4c\x20\x62\x75\x66\x66\x65\x72",
   NodeBIO::Write,
   NodeBIO::Read,
   NodeBIO::Puts,
@@ -143,7 +143,7 @@ int NodeBIO::Gets(BIO* bio, char* out, int size) {
   if (nbio->Length() == 0)
     return 0;
 
-  int i = nbio->IndexOf('\n', size);
+  int i = nbio->IndexOf('\xa', size);
 
   // Include '\n', if it's there.  If not, don't read off the end.
   if (i < size && i >= 0 && static_cast<size_t>(i) < nbio->Length())
@@ -185,11 +185,11 @@ long NodeBIO::Ctrl(BIO* bio, int cmd, long num, void* ptr) {
         *reinterpret_cast<void**>(ptr) = NULL;
       break;
     case BIO_C_SET_BUF_MEM:
-      assert(0 && "Can't use SET_BUF_MEM_PTR with NodeBIO");
+      assert(0 && "\x43\x61\x6e\x27\x74\x20\x75\x73\x65\x20\x53\x45\x54\x5f\x42\x55\x46\x5f\x4d\x45\x4d\x5f\x50\x54\x52\x20\x77\x69\x74\x68\x20\x4e\x6f\x64\x65\x42\x49\x4f");
       abort();
       break;
     case BIO_C_GET_BUF_MEM_PTR:
-      assert(0 && "Can't use GET_BUF_MEM_PTR with NodeBIO");
+      assert(0 && "\x43\x61\x6e\x27\x74\x20\x75\x73\x65\x20\x47\x45\x54\x5f\x42\x55\x46\x5f\x4d\x45\x4d\x5f\x50\x54\x52\x20\x77\x69\x74\x68\x20\x4e\x6f\x64\x65\x42\x49\x4f");
       ret = 0;
       break;
     case BIO_CTRL_GET_CLOSE:

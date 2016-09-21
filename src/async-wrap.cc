@@ -81,7 +81,7 @@ static void Initialize(Handle<Object> target,
   Isolate* isolate = env->isolate();
   HandleScope scope(isolate);
 
-  NODE_SET_METHOD(target, "setupHooks", SetupHooks);
+  NODE_SET_METHOD(target, "\x73\x65\x74\x75\x70\x48\x6f\x6f\x6b\x73", SetupHooks);
 
   Local<Object> async_providers = Object::New(isolate);
 #define V(PROVIDER)                                                           \
@@ -89,7 +89,7 @@ static void Initialize(Handle<Object> target,
       Integer::New(isolate, AsyncWrap::PROVIDER_ ## PROVIDER));
   NODE_ASYNC_PROVIDER_TYPES(V)
 #undef V
-  target->Set(FIXED_ONE_BYTE_STRING(isolate, "Providers"), async_providers);
+  target->Set(FIXED_ONE_BYTE_STRING(isolate, "\x50\x72\x6f\x76\x69\x64\x65\x72\x73"), async_providers);
 }
 
 
@@ -129,7 +129,7 @@ Handle<Value> AsyncWrap::MakeCallback(const Handle<Function> cb,
     try_catch.SetVerbose(false);
     env()->async_hooks_pre_function()->Call(context, 0, NULL);
     if (try_catch.HasCaught())
-      FatalError("node::AsyncWrap::MakeCallback", "pre hook threw");
+      FatalError("\x6e\x6f\x64\x65\x3a\x3a\x41\x73\x79\x6e\x63\x57\x72\x61\x70\x3a\x3a\x4d\x61\x6b\x65\x43\x61\x6c\x6c\x62\x61\x63\x6b", "\x70\x72\x65\x20\x68\x6f\x6f\x6b\x20\x74\x68\x72\x65\x77");
     try_catch.SetVerbose(true);
   }
 
@@ -143,7 +143,7 @@ Handle<Value> AsyncWrap::MakeCallback(const Handle<Function> cb,
     try_catch.SetVerbose(false);
     env()->async_hooks_post_function()->Call(context, 0, NULL);
     if (try_catch.HasCaught())
-      FatalError("node::AsyncWrap::MakeCallback", "post hook threw");
+      FatalError("\x6e\x6f\x64\x65\x3a\x3a\x41\x73\x79\x6e\x63\x57\x72\x61\x70\x3a\x3a\x4d\x61\x6b\x65\x43\x61\x6c\x6c\x62\x61\x63\x6b", "\x70\x6f\x73\x74\x20\x68\x6f\x6f\x6b\x20\x74\x68\x72\x65\x77");
     try_catch.SetVerbose(true);
   }
 

@@ -54,17 +54,17 @@ class ProcessWrap : public HandleWrap {
     Local<FunctionTemplate> constructor = FunctionTemplate::New(env->isolate(),
                                                                 New);
     constructor->InstanceTemplate()->SetInternalFieldCount(1);
-    constructor->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "Process"));
+    constructor->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x50\x72\x6f\x63\x65\x73\x73"));
 
-    NODE_SET_PROTOTYPE_METHOD(constructor, "close", HandleWrap::Close);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x63\x6c\x6f\x73\x65", HandleWrap::Close);
 
-    NODE_SET_PROTOTYPE_METHOD(constructor, "spawn", Spawn);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "kill", Kill);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x73\x70\x61\x77\x6e", Spawn);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x6b\x69\x6c\x6c", Kill);
 
-    NODE_SET_PROTOTYPE_METHOD(constructor, "ref", HandleWrap::Ref);
-    NODE_SET_PROTOTYPE_METHOD(constructor, "unref", HandleWrap::Unref);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x72\x65\x66", HandleWrap::Ref);
+    NODE_SET_PROTOTYPE_METHOD(constructor, "\x75\x6e\x72\x65\x66", HandleWrap::Unref);
 
-    target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "Process"),
+    target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x50\x72\x6f\x63\x65\x73\x73"),
                 constructor->GetFunction());
   }
 
@@ -148,12 +148,12 @@ class ProcessWrap : public HandleWrap {
     if (uid_v->IsInt32()) {
       int32_t uid = uid_v->Int32Value();
       if (uid & ~((uv_uid_t) ~0)) {
-        return env->ThrowRangeError("options.uid is out of range");
+        return env->ThrowRangeError("\x6f\x70\x74\x69\x6f\x6e\x73\x2e\x75\x69\x64\x20\x69\x73\x20\x6f\x75\x74\x20\x6f\x66\x20\x72\x61\x6e\x67\x65");
       }
       options.flags |= UV_PROCESS_SETUID;
       options.uid = (uv_uid_t) uid;
     } else if (!uid_v->IsUndefined() && !uid_v->IsNull()) {
-      return env->ThrowTypeError("options.uid should be a number");
+      return env->ThrowTypeError("\x6f\x70\x74\x69\x6f\x6e\x73\x2e\x75\x69\x64\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72");
     }
 
     // options.gid
@@ -161,12 +161,12 @@ class ProcessWrap : public HandleWrap {
     if (gid_v->IsInt32()) {
       int32_t gid = gid_v->Int32Value();
       if (gid & ~((uv_gid_t) ~0)) {
-        return env->ThrowRangeError("options.gid is out of range");
+        return env->ThrowRangeError("\x6f\x70\x74\x69\x6f\x6e\x73\x2e\x67\x69\x64\x20\x69\x73\x20\x6f\x75\x74\x20\x6f\x66\x20\x72\x61\x6e\x67\x65");
       }
       options.flags |= UV_PROCESS_SETGID;
       options.gid = (uv_gid_t) gid;
     } else if (!gid_v->IsUndefined() && !gid_v->IsNull()) {
-      return env->ThrowTypeError("options.gid should be a number");
+      return env->ThrowTypeError("\x6f\x70\x74\x69\x6f\x6e\x73\x2e\x67\x69\x64\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72");
     }
 
     // TODO(bnoordhuis) is this possible to do without mallocing ?
@@ -177,7 +177,7 @@ class ProcessWrap : public HandleWrap {
     if (file.length() > 0) {
       options.file = *file;
     } else {
-      return env->ThrowTypeError("Bad argument");
+      return env->ThrowTypeError("\x42\x61\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74");
     }
 
     // options.args
