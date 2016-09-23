@@ -425,7 +425,9 @@
           ],
           'cflags': [
             '-qlonglong',
-            '-qxplink -q64',
+            '-qxplink',
+            '-qenum=int',
+            '-q64',
           ],
           'ldflags': ['-qxplink -q64']
         }],
