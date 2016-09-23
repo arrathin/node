@@ -325,7 +325,7 @@ void StreamWrap::WriteStringImpl(const FunctionCallbackInfo<Value>& args) {
     buf = uv_buf_init(stack_storage, data_size);
 
 #ifdef __MVS__
-    if (encoding == UTF8 && wrap->is_tcp())
+    if (encoding == UTF8 && wrap->is_tty())
       __e2a_l(buf.base, buf.len);
 #endif
 
@@ -369,8 +369,8 @@ void StreamWrap::WriteStringImpl(const FunctionCallbackInfo<Value>& args) {
   buf = uv_buf_init(data, data_size);
 
 #ifdef __MVS__
-  if (encoding == UTF8 && wrap->is_tcp())
-    __e2a_l(buf.base, buf.len);
+  if (wrap->is_tcp())
+    __a2e_l(buf.base, buf.len);
 #endif
 
   if (!wrap->is_named_pipe_ipc()) {
@@ -762,6 +762,7 @@ void StreamWrapCallbacks::DoRead(uv_stream_t* handle,
   }
 
   char* base = static_cast<char*>(realloc(buf->base, nread));
+  __e2a_l(base, nread);
   assert(static_cast<size_t>(nread) <= buf->len);
   argv[1] = Buffer::Use(env, base, nread);
 

@@ -173,6 +173,9 @@ class StreamWrap : public HandleWrap {
     return stream()->type == UV_TCP;
   }
 
+  inline bool is_tty() const {
+   return stream()->type == UV_TTY;
+  }
  protected:
   static size_t WriteBuffer(v8::Handle<v8::Value> val, uv_buf_t* buf);
 
