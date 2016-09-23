@@ -38,8 +38,23 @@ static int maybe_new_socket(uv_tcp_t* handle, int domain, int flags) {
   int sockfd;
   int err;
 
-  if (uv__stream_fd(handle) != -1)
+  if (uv__stream_fd(handle) != -1) {
+    struct sockaddr_storage saddr;
+    socklen_t slen  = sizeof(saddr);
+    memset(&saddr, 0, sizeof(saddr));
+
+    if (getsockname(uv__stream_fd(handle), (struct sockaddr*) &saddr, &slen))
+      return -errno;
+
+    if  (saddr.ss_family == AF_INET6 &&
+        ((struct sockaddr_in6*) &saddr)->sin6_port != 0)
+      handle->flags |= UV_HANDLE_BOUND;
+    else if (saddr.ss_family == AF_INET &&
+            ((struct sockaddr_in*) &saddr)->sin_port != 0)
+      handle->flags |= UV_HANDLE_BOUND;
+
     return 0;
+}
 
   err = uv__socket(domain, SOCK_STREAM, 0);
   if (err < 0)
