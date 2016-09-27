@@ -311,6 +311,11 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
       goto done;
     }
 
+#ifdef __MVS__
+  for (int buf_idx = 0; buf_idx < req->nbufs; buf_idx++)
+    __e2a_l(req->bufs[buf_idx].base, req->bufs[buf_idx].len);
+#endif
+
 #if HAVE_PREADV
     result = preadv(req->file, (struct iovec*) req->bufs, req->nbufs, req->off);
 #else
@@ -352,6 +357,7 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
 # endif
 #endif
   }
+
 
 done:
   if (req->bufs != req->bufsml)

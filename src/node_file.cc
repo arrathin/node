@@ -218,10 +218,6 @@ static void After(uv_fs_t *req) {
       case UV_FS_READ:
         // Buffer interface
         argv[1] = Integer::New(env->isolate(), req->result);
-#ifdef __MVS__
-        for (int buf_idx = 0; buf_idx < req->nbufs; buf_idx++)
-          __e2a_l(req->bufs[buf_idx].base, req->bufs[buf_idx].len);
-#endif
         break;
 
       case UV_FS_SCANDIR:
