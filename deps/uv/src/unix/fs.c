@@ -71,13 +71,27 @@
   }                                                                           \
   while (0)
 
-#define PATH                                                                  \
+#ifdef __MVS__
+# define PATH                                                                 \
+  do {                                                                        \
+    char * ascii = uv__strdup(path);                                          \
+    __a2e_s(ascii);                                                           \
+    (req)->path = (const char *)ascii;                                        \
+    if ((req)->path == NULL)                                                  \
+      return -ENOMEM;                                                         \
+  }                                                                           \
+  while (0)
+
+#else
+
+# define PATH                                                                  \
   do {                                                                        \
     (req)->path = uv__strdup(path);                                           \
     if ((req)->path == NULL)                                                  \
       return -ENOMEM;                                                         \
   }                                                                           \
   while (0)
+#endif
 
 #define PATH2                                                                 \
   do {                                                                        \
