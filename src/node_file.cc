@@ -600,6 +600,9 @@ static void ReadLink(const FunctionCallbackInfo<Value>& args) {
     ASYNC_CALL(readlink, args[1], *path)
   } else {
     SYNC_CALL(readlink, *path, *path)
+#ifdef __MVS__
+    __e2a_s((char*)SYNC_REQ.ptr);
+#endif
     const char* link_path = static_cast<const char*>(SYNC_REQ.ptr);
     Local<String> rc = String::NewFromUtf8(env->isolate(), link_path);
     args.GetReturnValue().Set(rc);
