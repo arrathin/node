@@ -89,6 +89,7 @@ typedef int mode_t;
 #ifdef __MVS__
 #include "v8.h"
 #include <strings.h>
+#include <unistd.h> // e2a
 #endif
 
 #ifdef __APPLE__
