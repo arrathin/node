@@ -41,6 +41,8 @@
 
 #if defined(__MINGW32__) || defined(_MSC_VER)
 # include <io.h>
+#elif defined(__MVS__)
+# include <unistd.h>
 #endif
 
 namespace node {
