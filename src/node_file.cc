@@ -216,6 +216,10 @@ static void After(uv_fs_t *req) {
       case UV_FS_READ:
         // Buffer interface
         argv[1] = Integer::New(env->isolate(), req->result);
+#ifdef __MVS__
+        for (int buf_idx = 0; buf_idx < req->nbufs; buf_idx++)
+          __e2a_l(req->bufs[buf_idx].base, req->bufs[buf_idx].len);
+#endif
         break;
 
       case UV_FS_SCANDIR:
@@ -978,6 +982,9 @@ static void Read(const FunctionCallbackInfo<Value>& args) {
     ASYNC_CALL(read, req, fd, &uvbuf, 1, pos);
   } else {
     SYNC_CALL(read, 0, fd, &uvbuf, 1, pos)
+#ifdef __MVS__
+    __e2a_l(uvbuf.base, uvbuf.len);
+#endif
     args.GetReturnValue().Set(SYNC_RESULT);
   }
 }
