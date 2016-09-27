@@ -1597,7 +1597,6 @@ static void Cwd(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowUVException(err, "\x75\x76\x5f\x63\x77\x64");
   }
 
-  __e2a_s(buf);
   Local<String> cwd = String::NewFromUtf8(env->isolate(),
                                           buf,
                                           String::kNormalString,

@@ -644,6 +644,10 @@ int uv_cwd(char* buffer, size_t* size) {
     (*size)--;
   }
 
+#if defined(__MVS__)
+  __e2a_s(buffer);
+#endif
+
   return 0;
 }
 
