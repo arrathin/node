@@ -403,6 +403,14 @@ int uv_spawn(uv_loop_t* loop,
   if (stdio_count < 3)
     stdio_count = 3;
 
+#if defined(__MVS__)
+  __a2e_s((char*)options->file);
+  __a2e_s((char*)options->cwd);
+  i = 0;
+  while (options->args[i] != NULL)
+    __a2e_s(options->args[i++]);
+#endif
+
   err = -ENOMEM;
   pipes = uv__malloc(stdio_count * sizeof(*pipes));
   if (pipes == NULL)
