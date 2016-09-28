@@ -2327,9 +2327,20 @@ static void EnvGetter(Local<String> property,
   HandleScope scope(env->isolate());
 #ifdef __POSIX__
   node::Utf8Value key(property);
+#ifdef __MVS__
+  __a2e_s(*key);
+#endif
   const char* val = getenv(*key);
   if (val) {
-    return info.GetReturnValue().Set(String::NewFromUtf8(env->isolate(), val));
+#ifdef __MVS__
+    char *utf8val = strdup(val);
+    __e2a_s(utf8val);
+    Local<String> vall = String::NewFromUtf8(env->isolate(), utf8val);
+    free(utf8val);
+    return info.GetReturnValue().Set(vall);
+#else
+    return info.GetReturnValue().Set(String::NewFromUtf8(env->isolate(), utf8val));
+#endif
   }
 #else  // _WIN32
   String::Value key(property);
@@ -2361,7 +2372,15 @@ static void EnvSetter(Local<String> property,
 #ifdef __POSIX__
   node::Utf8Value key(property);
   node::Utf8Value val(value);
+#ifdef __MVS__
+  __a2e_s(*key);
+  __a2e_s(*val);
+#endif
   setenv(*key, *val, 1);
+#ifdef __MVS__
+  __e2a_s(*key);
+  __e2a_s(*val);
+#endif
 #else  // _WIN32
   String::Value key(property);
   String::Value val(value);
@@ -2383,6 +2402,9 @@ static void EnvQuery(Local<String> property,
   int32_t rc = -1;  // Not found unless proven otherwise.
 #ifdef __POSIX__
   node::Utf8Value key(property);
+#ifdef __MVS__
+  __a2e_s(*key);
+#endif
   if (getenv(*key))
     rc = 0;
 #else  // _WIN32
@@ -2411,6 +2433,9 @@ static void EnvDeleter(Local<String> property,
   bool rc = true;
 #ifdef __POSIX__
   node::Utf8Value key(property);
+#ifdef __MVS__
+  __a2e_s(*key);
+#endif
   rc = getenv(*key) != NULL;
   if (rc)
     unsetenv(*key);
@@ -2440,12 +2465,18 @@ static void EnvEnumerator(const PropertyCallbackInfo<Array>& info) {
 
   for (int i = 0; i < size; ++i) {
     const char* var = environ[i];
+#ifdef __MVS__
+    var = strdup(var);
+#endif
     const char* s = strchr(var, '\x3d');
     const int length = s ? s - var : strlen(var);
     Local<String> name = String::NewFromUtf8(env->isolate(),
                                              var,
                                              String::kNormalString,
                                              length);
+#ifdef __MVS__
+    free((void*)var);
+#endif
     envarr->Set(i, name);
   }
 #else  // _WIN32
