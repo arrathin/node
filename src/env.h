@@ -69,6 +69,7 @@ namespace node {
   V(args_string, "args")                                                      \
   V(async, "async")                                                           \
   V(async_queue_string, "_asyncQueue")                                        \
+  V(buffer_string, "buffer")                                                  \
   V(bytes_string, "bytes")                                                    \
   V(bytes_parsed_string, "bytesParsed")                                       \
   V(bytes_read_string, "bytesRead")                                           \
@@ -472,11 +473,6 @@ class Environment {
                                const char* path = nullptr,
                                const char* dest = nullptr);
 
-  // Convenience methods for contextify
-  inline static void ThrowError(v8::Isolate* isolate, const char* errmsg);
-  inline static void ThrowTypeError(v8::Isolate* isolate, const char* errmsg);
-  inline static void ThrowRangeError(v8::Isolate* isolate, const char* errmsg);
-
   inline v8::Local<v8::FunctionTemplate>
       NewFunctionTemplate(v8::FunctionCallback callback,
                           v8::Local<v8::Signature> signature =
@@ -533,6 +529,9 @@ class Environment {
   static const int kContextEmbedderDataIndex = NODE_CONTEXT_EMBEDDER_DATA_INDEX;
 
  private:
+  inline void ThrowError(v8::Local<v8::Value> (*fun)(v8::Local<v8::String>),
+                         const char* errmsg);
+
   static const int kIsolateSlot = NODE_ISOLATE_SLOT;
 
   class IsolateData;
