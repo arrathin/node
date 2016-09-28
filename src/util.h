@@ -122,7 +122,7 @@ class Utf8Value {
     explicit Utf8Value(v8::Handle<v8::Value> value);
 
     ~Utf8Value() {
-      free(str_);
+        free(str_);
     }
 
     char* operator*() {
@@ -140,7 +140,34 @@ class Utf8Value {
   private:
     size_t length_;
     char* str_;
+friend class NativeEncodingValue;
 };
+
+class NativeEncodingValue {
+    public:
+      explicit NativeEncodingValue(Utf8Value& val);
+      
+      ~NativeEncodingValue(){
+        if(str_ != NULL)
+          free(str_);
+      }
+      
+      char *operator *(){
+        return str_;
+      };
+
+      const char* operator*() const{
+        return str_;
+      };
+      
+      size_t length() const{
+        return length_;
+      };
+    
+    private:
+      size_t length_;
+      char * str_;
+  };
 
 }  // namespace node
 

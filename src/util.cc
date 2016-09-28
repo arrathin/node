@@ -22,6 +22,8 @@
 #include "util.h"
 
 #include "string_bytes.h"
+#include <string.h>
+#include <unistd.h>
 
 namespace node {
 
@@ -49,4 +51,14 @@ Utf8Value::Utf8Value(v8::Handle<v8::Value> value)
 
   str_ = reinterpret_cast<char*>(str);
 }
+
+//Assumption is that Utf8Value contains chars in
+//the range ASCII range (0x0 ... 0x7f)
+NativeEncodingValue::NativeEncodingValue(Utf8Value &val)
+  : length_(0), str_(NULL) {
+    length_ = val.length_;
+    str_ = (char *)malloc(sizeof(char) * length_);
+    memcpy(str_, val.str_, length_);
+    __a2e_s(str_);
+  }
 }  // namespace node
