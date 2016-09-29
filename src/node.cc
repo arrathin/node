@@ -2830,6 +2830,9 @@ void SetupProcessObject(Environment* env,
   char* exec_path = new char[exec_path_len];
   Local<String> exec_path_value;
   if (uv_exepath(exec_path, &exec_path_len) == 0) {
+#ifdef __MVS__
+    __e2a_s(exec_path);
+#endif
     exec_path_value = String::NewFromUtf8(env->isolate(),
                                           exec_path,
                                           String::kNormalString,
