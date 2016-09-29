@@ -1574,6 +1574,9 @@ static void Chdir(const FunctionCallbackInfo<Value>& args) {
   }
 
   node::Utf8Value path(args[0]);
+#ifdef __MVS__
+  __a2e_s(*path);
+#endif
   int err = uv_chdir(*path);
   if (err) {
     return env->ThrowUVException(err, "\x75\x76\x5f\x63\x68\x64\x69\x72");
@@ -2466,7 +2469,9 @@ static void EnvEnumerator(const PropertyCallbackInfo<Array>& info) {
   for (int i = 0; i < size; ++i) {
     const char* var = environ[i];
 #ifdef __MVS__
-    var = strdup(var);
+    char* var1 = strdup(var);
+    __e2a_s(var1);
+    var = var1;
 #endif
     const char* s = strchr(var, '\x3d');
     const int length = s ? s - var : strlen(var);
@@ -2475,7 +2480,7 @@ static void EnvEnumerator(const PropertyCallbackInfo<Array>& info) {
                                              String::kNormalString,
                                              length);
 #ifdef __MVS__
-    free((void*)var);
+    free((void*)var1);
 #endif
     envarr->Set(i, name);
   }
