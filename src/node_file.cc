@@ -983,9 +983,6 @@ static void Read(const FunctionCallbackInfo<Value>& args) {
     ASYNC_CALL(read, req, fd, &uvbuf, 1, pos);
   } else {
     SYNC_CALL(read, 0, fd, &uvbuf, 1, pos)
-#ifdef __MVS__
-    __e2a_l(uvbuf.base, uvbuf.len);
-#endif
     args.GetReturnValue().Set(SYNC_RESULT);
   }
 }

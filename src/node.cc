@@ -216,7 +216,7 @@ static void IdleImmediateDummy(uv_idle_t* handle) {
   // TODO(bnoordhuis) Maybe make libuv accept NULL idle callbacks.
 }
 
-
+#pragma convert("ISO8859-1")
 static inline const char *errno_string(int errorno) {
 #define ERRNO_CASE(e)  case e: return #e;
   switch (errorno) {
@@ -696,7 +696,7 @@ const char *signo_string(int signo) {
   default: return "";
   }
 }
-
+#pragma convert(pop)
 
 // Convenience methods
 
@@ -1574,10 +1574,8 @@ static void Chdir(const FunctionCallbackInfo<Value>& args) {
   }
 
   node::Utf8Value path(args[0]);
-#ifdef __MVS__
-  __a2e_s(*path);
-#endif
-  int err = uv_chdir(*path);
+  node::NativeEncodingValue native_path(path);
+  int err = uv_chdir(*native_path);
   if (err) {
     return env->ThrowUVException(err, "\x75\x76\x5f\x63\x68\x64\x69\x72");
   }
@@ -2469,9 +2467,9 @@ static void EnvEnumerator(const PropertyCallbackInfo<Array>& info) {
   for (int i = 0; i < size; ++i) {
     const char* var = environ[i];
 #ifdef __MVS__
-    char* var1 = strdup(var);
-    __e2a_s(var1);
-    var = var1;
+    char * ascii_var = strdup(var);
+    __e2a_s(ascii_var);
+    var = ascii_var;
 #endif
     const char* s = strchr(var, '\x3d');
     const int length = s ? s - var : strlen(var);
@@ -2480,7 +2478,7 @@ static void EnvEnumerator(const PropertyCallbackInfo<Array>& info) {
                                              String::kNormalString,
                                              length);
 #ifdef __MVS__
-    free((void*)var1);
+    free((void*)ascii_var);
 #endif
     envarr->Set(i, name);
   }

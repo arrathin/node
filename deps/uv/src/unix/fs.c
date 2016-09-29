@@ -329,10 +329,6 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
       goto done;
     }
 
-#ifdef __MVS__
-  for (int buf_idx = 0; buf_idx < req->nbufs; buf_idx++)
-    __e2a_l(req->bufs[buf_idx].base, req->bufs[buf_idx].len);
-#endif
 
 #if HAVE_PREADV
     result = preadv(req->file, (struct iovec*) req->bufs, req->nbufs, req->off);
@@ -353,8 +349,9 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
                          req->bufs[index].base,
                          req->bufs[index].len,
                          req->off + nread);
-          if (result > 0)
+          if (result > 0) {
             nread += result;
+          }
         }
         index++;
       } while (index < req->nbufs && result > 0);
@@ -378,6 +375,10 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
 
 
 done:
+#ifdef __MVS__
+  for (int buf_idx = 0; buf_idx < req->nbufs; buf_idx++)
+    __e2a_l(req->bufs[buf_idx].base, req->bufs[buf_idx].len);
+#endif
   if (req->bufs != req->bufsml)
     uv__free(req->bufs);
   return result;

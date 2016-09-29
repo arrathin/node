@@ -134,7 +134,7 @@ uv_buf_t uv_buf_init(char* base, unsigned int len) {
   return buf;
 }
 
-
+#pragma convert("ISO8859-1")
 #define UV_ERR_NAME_GEN(name, _) case UV_ ## name: return #name;
 const char* uv_err_name(int err) {
   switch (err) {
@@ -145,7 +145,7 @@ const char* uv_err_name(int err) {
   }
 }
 #undef UV_ERR_NAME_GEN
-
+#pragma convert(pop)
 
 #define UV_STRERROR_GEN(name, msg) case UV_ ## name: return msg;
 const char* uv_strerror(int err) {
