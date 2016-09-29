@@ -91,7 +91,7 @@ namespace node {
   V(idle_string, "\x69\x64\x6c\x65")                                                      \
   V(irq_string, "\x69\x72\x71")                                                        \
   V(enter_string, "\x65\x6e\x74\x65\x72")                                                    \
-  V(env_pairs_string, "\x25\x35\xb2\xbf\x21\x29\x39\x4a")                     \
+  V(env_pairs_string, "\x65\x6e\x76\x50\x61\x69\x72\x73")                     \
   V(env_string, "\x65\x6e\x76")                                                        \
   V(errno_string, "\x65\x72\x72\x6e\x6f")                                                    \
   V(error_string, "\x65\x72\x72\x6f\x72")                                                    \
