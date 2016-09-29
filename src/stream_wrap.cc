@@ -757,6 +757,10 @@ void StreamWrapCallbacks::DoRead(uv_stream_t* handle,
     return;
   }
 
+#ifdef __MVS__
+  if (wrap()->is_named_pipe())
+    __e2a_l(buf->base, nread);
+#endif
   char* base = static_cast<char*>(realloc(buf->base, nread));
   assert(static_cast<size_t>(nread) <= buf->len);
   argv[1] = Buffer::Use(env, base, nread);
