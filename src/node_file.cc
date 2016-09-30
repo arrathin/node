@@ -141,6 +141,14 @@ static void After(uv_fs_t *req) {
   // (Feel free to increase this if you need more)
   Local<Value> argv[2];
 
+#ifdef __MVS__
+  if (req->path != NULL)
+      __e2a_s((char *)req->path);
+
+  if (req->new_path != NULL)
+      __e2a_s((char *)req->new_path);
+#endif
+
   if (req->result < 0) {
     // If the request doesn't have a path parameter set.
     if (req->path == NULL) {
