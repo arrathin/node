@@ -3023,8 +3023,18 @@ static bool ParseDebugOpt(const char* arg) {
     return false;
   }
 
+
   if (port != NULL) {
+
+#ifdef __MVS__
+    char *ebcdicport = strdup(port);
+    __a2e_s(ebcdicport);
+    debug_port = atoi(ebcdicport);
+    free(ebcdicport);
+#else
     debug_port = atoi(port);
+#endif
+  
     if (debug_port < 1024 || debug_port > 65535) {
       fprintf(stderr, "\x44\x65\x62\x75\x67\x20\x70\x6f\x72\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x69\x6e\x20\x72\x61\x6e\x67\x65\x20\x31\x30\x32\x34\x20\x74\x6f\x20\x36\x35\x35\x33\x35\x2e\xa");
       PrintHelp();
