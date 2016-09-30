@@ -507,7 +507,9 @@ Local<Object> AddressToJS(Environment* env,
     a6 = reinterpret_cast<const sockaddr_in6*>(addr);
     uv_inet_ntop(AF_INET6, &a6->sin6_addr, ip, sizeof ip);
     port = ntohs(a6->sin6_port);
+#ifdef __MVS__    
     __e2a_s(ip);
+#endif
     info->Set(env->address_string(), OneByteString(env->isolate(), ip));
     info->Set(env->family_string(), env->ipv6_string());
     info->Set(env->port_string(), Integer::New(env->isolate(), port));
@@ -517,7 +519,9 @@ Local<Object> AddressToJS(Environment* env,
     a4 = reinterpret_cast<const sockaddr_in*>(addr);
     uv_inet_ntop(AF_INET, &a4->sin_addr, ip, sizeof ip);
     port = ntohs(a4->sin_port);
+#ifdef __MVS__ 
     __e2a_s(ip);
+#endif
     info->Set(env->address_string(), OneByteString(env->isolate(), ip));
     info->Set(env->family_string(), env->ipv4_string());
     info->Set(env->port_string(), Integer::New(env->isolate(), port));

@@ -242,6 +242,9 @@ static Local<Array> HostentToAddresses(Environment* env, struct hostent* host) {
   char ip[INET6_ADDRSTRLEN];
   for (uint32_t i = 0; host->h_addr_list[i] != NULL; ++i) {
     uv_inet_ntop(host->h_addrtype, host->h_addr_list[i], ip, sizeof(ip));
+#ifdef __MVS__
+    __e2a_s(ip);
+#endif
     Local<String> address = OneByteString(env->isolate(), ip);
     addresses->Set(i, address);
   }
@@ -951,7 +954,9 @@ void AfterGetAddrInfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
           continue;
 
         // Create JavaScript string
+#ifdef __MVS__        
         __e2a_s(ip);
+#endif        
         Local<String> s = OneByteString(env->isolate(), ip);
         results->Set(n, s);
         n++;
@@ -977,7 +982,9 @@ void AfterGetAddrInfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
                                INET6_ADDRSTRLEN);
         if (err)
           continue;
+#ifdef __MVS__
         __e2a_s(ip);
+#endif
         // Create JavaScript string
         Local<String> s = OneByteString(env->isolate(), ip);
         results->Set(n, s);
@@ -1037,14 +1044,14 @@ static void IsIP(const FunctionCallbackInfo<Value>& args) {
   HandleScope scope(env->isolate());
 
   node::Utf8Value ip(args[0]);
+  node::NativeEncodingValue native_ip(ip);
   char address_buffer[sizeof(struct in6_addr)];
 
   int rc = 0;
-  if (uv_inet_pton(AF_INET, *ip, &address_buffer) == 0)
+  if (uv_inet_pton(AF_INET, *native_ip, &address_buffer) == 0)
     rc = 4;
-  else if (uv_inet_pton(AF_INET6, *ip, &address_buffer) == 0)
+  else if (uv_inet_pton(AF_INET6, *native_ip, &address_buffer) == 0)
     rc = 6;
-
   args.GetReturnValue().Set(rc);
 }
 
@@ -1149,7 +1156,9 @@ static void GetServers(const FunctionCallbackInfo<Value>& args) {
     const void* caddr = static_cast<const void*>(&cur->addr);
     int err = uv_inet_ntop(cur->family, caddr, ip, sizeof(ip));
     assert(err == 0);
-
+#ifdef __MVS__
+    __e2a_s(ip);
+#endif
     Local<String> addr = OneByteString(env->isolate(), ip);
     server_array->Set(i, addr);
   }
