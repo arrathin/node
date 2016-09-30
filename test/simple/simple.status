@@ -18,4 +18,8 @@ test-signal-unregister            : PASS,FLAKY
 [$system==macos]
 test-fs-watch                     : PASS,FLAKY
 
+[$system==os390]
+test-child-process-fork-exec-argv     : PASS,FLAKY
+test-process-exec-argv                : PASS,FLAKY
+
 [$system==solaris]
