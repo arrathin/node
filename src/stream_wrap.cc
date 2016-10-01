@@ -241,6 +241,11 @@ void StreamWrap::WriteBuffer(const FunctionCallbackInfo<Value>& args) {
   uv_buf_t buf;
   WriteBuffer(buf_obj, &buf);
 
+#ifdef __MVS__
+  if (wrap->is_named_pipe())
+    __a2e_l(buf.base, buf.len);
+#endif
+
   // Try writing immediately without allocation
   uv_buf_t* bufs = &buf;
   size_t count = 1;
