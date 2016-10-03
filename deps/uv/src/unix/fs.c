@@ -852,6 +852,23 @@ static int uv__fs_fstat(int fd, uv_stat_t *buf) {
 }
 
 
+static ssize_t uv__fs_access(uv_fs_t * req) {
+#ifdef __MVS__
+  int r = 0;
+  if (req->flags | F_OK) {
+    r = access(req->path, F_OK);
+  }
+  
+  if (r > -1) {
+    r = access(req->path, req->flags & (R_OK | W_OK | X_OK));
+  }
+
+  return r;
+#else
+  return access(req->path, req->flags); 
+#endif
+}
+
 static void uv__fs_work(struct uv__work* w) {
   int retry_on_eintr;
   uv_fs_t* req;
@@ -869,7 +886,7 @@ static void uv__fs_work(struct uv__work* w) {
     break;
 
     switch (req->fs_type) {
-    X(ACCESS, access(req->path, req->flags));
+    X(ACCESS, uv__fs_access(req));
     X(CHMOD, chmod(req->path, req->mode));
     X(CHOWN, chown(req->path, req->uid, req->gid));
     X(CLOSE, close(req->file));
