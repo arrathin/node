@@ -22,5 +22,6 @@ test-fs-watch                     : PASS,FLAKY
 test-child-process-fork-exec-argv     : PASS,FLAKY
 test-process-exec-argv                : PASS,FLAKY
 test-child-process-kill               : PASS,FLAKY
+test-fs-watch                         : SKIP
 
 [$system==solaris]
