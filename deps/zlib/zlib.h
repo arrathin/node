@@ -36,8 +36,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define ZLIB_VERSION "1.2.8"
+#define ZLIB_VERSION "\x31\x2e\x32\x2e\x38"
 #define ZLIB_VERNUM 0x1280
 #define ZLIB_VER_MAJOR 1
 #define ZLIB_VER_MINOR 2
