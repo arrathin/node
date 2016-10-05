@@ -1130,8 +1130,19 @@
           'ENGINESDIR="/dev/null"',
           'TERMIOS',
         ],
-        'cflags': ['-Wno-missing-field-initializers'],
         'conditions': [
+          ['OS=="os390"', {
+            'cflags': [
+              '-q64',
+              '-qxplink'
+            ],
+            'defines': [
+              '_XOPEN_SOURCE_EXTENDED',
+              '_UNIX03_SOURCE'
+            ],
+          }, {
+            'cflags': ['-Wno-missing-field-initializers'],
+          }],
           ['OS=="mac"', {
             'defines': [
               # Set to ubuntu default path for convenience. If necessary,
@@ -1151,9 +1162,6 @@
       }],
       ['is_clang==1 or gcc_version>=43', {
         'cflags': ['-Wno-old-style-declaration'],
-      }],
-      ['OS in "os390"', {
-        'cflags!': ['-Wno-missing-field-initializers'],
       }],
       ['OS=="solaris"', {
         'defines': ['__EXTENSIONS__'],
