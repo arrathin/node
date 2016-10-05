@@ -199,16 +199,8 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 
   unsigned int size = lst->size;
 
-  sigset_t t;
-  sigemptyset(&t);
-  sigaddset(&t, SIGCHLD);
-  sigprocmask(SIG_BLOCK, &t, NULL);
-
   struct pollfd *pfds = lst->items;
   int returnval = poll( pfds, size, timeout );
-
-  sigprocmask(SIG_UNBLOCK, &t, NULL);
-
   if(returnval == -1)
     return returnval;
 
