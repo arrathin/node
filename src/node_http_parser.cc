@@ -398,11 +398,6 @@ class Parser : public BaseObject {
     char* buffer_data = Buffer::Data(buffer_obj);
     size_t buffer_len = Buffer::Length(buffer_obj);
 
-#ifdef __MVS__
-    // TODO: (jBarz) consider converting to ebcdic-utf
-    __a2e_l(buffer_data, buffer_len);
-#endif
-
     // This is a hack to get the current_buffer to the callbacks with the least
     // amount of overhead. Nothing else will run while http_parser_execute()
     // runs, therefore this pointer can be set and used for the execution.
