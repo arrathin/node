@@ -544,8 +544,13 @@ int uv_process_kill(uv_process_t* process, int signum) {
 
 
 int uv_kill(int pid, int signum) {
-  if (kill(pid, signum))
+  if (kill(pid, signum)) {
+#ifdef __MVS__
+    if(getpgid(pid) == getpgid(0) && errno == EPERM)
+     return 0;  /* EPERM is returned because the process is a zombie */ 
+#endif
     return -errno;
+  }
   else
     return 0;
 }
