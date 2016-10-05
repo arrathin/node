@@ -27,6 +27,11 @@ var spawnSync = require('child_process').spawnSync;
 var TIMER = 200;
 var SLEEP = 1000;
 
+// TODO: zOS Performance
+if (process.platform == 'os390') {
+  SLEEP = 2000;
+}
+
 switch (process.argv[2]) {
   case 'child':
     setTimeout(function() {
