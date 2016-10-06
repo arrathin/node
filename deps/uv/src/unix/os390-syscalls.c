@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <search.h>
+#include <sys/wait.h>
 
 #define CW_CONDVAR    32
 #pragma linkage(BPX4CTW, OS)
@@ -196,13 +197,29 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
 int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 {
   struct _epoll_list *lst = _global_epoll_list[epfd];
+  int pollret;
+  struct pollfd *pfds;
 
+  uv_mutex_lock(&lst->lock);
   unsigned int size = lst->size;
 
-  struct pollfd *pfds = lst->items;
-  int returnval = poll( pfds, size, timeout );
-  if(returnval == -1)
-    return returnval;
+  pfds = lst->items;
+  pollret = poll( pfds, size, timeout );
+
+  if (pollret == -1 && errno == EINTR)
+  {
+    //TODO: (jBarz) figure out how to properly handle this
+    siginfo_t signalinfo;
+    if(waitid(P_ALL, NULL, &signalinfo, WEXITED | WNOHANG | WNOWAIT) == 0)
+      raise(SIGCHLD);
+    uv_mutex_unlock(&lst->lock);
+    errno = EINTR;
+    return -1;
+  }
+  else if(pollret == -1) {
+    uv_mutex_unlock(&lst->lock);
+    return pollret;
+  }
 
   int reventcount=0;
   int realsize = lst->size;
@@ -227,6 +244,7 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 
   }
 
+  uv_mutex_unlock(&lst->lock);
   return reventcount;
 }
 
