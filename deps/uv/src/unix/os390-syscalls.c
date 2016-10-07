@@ -29,19 +29,15 @@
 #include <search.h>
 #include <sys/wait.h>
 
-#define CW_CONDVAR    32
+#define CW_CONDVAR 32
+
 #pragma linkage(BPX4CTW, OS)
 #pragma linkage(BPX1CTW, OS)
 
-#define PGTH_CURRENT  1
-#define PGTH_LEN      26
-#define PGTHAPATH     0x20
-#pragma linkage(BPX4GTH, OS)
-#pragma linkage(BPX1GTH, OS)
-
-
 static int number_of_epolls;
-struct _epoll_list* _global_epoll_list[MAX_EPOLL_INSTANCES];
+static struct epoll_list* global_epoll_list[MAX_EPOLL_INSTANCES];
+static uv_mutex_t global_epoll_lock;
+static uv_once_t once = UV_ONCE_INIT;
 
 int alphasort(const void *a, const void *b) {
 
@@ -55,7 +51,7 @@ int scandir(const char *maindir, struct dirent ***namelist,
             const struct dirent **)) {
   struct dirent **nl = NULL;
   struct dirent *dirent;
-  size_t count = 0;
+  unsigned count = 0;
   size_t allocated = 0;
   DIR *mdir;
 
@@ -69,26 +65,26 @@ int scandir(const char *maindir, struct dirent ***namelist,
       break;
     if (!filter || filter(dirent)) {
       struct dirent *copy;
-      copy = malloc(sizeof(*copy));
+      copy = uv__malloc(sizeof(*copy));
       if (!copy) {
         while (count) {
           dirent = nl[--count];
-          free(dirent);
+          uv__free(dirent);
         }
-        free(nl);
+        uv__free(nl);
         closedir(mdir);
         errno = ENOMEM;
         return -1;
       }
       memcpy(copy, dirent, sizeof(*copy));
 
-      nl = realloc(nl, count+1);
+      nl = uv__realloc(nl, count+1);
       nl[count++] = copy;
     }
   }
 
   qsort(nl, count, sizeof(struct dirent *),
-      (int (*)(const void *, const void *))compar);
+       (int (*)(const void *, const void *))compar);
 
   closedir(mdir);
 
@@ -96,41 +92,66 @@ int scandir(const char *maindir, struct dirent ***namelist,
   return count;
 }
 
-static int isfdequal(const struct pollfd* a, const struct pollfd* b) {
+static int isfdequal(const void* first, const void* second) {
+  const struct pollfd* a = first;
+  const struct pollfd* b = second;
   return a->fd == b->fd ? 0 : 1;
 }
 
-int epoll_create1(int flags)
-{
-  struct _epoll_list* p = (struct _epoll_list*)malloc(
-                           sizeof(struct _epoll_list));
+static struct pollfd* findpfd(int epfd, int fd, int events) {
+  struct epoll_list *lst;
+  struct pollfd pfd;
+  struct pollfd* found;
 
-  memset(p, 0, sizeof(struct _epoll_list));
-  int index = number_of_epolls++;
-  _global_epoll_list[index] = p;
+  pfd.fd = fd;
+  pfd.events = events;
+  lst = global_epoll_list[epfd];
+  if (events == 0)
+    return lfind(&pfd, &lst->items[0], &lst->size,
+                  sizeof(pfd), isfdequal);
+  else
+    return lsearch(&pfd, &lst->items[0], &lst->size,
+                  sizeof(pfd), isfdequal);
+}
 
-  if (uv_mutex_init(&p->lock)) {
+static void epoll_init() {
+  uv_mutex_init(&global_epoll_lock);
+}
+  
+int epoll_create1(int flags) {
+  struct epoll_list* list;
+  int index;
+
+  uv_once(&once, epoll_init);
+  uv_mutex_lock(&global_epoll_lock);
+  list = uv__malloc(sizeof(*list));
+  index = number_of_epolls++;
+  global_epoll_list[index] = list;
+  uv_mutex_unlock(&global_epoll_lock);
+
+  /* initialize list */
+  memset(list, 0, sizeof(*list));
+  if (uv_mutex_init(&list->lock)) {
     errno = ENOLCK;
     return -1;
   }
 
-  p->size = 0;
+  list->size = 0;
   return index; 
 }
 
-int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
-{
-  struct _epoll_list *lst = _global_epoll_list[epfd];
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
+  struct epoll_list *lst;
 
-  if (op == EPOLL_CTL_DEL) {
+  uv_mutex_lock(&global_epoll_lock);
+  lst = global_epoll_list[epfd];
+  uv_mutex_lock(&lst->lock);
+  uv_mutex_unlock(&global_epoll_lock);
 
+  if(op == EPOLL_CTL_DEL) {
     struct pollfd* found;
-    struct pollfd pfd;
 
-    pfd.fd = fd;
-    uv_mutex_lock(&lst->lock);
-    found = lfind(&pfd, &lst->items[0], &lst->size,
-                  sizeof(struct pollfd), isfdequal);
+    found = findpfd(epfd, fd, 0); 
     if (found != NULL)
       memcpy(found,
              found+1,
@@ -141,22 +162,18 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
       return ENOENT;
 
   }
-  else if(op == EPOLL_CTL_ADD)
-  {
+  else if(op == EPOLL_CTL_ADD) {
     struct pollfd* found;
-    struct pollfd pfd;
     size_t before;
     size_t after;
 
-    if (lst->size == MAX_ITEMS_PER_EPOLL - 1)
+    if (lst->size == MAX_ITEMS_PER_EPOLL - 1) {
+      uv_mutex_unlock(&lst->lock);
       return ENOMEM;
+    }
 
-    pfd.fd = fd;
-    pfd.events = event->events;
-    uv_mutex_lock(&lst->lock);
     before = lst->size; 
-    found = lsearch(&pfd, &lst->items[0], &lst->size,
-                    sizeof(struct pollfd), isfdequal);
+    found = findpfd(epfd, fd, event->events);
     after = lst->size; 
     uv_mutex_unlock(&lst->lock);
 
@@ -166,47 +183,40 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
     }
 
   }
-  else if(op == EPOLL_CTL_MOD)
-  {
-    int index;
+  else if(op == EPOLL_CTL_MOD) {
     struct pollfd* found;
-    struct pollfd pfd;
 
-    pfd.fd = fd;
-    uv_mutex_lock(&lst->lock);
-    found = lfind(&pfd, &lst->items[0], &lst->size,
-                  sizeof(struct pollfd), isfdequal);
-
+    found = findpfd(epfd, fd, 0);
     if (found != NULL)
       found->events = event->events;
-      
+    
     uv_mutex_unlock(&lst->lock);
-
     if (found == NULL) {
       errno = ENOENT;
       return -1;
     }
   }
-  else 
-  {
+  else {
     abort();
   }
   return 0;
 }
 
-int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
-{
-  struct _epoll_list *lst = _global_epoll_list[epfd];
+int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout) {
+  struct epoll_list *lst;
+  size_t size;
+  struct pollfd* pfds;
   int pollret;
-  struct pollfd *pfds;
 
+  uv_mutex_lock(&global_epoll_lock);
+  lst = global_epoll_list[epfd];
   uv_mutex_lock(&lst->lock);
-  unsigned int size = lst->size;
-
+  uv_mutex_unlock(&global_epoll_lock);
+  size = lst->size;
   pfds = lst->items;
-  pollret = poll( pfds, size, timeout );
-
+  pollret = poll(pfds, size, timeout);
   if (pollret == -1 && errno == EINTR)
+
   {
     //TODO: (jBarz) figure out how to properly handle this
     siginfo_t signalinfo;
@@ -241,25 +251,22 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 
     pfds[i].revents = 0;
     events[reventcount++] = ev; 
-
   }
 
   uv_mutex_unlock(&lst->lock);
   return reventcount;
 }
 
-int epoll_file_close(int fd)
-{
+int epoll_file_close(int fd) {
+  uv_mutex_lock(&global_epoll_lock);
   for( int i = 0; i < number_of_epolls; ++i )
   {
-    struct _epoll_list *lst = _global_epoll_list[i];
+    struct epoll_list *lst;
     struct pollfd* found;
-    struct pollfd pfd;
 
-    pfd.fd = fd;
+    lst = global_epoll_list[i];
     uv_mutex_lock(&lst->lock);
-    found = lfind(&pfd, &lst->items[0], &lst->size,
-                  sizeof(struct pollfd), isfdequal);
+    found = findpfd(i, fd, 0);
     if (found != NULL)
       memcpy(found,
              found+1,
@@ -267,108 +274,21 @@ int epoll_file_close(int fd)
     uv_mutex_unlock(&lst->lock);
   }
 
+  uv_mutex_unlock(&global_epoll_lock);
   return 0;
 }
 
-int getexe(const int pid, char *buf, size_t len) {
-
-  struct {
-    int pid;
-    int thid[2];
-    char accesspid;
-    char accessthid;
-    char asid[2];
-    char loginname[8];
-    char flag;
-    char len;
-  } Input_data;
-
-  union {
-    struct {
-      char gthb[4];
-      int pid;
-      int thid[2];
-      char accesspid;
-      char accessthid[3];
-      int lenused;
-      int offsetProcess;
-      int offsetConTTY;
-      int offsetPath;
-      int offsetCommand;
-      int offsetFileData;
-      int offsetThread;
-    } Output_data;
-    char buf[2048];
-  } Output_buf;
-
-  struct Output_path_type {
-    char gthe[4];
-    short int len;
-    char path[1024];
-  } ;
-
-  int Input_length = PGTH_LEN;
-  int Output_length = sizeof(Output_buf);
-  void *Input_address = &Input_data;
-  void *Output_address = &Output_buf;
-  struct Output_path_type *Output_path;
-  int rv; 
-  int rc; 
-  int rsn;
-
-  memset(&Input_data, 0, sizeof Input_data);
-  Input_data.flag |= PGTHAPATH;
-  Input_data.pid = pid;
-  Input_data.accesspid = PGTH_CURRENT;
-
-#ifdef _LP64
-  BPX4GTH(&Input_length,
-          &Input_address,
-          &Output_length,
-          &Output_address,
-          &rv,
-          &rc,
-          &rsn);
-#else
-  BPX1GTH(&Input_length,
-          &Input_address,
-          &Output_length,
-          &Output_address,
-          &rv,
-          &rc,
-          &rsn);
-#endif
-
-  if (rv == -1) {
-    errno = rc;
-    return -1;
-  }
-
-
-  assert( ((Output_buf.Output_data.offsetPath >>24) & 0xFF) == 'A');
-  Output_path = (char*)(&Output_buf) + 
-      (Output_buf.Output_data.offsetPath & 0x00FFFFFF);
-  
-  if (Output_path->len >= len) {
-    errno = ENOBUFS;
-    return -1;
-  }
-
-  strncpy(buf, Output_path->path, len);
-
-  return 0;
-}
-
-
-int nanosleep(const struct timespec *req, struct timespec *rem) {
+int nanosleep(const struct timespec* req, struct timespec* rem) {
   unsigned nano;
   unsigned seconds;
-  unsigned events=32;
+  unsigned events;
   unsigned secrem;
   unsigned nanorem;
-  int rv, rc, rsn;
+  int rv;
+  int rc;
+  int rsn;
 
-  nano = req->tv_nsec;
+  nano = (int)req->tv_nsec;
   seconds = req->tv_sec;
   events = CW_CONDVAR;
   
@@ -378,15 +298,12 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
   BPX1CTW(&seconds, &nano, &events, &secrem, &nanorem, &rv, &rc, &rsn);
 #endif
 
+  assert(rv == -1 && errno == EAGAIN);
+
   if(rem != NULL) {
     rem->tv_nsec = nanorem;
     rem->tv_sec = secrem;
   }
 
-  if(rv == -1 && errno == EAGAIN)
-    return 0;
-  
-  errno = ENOTSUP;
-  return -1;
+  return 0;
 }
-

@@ -24,7 +24,7 @@
 #define UV_OS390_SYSCALL_H_
 
 #include "uv.h"
-
+#include "internal.h"
 #include <dirent.h>
 #include <inttypes.h>
 #include <poll.h>
@@ -55,7 +55,7 @@ struct epoll_event {
   int fd;
 };
 
-struct _epoll_list{
+struct epoll_list{
   struct pollfd items[MAX_ITEMS_PER_EPOLL];
   unsigned long size;
   uv_mutex_t lock;
@@ -65,22 +65,7 @@ struct _epoll_list{
 int epoll_create1(int flags);
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
 int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
-int epoll_pwait(int epfd, struct epoll_event *events, int maxevents, int timeout, int sigmask);
 int epoll_file_close(int fd);
-
-/* aio interface */
-int uv__zos_aio_connect(uv_connect_t *req, uv_stream_t *str,
-                         const struct sockaddr* addr,
-                         unsigned int addrlen);
-
-int uv__zos_aio_write(uv_write_t *req, uv_stream_t *str,
-                         char *buf, int len, int vec);
-
-int uv__zos_aio_read(uv_stream_t *str,
-                     char **buf, unsigned long *len);
-
-int uv__zos_aio_accept(uv_stream_t *stream);
-
 /* utility functions */
 int nanosleep(const struct timespec *req, struct timespec *rem);
 int alphasort(const void *a, const void *b);
@@ -88,8 +73,6 @@ int scandir(const char *maindir, struct dirent ***namelist,
             int (*filter)(const struct dirent *),
             int (*compar)(const struct dirent **,
             const struct dirent **));
-int getexe(const int pid, char *buf, size_t len);
-
 
 #endif /* UV_OS390_SYSCALL_H_ */
 
