@@ -855,7 +855,7 @@ static int uv__fs_fstat(int fd, uv_stat_t *buf) {
 static ssize_t uv__fs_access(uv_fs_t * req) {
 #ifdef __MVS__
   int r = 0;
-  if (req->flags | F_OK) {
+  if (req->flags & F_OK) {
     r = access(req->path, F_OK);
   }
   
