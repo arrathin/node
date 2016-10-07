@@ -26,6 +26,9 @@
 
 #include <string.h>
 #include <stdlib.h>
+#ifdef __MVS__
+#include <unistd.h>
+#endif
 
 
 namespace node {
@@ -69,6 +72,9 @@ void SyncProcessOutputBuffer::OnRead(const uv_buf_t* buf, size_t nread) {
 
 
 size_t SyncProcessOutputBuffer::Copy(char* dest) const {
+#ifdef __MVS__
+  __e2a_l(data_, used());
+#endif
   memcpy(dest, data_, used());
   return used();
 }
