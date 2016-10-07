@@ -753,6 +753,11 @@ int SyncProcessRunner::ParseOptions(Local<Value> js_value) {
       return r;
 
     uv_process_options_.env = reinterpret_cast<char**>(env_buffer_);
+#ifdef __MVS__
+    int i = 0;
+    while (uv_process_options_.env[i] != NULL)
+      __a2e_s(uv_process_options_.env[i++]);
+#endif
   }
   Local<Value> js_uid = js_options->Get(env()->uid_string());
   if (IsSet(js_uid)) {
