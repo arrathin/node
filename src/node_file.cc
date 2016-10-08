@@ -219,6 +219,9 @@ static void After(uv_fs_t *req) {
         break;
 
       case UV_FS_READLINK:
+#ifdef __MVS__
+        __e2a_s((char*) req->ptr);
+#endif
         argv[1] = String::NewFromUtf8(env->isolate(),
                                       static_cast<const char*>(req->ptr));
         break;
