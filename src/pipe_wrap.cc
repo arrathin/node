@@ -326,6 +326,9 @@ void PipeWrap::Connect(const FunctionCallbackInfo<Value>& args) {
 
   Local<Object> req_wrap_obj = args[0].As<Object>();
   node::Utf8Value name(args[1]);
+#ifdef __MVS__
+  __a2e_s(*name);
+#endif
 
   PipeConnectWrap* req_wrap = new PipeConnectWrap(env, req_wrap_obj);
   uv_pipe_connect(&req_wrap->req_,
