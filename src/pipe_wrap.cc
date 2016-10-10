@@ -32,6 +32,9 @@
 #include "stream_wrap.h"
 #include "util-inl.h"
 #include "util.h"
+#ifdef __MVS__
+#include <unistd.h> // a2e
+#endif
 
 namespace node {
 
@@ -186,6 +189,9 @@ void PipeWrap::Bind(const FunctionCallbackInfo<Value>& args) {
   PipeWrap* wrap = Unwrap<PipeWrap>(args.Holder());
 
   node::Utf8Value name(args[0]);
+#ifdef __MVS__
+  __a2e_s(*name);
+#endif
   int err = uv_pipe_bind(&wrap->handle_, *name);
   args.GetReturnValue().Set(err);
 }
