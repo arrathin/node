@@ -2307,6 +2307,9 @@ static void ProcessTitleGetter(Local<String> property,
   HandleScope scope(env->isolate());
   char buffer[512];
   uv_get_process_title(buffer, sizeof(buffer));
+#ifdef __MVS__
+  __e2a_s(buffer);
+#endif
   info.GetReturnValue().Set(String::NewFromUtf8(env->isolate(), buffer));
 }
 
@@ -2318,6 +2321,9 @@ static void ProcessTitleSetter(Local<String> property,
   HandleScope scope(env->isolate());
   node::Utf8Value title(value);
   // TODO(piscisaureus): protect with a lock
+#ifdef __MVS__
+  __a2e_s(*title);
+#endif
   uv_set_process_title(*title);
 }
 

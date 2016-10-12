@@ -48,9 +48,12 @@ char** uv_setup_args(int argc, char** argv) {
   for (i = 0; i < argc; i++)
     size += strlen(argv[i]) + 1;
 
+#if defined(__MVS__) /*not adjacent on zOS */
+  process_title.str = argv[0];
+  process_title.len = strlen(argv[argc - 1]);
+#else
   process_title.str = argv[0];
   process_title.len = argv[argc - 1] + strlen(argv[argc - 1]) - argv[0];
-#if !defined(__MVS__) /*not adjacent on zOS */
   assert(process_title.len + 1 == size);  /* argv memory should be adjacent. */
 #endif
 
@@ -80,6 +83,7 @@ int uv_set_process_title(const char* title) {
   if (process_title.len == 0)
     return 0;
 
+printf("JBAR title=%s\n", title);
   /* No need to terminate, byte after is always '\0'. */
   strncpy(process_title.str, title, process_title.len);
   uv__set_process_title(title);
