@@ -30,6 +30,12 @@ var execFileSync = require('child_process').execFileSync;
 var TIMER = 200;
 var SLEEP = 1000;
 
+// TODO: zOS Performance
+if (process.platform == 'os390') {
+  SLEEP = 2000;
+}
+
+
 var start = Date.now();
 var err;
 var caught = false;
