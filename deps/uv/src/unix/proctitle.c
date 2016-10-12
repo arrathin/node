@@ -50,7 +50,7 @@ char** uv_setup_args(int argc, char** argv) {
 
 #if defined(__MVS__) /*not adjacent on zOS */
   process_title.str = argv[0];
-  process_title.len = strlen(argv[argc - 1]);
+  process_title.len = strlen(argv[0]);
 #else
   process_title.str = argv[0];
   process_title.len = argv[argc - 1] + strlen(argv[argc - 1]) - argv[0];

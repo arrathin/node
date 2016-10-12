@@ -3830,6 +3830,11 @@ int Start(int argc, char** argv) {
   // Hack around with the argv pointer. Used for process.title = "blah".
   argv = uv_setup_args(argc, argv);
 
+#ifdef __MVS__
+  for (int i = 0; i < argc; i++)
+    __e2a_s(argv[i]);
+#endif
+
   // This needs to run *before* V8::Initialize().  The const_cast is not
   // optional, in case you're wondering.
   int exec_argc;

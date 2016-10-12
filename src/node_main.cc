@@ -62,8 +62,6 @@ int wmain(int argc, wchar_t *wargv[]) {
 #elif defined (__MVS__)
 #include <unistd.h>
 int main(int argc, char *argv[]) {
-  for (int i = 0; i < argc; i++)
-    __e2a_s(argv[i]);
   return node::Start(argc, argv);
 }
 #else
