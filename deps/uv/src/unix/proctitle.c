@@ -83,7 +83,6 @@ int uv_set_process_title(const char* title) {
   if (process_title.len == 0)
     return 0;
 
-printf("JBAR title=%s\n", title);
   /* No need to terminate, byte after is always '\0'. */
   strncpy(process_title.str, title, process_title.len);
   uv__set_process_title(title);
