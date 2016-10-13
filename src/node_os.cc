@@ -269,16 +269,17 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
       uv_ip4_name(&interfaces[i].address.address4, ip, sizeof(ip));
       uv_ip4_name(&interfaces[i].netmask.netmask4, netmask, sizeof(netmask));
       family = env->ipv4_string();
+      __e2a_s(ip);
     } else if (interfaces[i].address.address4.sin_family == AF_INET6) {
       uv_ip6_name(&interfaces[i].address.address6, ip, sizeof(ip));
       uv_ip6_name(&interfaces[i].netmask.netmask6, netmask, sizeof(netmask));
       family = env->ipv6_string();
+      __e2a_s(ip);
     } else {
       strncpy(ip, "\x3c\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x73\x61\x20\x66\x61\x6d\x69\x6c\x79\x3e", INET6_ADDRSTRLEN);
       family = env->unknown_string();
     }
 
-    __e2a_s(ip);
     __e2a_s(netmask);
     __e2a_s(mac);
     o = Object::New(env->isolate());
