@@ -278,6 +278,9 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
       family = env->unknown_string();
     }
 
+    __e2a_s(ip);
+    __e2a_s(netmask);
+    __e2a_s(mac);
     o = Object::New(env->isolate());
     o->Set(env->address_string(), OneByteString(env->isolate(), ip));
     o->Set(env->netmask_string(), OneByteString(env->isolate(), netmask));
