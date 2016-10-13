@@ -31,8 +31,13 @@ if (process.argv[2] === 'fork') {
 } else if (process.argv[2] === 'child') {
   fork(__filename, ['fork']);
 } else {
+
   var execArgv = ['--harmony_proxies', '--stack-size=64'];
   var args = [__filename, 'child', 'arg0'];
+
+  if (process.platform == 'os390') {
+    execArgv = ['--harmony_proxies', '--stack-size=1024'];
+  }
 
   var child = spawn(process.execPath, execArgv.concat(args));
   var out = '';
