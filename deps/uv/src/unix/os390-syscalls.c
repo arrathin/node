@@ -77,8 +77,7 @@ int scandir(const char *maindir, struct dirent ***namelist,
         return -1;
       }
       memcpy(copy, dirent, sizeof(*copy));
-
-      nl = uv__realloc(nl, count+1);
+      nl = realloc(nl, sizeof(*copy) * (count+1));
       nl[count++] = copy;
     }
   }
