@@ -250,8 +250,15 @@ static void After(uv_fs_t *req) {
               break;
             }
 
+#ifdef __MVS__
+            char ebc[strlen(ent.name + 1)];
+            strcpy(ebc, ent.name);
+            __e2a_s(ebc);
+            Local<String> name = String::NewFromUtf8(env->isolate(), ebc);
+#else
             Local<String> name = String::NewFromUtf8(env->isolate(),
                                                      ent.name);
+#endif
             names->Set(i, name);
           }
 
@@ -779,8 +786,15 @@ static void ReadDir(const FunctionCallbackInfo<Value>& args) {
       if (r != 0)
         return env->ThrowUVException(r, "\x72\x65\x61\x64\x64\x69\x72", "", *path);
 
+#ifdef __MVS__
+      char ebc[strlen(ent.name + 1)];
+      strcpy(ebc, ent.name);
+      __e2a_s(ebc);
+      Local<String> name = String::NewFromUtf8(env->isolate(), ebc);
+#else
       Local<String> name = String::NewFromUtf8(env->isolate(),
                                                ent.name);
+#endif
       names->Set(i, name);
     }
 
