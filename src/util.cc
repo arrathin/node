@@ -62,4 +62,14 @@ NativeEncodingValue::NativeEncodingValue(Utf8Value &val)
     __a2e_s(str_);
     str_[length_] = NULL;
   }
+
+NativeEncodingValue::NativeEncodingValue(const Utf8Value &val)
+  : length_(0), str_(NULL) {
+    length_ = val.length_;
+    str_ = (char *)malloc(sizeof(char) * length_);
+    memcpy(str_, val.str_, length_);
+    __a2e_s(str_);
+    str_[length_] = NULL;
+  }
+
 }  // namespace node

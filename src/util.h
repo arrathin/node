@@ -147,6 +147,8 @@ class NativeEncodingValue {
     public:
       explicit NativeEncodingValue(Utf8Value& val);
       
+      explicit NativeEncodingValue(const Utf8Value & val);
+
       ~NativeEncodingValue(){
         if(str_ != NULL)
           free(str_);
