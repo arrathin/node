@@ -742,6 +742,21 @@ static int uv__handle_fd(uv_handle_t* handle) {
   }
 }
 
+
+static int uv__getiovmaxlen(uv_handle_t* handle) {
+#ifdef __MVS__
+  switch (handle->type) {
+    case UV_NAMED_PIPE:
+      return 100000;
+    default:
+      return INT_MAX;
+  }
+#else
+  return INT_MAX;
+#endif
+}
+
+
 static int uv__getiovmax() {
 #if defined(IOV_MAX)
   return IOV_MAX;
@@ -760,6 +775,7 @@ static void uv__write(uv_stream_t* stream) {
   QUEUE* q;
   uv_write_t* req;
   int iovmax;
+  int iovmaxlen;
   int iovcnt;
   ssize_t n;
 
@@ -783,6 +799,7 @@ start:
   iovcnt = req->nbufs - req->write_index;
 
   iovmax = uv__getiovmax();
+  iovmaxlen = uv__getiovmaxlen(stream);
 
   /* Limit iov count to avoid EINVALs from writev() */
   if (iovcnt > iovmax)
@@ -829,7 +846,8 @@ start:
   } else {
     do {
       if (iovcnt == 1) {
-        n = write(uv__stream_fd(stream), iov[0].iov_base, iov[0].iov_len);
+        n = write(uv__stream_fd(stream), iov[0].iov_base,
+                  iov[0].iov_len > iovmaxlen ? iovmaxlen : iov[0].iov_len);
       } else {
         n = writev(uv__stream_fd(stream), iov, iovcnt);
       }
