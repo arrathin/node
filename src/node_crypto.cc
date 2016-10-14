@@ -403,7 +403,8 @@ static BIO* LoadBIO(Environment* env, Handle<Value> v) {
 
   if (v->IsString()) {
     const node::Utf8Value s(v);
-    r = BIO_write(bio, *s, s.length());
+    const node::NativeEncodingValue n_s(s);
+    r = BIO_write(bio, *n_s, n_s.length());
   } else if (Buffer::HasInstance(v)) {
     char* buffer_data = Buffer::Data(v);
     size_t buffer_length = Buffer::Length(v);
@@ -458,11 +459,11 @@ void SecureContext::SetKey(const FunctionCallbackInfo<Value>& args) {
     return;
 
   node::Utf8Value passphrase(args[1]);
-
+  node::NativeEncodingValue n_passphrase(passphrase);
   EVP_PKEY* key = PEM_read_bio_PrivateKey(bio,
                                           NULL,
                                           CryptoPemCallback,
-                                          len == 1 ? NULL : *passphrase);
+                                          len == 1 ? NULL : *n_passphrase);
 
   if (!key) {
     BIO_free_all(bio);
@@ -556,7 +557,7 @@ int SSL_CTX_use_certificate_chain(SSL_CTX* ctx,
 
     // When the while loop ends, it's usually just EOF.
     err = ERR_peek_last_error();
-    if (ERR_GET_LIB(err) == ERR_LIB_PEM &&
+    if (err == 0 || ERR_GET_LIB(err) == ERR_LIB_PEM &&
         ERR_GET_REASON(err) == PEM_R_NO_START_LINE) {
       ERR_clear_error();
     } else  {
@@ -727,7 +728,8 @@ void SecureContext::SetCiphers(const FunctionCallbackInfo<Value>& args) {
   }
 
   const node::Utf8Value ciphers(args[0]);
-  SSL_CTX_set_cipher_list(sc->ctx_, *ciphers);
+  const node::NativeEncodingValue n_ciphers(ciphers);
+  SSL_CTX_set_cipher_list(sc->ctx_, *n_ciphers);
 }
 
 
@@ -741,8 +743,8 @@ void SecureContext::SetECDHCurve(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowTypeError("\x46\x69\x72\x73\x74\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value curve(args[0]);
-
-  int nid = OBJ_sn2nid(*curve);
+  node::NativeEncodingValue n_curve(curve);
+  int nid = OBJ_sn2nid(*n_curve);
 
   if (nid == NID_undef)
     return env->ThrowTypeError("\x46\x69\x72\x73\x74\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x76\x61\x6c\x69\x64\x20\x63\x75\x72\x76\x65\x20\x6e\x61\x6d\x65");
@@ -821,9 +823,10 @@ void SecureContext::SetSessionIdContext(
   }
 
   const node::Utf8Value sessionIdContext(args[0]);
+  const node::NativeEncodingValue n_sessionIdContext(sessionIdContext);
   const unsigned char* sid_ctx =
-      reinterpret_cast<const unsigned char*>(*sessionIdContext);
-  unsigned int sid_ctx_len = sessionIdContext.length();
+      reinterpret_cast<const unsigned char*>(*n_sessionIdContext);
+  unsigned int sid_ctx_len = n_sessionIdContext.length();
 
   int r = SSL_CTX_set_session_id_context(sc->ctx_, sid_ctx, sid_ctx_len);
   if (r == 1)
@@ -2199,7 +2202,8 @@ void Connection::New(const FunctionCallbackInfo<Value>& args) {
     SSL_CTX_set_tlsext_servername_callback(sc->ctx_, SelectSNIContextCallback_);
   } else if (args[2]->IsString()) {
     const node::Utf8Value servername(args[2]);
-    SSL_set_tlsext_host_name(conn->ssl_, *servername);
+    const node::NativeEncodingValue n_servername(servername);
+    SSL_set_tlsext_host_name(conn->ssl_, *n_servername);
   }
 #endif
 
@@ -2620,9 +2624,10 @@ void CipherBase::Init(const FunctionCallbackInfo<Value>& args) {
   }
 
   const node::Utf8Value cipher_type(args[0]);
+  const node::NativeEncodingValue n_cipher_type(cipher_type);
   const char* key_buf = Buffer::Data(args[1]);
   ssize_t key_buf_len = Buffer::Length(args[1]);
-  cipher->Init(*cipher_type, key_buf, key_buf_len);
+  cipher->Init(*n_cipher_type, key_buf, key_buf_len);
 }
 
 
@@ -2675,11 +2680,12 @@ void CipherBase::InitIv(const FunctionCallbackInfo<Value>& args) {
   ASSERT_IS_BUFFER(args[2]);
 
   const node::Utf8Value cipher_type(args[0]);
+  const node::NativeEncodingValue n_cipher_type(cipher_type);
   ssize_t key_len = Buffer::Length(args[1]);
   const char* key_buf = Buffer::Data(args[1]);
   ssize_t iv_len = Buffer::Length(args[2]);
   const char* iv_buf = Buffer::Data(args[2]);
-  cipher->InitIv(*cipher_type, key_buf, key_len, iv_buf, iv_len);
+  cipher->InitIv(*n_cipher_type, key_buf, key_len, iv_buf, iv_len);
 }
 
 
@@ -2975,9 +2981,10 @@ void Hmac::HmacInit(const FunctionCallbackInfo<Value>& args) {
   ASSERT_IS_BUFFER(args[1]);
 
   const node::Utf8Value hash_type(args[0]);
+  const node::NativeEncodingValue n_hash_type(hash_type);
   const char* buffer_data = Buffer::Data(args[1]);
   size_t buffer_length = Buffer::Length(args[1]);
-  hmac->HmacInit(*hash_type, buffer_data, buffer_length);
+  hmac->HmacInit(*n_hash_type, buffer_data, buffer_length);
 }
 
 
@@ -3055,7 +3062,6 @@ void Hmac::HmacDigest(const FunctionCallbackInfo<Value>& args) {
     md_value = NULL;
     md_len = 0;
   }
-
   Local<Value> rc = StringBytes::Encode(env->isolate(),
                                         reinterpret_cast<const char*>(md_value),
                                         md_len,
@@ -3086,9 +3092,9 @@ void Hash::New(const FunctionCallbackInfo<Value>& args) {
   }
 
   const node::Utf8Value hash_type(args[0]);
-
+  const node::NativeEncodingValue n_hash_type(hash_type);
   Hash* hash = new Hash(env, args.This());
-  if (!hash->HashInit(*hash_type)) {
+  if (!hash->HashInit(*n_hash_type)) {
     return env->ThrowError("\x44\x69\x67\x65\x73\x74\x20\x6d\x65\x74\x68\x6f\x64\x20\x6e\x6f\x74\x20\x73\x75\x70\x70\x6f\x72\x74\x65\x64");
   }
 }
@@ -3265,7 +3271,8 @@ void Sign::SignInit(const FunctionCallbackInfo<Value>& args) {
   }
 
   const node::Utf8Value sign_type(args[0]);
-  sign->CheckThrow(sign->SignInit(*sign_type));
+  const node::NativeEncodingValue n_sign_type(sign_type);
+  sign->CheckThrow(sign->SignInit(*n_sign_type));
 }
 
 
@@ -3371,20 +3378,25 @@ void Sign::SignFinal(const FunctionCallbackInfo<Value>& args) {
   }
 
   node::Utf8Value passphrase(args[2]);
+  node::NativeEncodingValue n_passphrase(passphrase);
 
   ASSERT_IS_BUFFER(args[0]);
   size_t buf_len = Buffer::Length(args[0]);
   char* buf = Buffer::Data(args[0]);
-
   md_len = 8192;  // Maximum key size is 8192 bits
   md_value = new unsigned char[md_len];
+
+#if defined(__MVS__)
+  __a2e_l(buf, buf_len);
+#endif
 
   Error err = sign->SignFinal(
       buf,
       buf_len,
-      len >= 3 && !args[2]->IsNull() ? *passphrase : NULL,
+      len >= 3 && !args[2]->IsNull() ? *n_passphrase : NULL,
       &md_value,
       &md_len);
+
   if (err != kSignOk) {
     delete[] md_value;
     md_value = NULL;
@@ -3447,7 +3459,8 @@ void Verify::VerifyInit(const FunctionCallbackInfo<Value>& args) {
   }
 
   const node::Utf8Value verify_type(args[0]);
-  verify->CheckThrow(verify->VerifyInit(*verify_type));
+  const node::NativeEncodingValue n_verify_type(verify_type);
+  verify->CheckThrow(verify->VerifyInit(*n_verify_type));
 }
 
 
@@ -3483,7 +3496,8 @@ void Verify::VerifyUpdate(const FunctionCallbackInfo<Value>& args) {
                                         buf,
                                         buflen,
                                         string,
-                                        encoding);
+                                        encoding);   
+    
     err = verify->VerifyUpdate(buf, written);
     delete[] buf;
   } else {
@@ -3512,7 +3526,6 @@ SignBase::Error Verify::VerifyFinal(const char* key_pem,
   X509* x509 = NULL;
   bool fatal = true;
   int r = 0;
-
   bp = BIO_new_mem_buf(const_cast<char*>(key_pem), key_pem_len);
   if (bp == NULL)
     goto exit;
@@ -3521,10 +3534,16 @@ SignBase::Error Verify::VerifyFinal(const char* key_pem,
   // Split this out into a separate function once we have more than one
   // consumer of public keys.
   if (strncmp(key_pem, PUBLIC_KEY_PFX, PUBLIC_KEY_PFX_LEN) == 0) {
+#if defined(__MVS__)
+  __a2e_l(const_cast<char *>(key_pem), key_pem_len);
+#endif
     pkey = PEM_read_bio_PUBKEY(bp, NULL, CryptoPemCallback, NULL);
     if (pkey == NULL)
       goto exit;
   } else if (strncmp(key_pem, PUBRSA_KEY_PFX, PUBRSA_KEY_PFX_LEN) == 0) {
+#if defined(__MVS__)
+  __a2e_l(const_cast<char *>(key_pem), key_pem_len);
+#endif
     RSA* rsa = PEM_read_bio_RSAPublicKey(bp, NULL, CryptoPemCallback, NULL);
     if (rsa) {
       pkey = EVP_PKEY_new();
@@ -3535,6 +3554,9 @@ SignBase::Error Verify::VerifyFinal(const char* key_pem,
     if (pkey == NULL)
       goto exit;
   } else {
+#if defined(__MVS__)
+  __a2e_l(const_cast<char *>(key_pem), key_pem_len);
+#endif
     // X.509 fallback
     x509 = PEM_read_bio_X509(bp, NULL, CryptoPemCallback, NULL);
     if (x509 == NULL)
@@ -3633,16 +3655,21 @@ bool PublicKeyCipher::Cipher(const char* key_pem,
   bp = BIO_new_mem_buf(const_cast<char*>(key_pem), key_pem_len);
   if (bp == NULL)
     goto exit;
-
   // Check if this is a PKCS#8 or RSA public key before trying as X.509 and
   // private key.
   if (operation == kEncrypt &&
       strncmp(key_pem, PUBLIC_KEY_PFX, PUBLIC_KEY_PFX_LEN) == 0) {
+#if defined(__MVS__)
+     __a2e_l(const_cast<char*>(key_pem), key_pem_len);
+#endif
     pkey = PEM_read_bio_PUBKEY(bp, NULL, NULL, NULL);
     if (pkey == NULL)
       goto exit;
   } else if (operation == kEncrypt &&
              strncmp(key_pem, PUBRSA_KEY_PFX, PUBRSA_KEY_PFX_LEN) == 0) {
+#if defined(__MVS__)
+     __a2e_l(const_cast<char*>(key_pem), key_pem_len);
+#endif
     RSA* rsa = PEM_read_bio_RSAPublicKey(bp, NULL, NULL, NULL);
     if (rsa) {
       pkey = EVP_PKEY_new();
@@ -3654,6 +3681,9 @@ bool PublicKeyCipher::Cipher(const char* key_pem,
       goto exit;
   } else if (operation == kEncrypt &&
              strncmp(key_pem, CERTIFICATE_PFX, CERTIFICATE_PFX_LEN) == 0) {
+#if defined(__MVS__)
+     __a2e_l(const_cast<char*>(key_pem), key_pem_len);
+#endif
     x509 = PEM_read_bio_X509(bp, NULL, CryptoPemCallback, NULL);
     if (x509 == NULL)
       goto exit;
@@ -3662,6 +3692,9 @@ bool PublicKeyCipher::Cipher(const char* key_pem,
     if (pkey == NULL)
       goto exit;
   } else {
+#if defined(__MVS__)
+     __a2e_l(const_cast<char*>(key_pem), key_pem_len);
+#endif
     pkey = PEM_read_bio_PrivateKey(bp,
                                    NULL,
                                    CryptoPemCallback,
@@ -3710,27 +3743,29 @@ void PublicKeyCipher::Cipher(const FunctionCallbackInfo<Value>& args) {
   ASSERT_IS_BUFFER(args[0]);
   char* kbuf = Buffer::Data(args[0]);
   ssize_t klen = Buffer::Length(args[0]);
-
   ASSERT_IS_BUFFER(args[1]);
   char* buf = Buffer::Data(args[1]);
   ssize_t len = Buffer::Length(args[1]);
-
+#if defined(__MVS__)
+  __a2e_l(buf, len);
+#endif
   int padding = args[2]->Uint32Value();
 
-  String::Utf8Value passphrase(args[3]);
-
+  node::Utf8Value passphrase(args[3]);
+  node::NativeEncodingValue n_passphrase(passphrase);
   unsigned char* out_value = NULL;
   size_t out_len = 0;
 
   bool r = Cipher<operation, EVP_PKEY_cipher_init, EVP_PKEY_cipher>(
       kbuf,
       klen,
-      args.Length() >= 3 && !args[2]->IsNull() ? *passphrase : NULL,
+      args.Length() >= 3 && !args[2]->IsNull() ? *n_passphrase : NULL,
       padding,
       reinterpret_cast<const unsigned char*>(buf),
       len,
       &out_value,
       &out_len);
+
 
   if (out_len == 0 || !r) {
     delete[] out_value;
@@ -5092,9 +5127,11 @@ void SetEngine(const FunctionCallbackInfo<Value>& args) {
   (void) &clear_error_on_return;  // Silence compiler warning.
 
   const node::Utf8Value engine_id(args[0]);
-  ENGINE* engine = ENGINE_by_id(*engine_id);
+  const node::NativeEncodingValue n_engine_id(engine_id);
+  ENGINE* engine = ENGINE_by_id(*n_engine_id);
 
   // Engine not found, try loading dynamically
+  // TODO(mmallick84): undo this conversion
   if (engine == NULL) {
     engine = ENGINE_by_id("\x64\x79\x6e\x61\x6d\x69\x63");
     if (engine != NULL) {

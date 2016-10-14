@@ -143,7 +143,7 @@ int NodeBIO::Gets(BIO* bio, char* out, int size) {
   if (nbio->Length() == 0)
     return 0;
 
-  int i = nbio->IndexOf('\xa', size);
+  int i = nbio->IndexOf('\x15', size);
 
   // Include '\n', if it's there.  If not, don't read off the end.
   if (i < size && i >= 0 && static_cast<size_t>(i) < nbio->Length())
