@@ -3746,8 +3746,10 @@ void PublicKeyCipher::Cipher(const FunctionCallbackInfo<Value>& args) {
   ASSERT_IS_BUFFER(args[1]);
   char* buf = Buffer::Data(args[1]);
   ssize_t len = Buffer::Length(args[1]);
-#if defined(__MVS__)
-  __a2e_l(buf, len);
+ 
+#if defined (__MVS__)
+  if  (operation == kEncrypt)
+      __a2e_l(buf, len);
 #endif
   int padding = args[2]->Uint32Value();
 
@@ -3759,7 +3761,7 @@ void PublicKeyCipher::Cipher(const FunctionCallbackInfo<Value>& args) {
   bool r = Cipher<operation, EVP_PKEY_cipher_init, EVP_PKEY_cipher>(
       kbuf,
       klen,
-      args.Length() >= 3 && !args[2]->IsNull() ? *n_passphrase : NULL,
+      args.Length() >= 3 && !args[3]->IsNull() ? *passphrase : NULL,
       padding,
       reinterpret_cast<const unsigned char*>(buf),
       len,
@@ -3776,6 +3778,11 @@ void PublicKeyCipher::Cipher(const FunctionCallbackInfo<Value>& args) {
         ERR_get_error());
     }
   }
+
+#if defined (__MVS__)
+  if  (operation != kEncrypt)
+      __e2a_l(reinterpret_cast<char*>(out_value), out_len);
+#endif
 
   args.GetReturnValue().Set(
       Buffer::New(env, reinterpret_cast<char*>(out_value), out_len));
