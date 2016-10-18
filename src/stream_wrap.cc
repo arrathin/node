@@ -763,7 +763,7 @@ void StreamWrapCallbacks::DoRead(uv_stream_t* handle,
   }
 
 #ifdef __MVS__
-  if (wrap()->is_named_pipe())
+  if (wrap()->is_named_pipe() || wrap()->is_tty())
     __e2a_l(buf->base, nread);
 #endif
   char* base = static_cast<char*>(realloc(buf->base, nread));
