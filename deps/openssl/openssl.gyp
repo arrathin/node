@@ -1135,11 +1135,16 @@
             'cflags': [
               '-q64',
               '-qxplink',
-              '-qconvlit=ISO8859-1'
+              '-qconvlit=ISO8859-1',
+              '-qlonglong',
+              '-qbitfields=signed',
+              '-qchars=signed',
             ],
             'defines': [
               '_XOPEN_SOURCE_EXTENDED',
-              '_UNIX03_SOURCE'
+              '_UNIX03_SOURCE',
+              'NI_MAXHOST=1024',
+              'NI_MAXSERV=32',
             ],
           }, {
             'cflags': ['-Wno-missing-field-initializers'],
