@@ -374,7 +374,7 @@ void StreamWrap::WriteStringImpl(const FunctionCallbackInfo<Value>& args) {
   buf = uv_buf_init(data, data_size);
 
 #ifdef __MVS__
-  if (encoding == UTF8 && (wrap->is_tcp() || wrap->is_tty() || wrap->is_named_pipe()))
+  if (encoding == UTF8 && (wrap->is_tty() || wrap->is_named_pipe()))
     __a2e_l(buf.base, buf.len);
 #endif
 
