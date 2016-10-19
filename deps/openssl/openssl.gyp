@@ -1134,12 +1134,12 @@
           ['OS=="os390"', {
             'cflags': [
               '-q64',
-              '-qxplink'
+              '-qxplink',
+              '-qconvlit=ISO8859-1'
             ],
             'defines': [
               '_XOPEN_SOURCE_EXTENDED',
-              '_UNIX03_SOURCE',
-              'CHARSET_EBCDIC'
+              '_UNIX03_SOURCE'
             ],
           }, {
             'cflags': ['-Wno-missing-field-initializers'],

@@ -109,6 +109,7 @@
  *
  */
 #include <stdio.h>
+#pragma convert("IBM-1047")
 
 #define USE_SOCKETS
 #include "e_os.h"
@@ -445,3 +446,4 @@ int RAND_poll(void)
     return 0;
 }
 #endif
+#pragma convert(pop)
