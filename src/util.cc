@@ -57,19 +57,21 @@ Utf8Value::Utf8Value(v8::Handle<v8::Value> value)
 NativeEncodingValue::NativeEncodingValue(Utf8Value &val)
   : length_(0), str_(NULL) {
     length_ = val.length_;
-    str_ = (char *)malloc(sizeof(char) * length_);
+    str_ = (char *)malloc(sizeof(char) * length_ + 1);
+    assert(str_ != NULL);
     memcpy(str_, val.str_, length_);
-    __a2e_s(str_);
     str_[length_] = NULL;
+    __a2e_s(str_);
   }
 
 NativeEncodingValue::NativeEncodingValue(const Utf8Value &val)
   : length_(0), str_(NULL) {
     length_ = val.length_;
-    str_ = (char *)malloc(sizeof(char) * length_);
+    str_ = (char *)malloc(sizeof(char) * length_ + 1);
+    assert(str_ != NULL);
     memcpy(str_, val.str_, length_);
-    __a2e_s(str_);
     str_[length_] = NULL;
+    __a2e_s(str_);
   }
 
 }  // namespace node
