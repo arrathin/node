@@ -3140,7 +3140,9 @@ static void ParseArgs(int* argc,
     if (ParseDebugOpt(arg)) {
       // Done, consumed by ParseDebugOpt().
     } else if (strcmp(arg, "\x2d\x2d\x76\x65\x72\x73\x69\x6f\x6e") == 0 || strcmp(arg, "\x2d\x76") == 0) {
+#pragma convert("IBM-1047")
       printf("\x6c\xa2\xa", NODE_VERSION);
+#pragma convert(pop)
       exit(0);
     } else if (strcmp(arg, "\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x73\x73\x6c\x32") == 0) {
 #if HAVE_OPENSSL
