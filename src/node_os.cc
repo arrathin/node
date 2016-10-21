@@ -247,6 +247,7 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
   }
 
   for (i = 0; i < count; i++) {
+    __e2a_s(interfaces[i].name);
     name = OneByteString(env->isolate(), interfaces[i].name);
     if (ret->Has(name)) {
       ifarr = Local<Array>::Cast(ret->Get(name));

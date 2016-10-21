@@ -54,7 +54,7 @@ if (process.platform === 'win32') {
 
 var ifaces = os.networkInterfaces();
 exports.hasIPv6 = Object.keys(ifaces).some(function(name) {
-  return /lo/.test(name) && ifaces[name].some(function(info) {
+  return name.search(/lo/i) == 0 && ifaces[name].some(function(info) {
     return info.family === 'IPv6';
   });
 });
