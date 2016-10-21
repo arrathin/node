@@ -306,6 +306,9 @@ static __inline unsigned int _strlen31(const char *str)
 }
 #   endif
 #   include <malloc.h>
+#   if defined(__MVS__)
+#    define isdigit(x) x >= '0' && x <= '9'
+#   endif
 #   if defined(_MSC_VER) && _MSC_VER<=1200 && defined(_MT) && defined(isspace)
        /* compensate for bug in VC6 ctype.h */
 #    undef isspace
