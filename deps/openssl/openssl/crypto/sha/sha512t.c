@@ -3,9 +3,6 @@
  * Copyright (c) 2004 The OpenSSL Project.  All rights reserved.
  * ====================================================================
  */
-#ifdef __MVS__
-#pragma strings(writable)
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -13,13 +10,6 @@
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include <openssl/crypto.h>
-
-# ifdef CHARSET_EBCDIC
-#  include <openssl/ebcdic.h>
-#  define STRINGDATA(str) ebcdic2ascii(str, str, strlen(str))
-# else
-#  define STRINGDATA(str) str
-# endif
 
 #if defined(OPENSSL_NO_SHA) || defined(OPENSSL_NO_SHA512)
 int main(int argc, char *argv[])
@@ -110,7 +100,7 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "Testing SHA-512 ");
 
-    EVP_Digest(STRINGDATA("abc"), 3, md, NULL, EVP_sha512(), NULL);
+    EVP_Digest("abc", 3, md, NULL, EVP_sha512(), NULL);
     if (memcmp(md, app_c1, sizeof(app_c1))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 1 of 3 failed.\n");
@@ -119,10 +109,10 @@ int main(int argc, char **argv)
         fprintf(stdout, ".");
     fflush(stdout);
 
-    EVP_Digest(STRINGDATA("abcdefgh" "bcdefghi" "cdefghij" "defghijk"
+    EVP_Digest("abcdefgh" "bcdefghi" "cdefghij" "defghijk"
                "efghijkl" "fghijklm" "ghijklmn" "hijklmno"
                "ijklmnop" "jklmnopq" "klmnopqr" "lmnopqrs"
-               "mnopqrst" "nopqrstu"), 112, md, NULL, EVP_sha512(), NULL);
+               "mnopqrst" "nopqrstu", 112, md, NULL, EVP_sha512(), NULL);
     if (memcmp(md, app_c2, sizeof(app_c2))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 2 of 3 failed.\n");
@@ -134,7 +124,7 @@ int main(int argc, char **argv)
     EVP_MD_CTX_init(&evp);
     EVP_DigestInit_ex(&evp, EVP_sha512(), NULL);
     for (i = 0; i < 1000000; i += 288)
-        EVP_DigestUpdate(&evp, STRINGDATA("aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
+        EVP_DigestUpdate(&evp, "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
@@ -142,7 +132,7 @@ int main(int argc, char **argv)
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
                          "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
-                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"),
+                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa",
                          (1000000 - i) < 288 ? 1000000 - i : 288);
     EVP_DigestFinal_ex(&evp, md, NULL);
     EVP_MD_CTX_cleanup(&evp);
@@ -160,7 +150,7 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "Testing SHA-384 ");
 
-    EVP_Digest(STRINGDATA("abc"), 3, md, NULL, EVP_sha384(), NULL);
+    EVP_Digest("abc", 3, md, NULL, EVP_sha384(), NULL);
     if (memcmp(md, app_d1, sizeof(app_d1))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 1 of 3 failed.\n");
@@ -169,10 +159,10 @@ int main(int argc, char **argv)
         fprintf(stdout, ".");
     fflush(stdout);
 
-    EVP_Digest(STRINGDATA("abcdefgh" "bcdefghi" "cdefghij" "defghijk"
+    EVP_Digest("abcdefgh" "bcdefghi" "cdefghij" "defghijk"
                "efghijkl" "fghijklm" "ghijklmn" "hijklmno"
                "ijklmnop" "jklmnopq" "klmnopqr" "lmnopqrs"
-               "mnopqrst" "nopqrstu"), 112, md, NULL, EVP_sha384(), NULL);
+               "mnopqrst" "nopqrstu", 112, md, NULL, EVP_sha384(), NULL);
     if (memcmp(md, app_d2, sizeof(app_d2))) {
         fflush(stdout);
         fprintf(stderr, "\nTEST 2 of 3 failed.\n");
@@ -184,8 +174,8 @@ int main(int argc, char **argv)
     EVP_MD_CTX_init(&evp);
     EVP_DigestInit_ex(&evp, EVP_sha384(), NULL);
     for (i = 0; i < 1000000; i += 64)
-        EVP_DigestUpdate(&evp, STRINGDATA("aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
-                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"),
+        EVP_DigestUpdate(&evp, "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa"
+                         "aaaaaaaa" "aaaaaaaa" "aaaaaaaa" "aaaaaaaa",
                          (1000000 - i) < 64 ? 1000000 - i : 64);
     EVP_DigestFinal_ex(&evp, md, NULL);
     EVP_MD_CTX_cleanup(&evp);

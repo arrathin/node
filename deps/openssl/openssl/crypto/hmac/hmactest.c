@@ -154,12 +154,6 @@ int main(int argc, char *argv[])
     ebcdic2ascii(test[1].data, test[1].data, test[1].data_len);
     ebcdic2ascii(test[2].key, test[2].key, test[2].key_len);
     ebcdic2ascii(test[2].data, test[2].data, test[2].data_len);
-    ebcdic2ascii(test[4].data, test[4].data, test[4].data_len);
-    ebcdic2ascii(test[5].data, test[5].data, test[5].data_len);
-    ebcdic2ascii(test[6].key, test[6].key, test[6].key_len);
-    ebcdic2ascii(test[6].data, test[6].data, test[6].data_len);
-    ebcdic2ascii(test[7].key, test[7].key, test[7].key_len);
-    ebcdic2ascii(test[7].data, test[7].data, test[7].data_len);
 #  endif
 
     for (i = 0; i < 4; i++) {

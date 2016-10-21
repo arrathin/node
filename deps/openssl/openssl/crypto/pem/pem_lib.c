@@ -764,13 +764,11 @@ int PEM_read_bio(BIO *bp, char **name, char **header, unsigned char **data,
             buf[++i] = '\n';
             buf[++i] = '\0';
 
-            //if (i != 65)
-            //if (i != 'A')
+            if (i != 65)
                 end = 1;
             if (strncmp(buf, "-----END ", 9) == 0)
                 break;
             if (i > 65)
-            //if (i > 'A')
                 break;
             if (!BUF_MEM_grow_clean(dataB, i + bl + 9)) {
                 PEMerr(PEM_F_PEM_READ_BIO, ERR_R_MALLOC_FAILURE);

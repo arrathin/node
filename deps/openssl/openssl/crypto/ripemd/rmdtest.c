@@ -56,9 +56,6 @@
  * [including the GNU Public Licence.]
  */
 
-#ifdef __MVS__
-#pragma strings(writable)
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

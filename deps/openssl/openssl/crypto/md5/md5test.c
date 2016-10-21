@@ -56,17 +56,11 @@
  * [including the GNU Public Licence.]
  */
 
-#ifdef __MVS__
-#pragma strings(writable)
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include "../e_os.h"
-# ifdef CHARSET_EBCDIC
-#  include <openssl/ebcdic.h>
-# endif
 
 #ifdef OPENSSL_NO_MD5
 int main(int argc, char *argv[])
@@ -111,9 +105,6 @@ int main(int argc, char *argv[])
     R = ret;
     i = 1;
     while (*P != NULL) {
-# ifdef CHARSET_EBCDIC
-        ebcdic2ascii(&(P[0][0]), &(P[0][0]), strlen((char *)*P));
-# endif
         EVP_Digest(&(P[0][0]), strlen((char *)*P), md, NULL, EVP_md5(), NULL);
         p = pt(md);
         if (strcmp(p, (char *)*R) != 0) {

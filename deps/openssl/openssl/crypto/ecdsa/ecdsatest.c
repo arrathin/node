@@ -69,21 +69,11 @@
  *
  */
 
-#ifdef __MVS__
-#pragma strings(writable)
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <openssl/opensslconf.h> /* To see if OPENSSL_NO_ECDSA is defined */
-
-# ifdef CHARSET_EBCDIC
-#  include <openssl/ebcdic.h>
-#  define STRINGDATA(str) ebcdic2ascii(str, str, strlen(str))
-# else
-#  define STRINGDATA(str) str
-# endif
 
 #ifdef OPENSSL_NO_ECDSA
 int main(int argc, char *argv[])
@@ -192,9 +182,6 @@ int x9_62_test_internal(BIO *out, int nid, const char *r_in, const char *s_in)
 {
     int ret = 0;
     const char message[] = "abc";
-#ifdef CHARSET_EBCDIC
-    ebcdic2ascii(message, message, sizeof(message));
-#endif
     unsigned char digest[20];
     unsigned int dgst_len = 0;
     EVP_MD_CTX md_ctx;
