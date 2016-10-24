@@ -32,7 +32,7 @@ host += host;
 host += host;
 host += host;
 host += host;
-host += host;
+if (process.platform !== 'os390') host += host;
 
 function do_not_call() {
   throw new Error('This function should not have been called.');
