@@ -25,7 +25,7 @@ var assert = require('assert');
 // simulate `cat readfile.js | node readfile.js`
 
 // TODO: Have some way to make this work on windows and aix.
-if (process.platform === 'win32' || process.platform === 'aix') {
+if (process.platform === 'win32' || process.platform === 'aix' || process.platform === "os390") {
   console.error('No /dev/stdin on ' + process.platform + '.  Skipping test.');
   process.exit();
 }
