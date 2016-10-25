@@ -4632,7 +4632,7 @@ class RandomBytesRequest : public AsyncWrap {
         error_(0),
         size_(size),
         data_(static_cast<char*>(malloc(size))) {
-    if (data() == NULL)
+    if (size !=0 && data() == NULL)
       FatalError("\x6e\x6f\x64\x65\x3a\x3a\x52\x61\x6e\x64\x6f\x6d\x42\x79\x74\x65\x73\x52\x65\x71\x75\x65\x73\x74\x28\x29", "\x4f\x75\x74\x20\x6f\x66\x20\x4d\x65\x6d\x6f\x72\x79");
   }
 
