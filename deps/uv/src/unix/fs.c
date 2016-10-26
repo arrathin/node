@@ -745,6 +745,10 @@ done:
   pthread_mutex_unlock(&lock);
 #endif
 
+#if defined(__MVS__)
+  for (int idx = 0; idx < req->nbufs; idx++)
+      __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
+#endif
   if (req->bufs != req->bufsml)
     uv__free(req->bufs);
 
