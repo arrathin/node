@@ -2939,7 +2939,8 @@ static void RawDebug(const FunctionCallbackInfo<Value>& args) {
          "\x6d\x75\x73\x74\x20\x62\x65\x20\x63\x61\x6c\x6c\x65\x64\x20\x77\x69\x74\x68\x20\x61\x20\x73\x69\x6e\x67\x6c\x65\x20\x73\x74\x72\x69\x6e\x67");
 
   node::Utf8Value message(args[0]);
-  fprintf(stderr, "\x6c\xa2\xa", *message);
+  node::NativeEncodingValue n_message(message);
+  fprintf(stderr, "\x6c\xa2\x15", *n_message);
   fflush(stderr);
 }
 
