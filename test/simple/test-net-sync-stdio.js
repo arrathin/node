@@ -27,8 +27,9 @@ var N = 4 << 20;  // 4 MB
 for (var big = '*'; big.length < N; big += big);
 
 if (process.argv[2] === 'child') {
-  process.stdout.write(big);
-  process.exit(42);
+  process.stdout.write(big, function () {
+    process.exit(42);
+  });
 }
 
 var stdio = ['inherit', 'pipe', 'inherit'];
