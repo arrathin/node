@@ -65,6 +65,8 @@ def GuessOS():
     return 'netbsd'
   elif id == 'AIX':
     return 'aix'
+  elif id == 'OS/390':
+    return 'os390'
   else:
     return None
 
