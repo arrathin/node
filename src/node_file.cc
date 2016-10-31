@@ -251,7 +251,7 @@ static void After(uv_fs_t *req) {
             }
 
 #ifdef __MVS__
-            char ebc[strlen(ent.name + 1)];
+            char ebc[strlen(ent.name) + 1];
             strcpy(ebc, ent.name);
             __e2a_s(ebc);
             Local<String> name = String::NewFromUtf8(env->isolate(), ebc);
