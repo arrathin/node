@@ -30,8 +30,16 @@
             '_OPEN_SYS_SOCK_IPV6',
             '_XOPEN_SOURCE=500',
           ],
-          'cflags': [ '-q64 -qxplink -qlonglong' ],
-          'ldflags': [ '-q64 -qxplink' ],
+          'cflags': [
+            '-q64',
+            '-qxplink',
+            '-qlonglong',
+            '-qconvlit=ISO8859-1'
+          ],
+          'ldflags': [
+            '-q64',
+            '-qxplink'
+          ],
       }]
 
     ],
