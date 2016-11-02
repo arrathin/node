@@ -3377,7 +3377,9 @@ static void EnableDebug(Environment* env) {
 static void DispatchDebugMessagesAsyncCallback(uv_async_t* handle) {
   HandleScope scope(node_isolate);
   if (debugger_running == false) {
-    fprintf(stderr, "\x53\x74\x61\x72\x74\x69\x6e\x67\x20\x64\x65\x62\x75\x67\x67\x65\x72\x20\x61\x67\x65\x6e\x74\x2e\xa");
+#pragma convert("IBM-1047")
+    fprintf(stderr, "Starting debugger agent.\n");
+#pragma convert(pop)
 
     Environment* env = Environment::GetCurrent(node_isolate);
     Context::Scope context_scope(env->context());
