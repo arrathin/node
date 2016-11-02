@@ -30,6 +30,10 @@ var child = spawn(process.execPath, args, {
 var outputLines = [];
 var outputTimerId;
 var waitingForDebuggers = false;
+var timeout = 6000;
+if (process.platform == 'os390') {
+  timeout = 60000;
+}
 
 var pids = null;
 
@@ -70,7 +74,7 @@ function onNoMoreLines() {
 
 setTimeout(function testTimedOut() {
   assert(false, 'test timed out.');
-}, 6000).unref();
+}, timeout).unref();
 
 process.on('exit', function onExit() {
   pids.forEach(function(pid) {
