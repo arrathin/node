@@ -322,6 +322,10 @@ else
 ARCH=x86
 endif
 endif
+endif
+endif
+endif
+endif
 
 # enforce "x86" over "ia32" as the generally accepted way of referring to 32-bit intel
 ifeq ($(ARCH),ia32)
