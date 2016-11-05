@@ -408,15 +408,13 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
   __net_ifconf6header_t ifc;
   __net_ifconf6entry_t *ifr, *p, flg;
 
-  *count = 0;
 
-  if (0 > (sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
+  if (0 > (sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)))
     return -errno;
-  }
 
   ifc.__nif6h_version = 1;
   ifc.__nif6h_buflen = size;
-  ifc.__nif6h_buffer = uv__malloc(size);;
+  ifc.__nif6h_buffer = uv__calloc(1, size);;
 
   if (ioctl(sockfd, SIOCGIFCONF6, &ifc) == -1) {
     uv__close(sockfd);
@@ -424,10 +422,21 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
   }
 
 
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#define ADDR_SIZE(p) MAX((p).sin6_len, sizeof(p))
+  *count = 0;
+  ifr = (__net_ifconf6entry_t*)(ifc.__nif6h_buffer);
+  while ((char*)ifr < (char*)ifc.__nif6h_buffer + ifc.__nif6h_buflen) {
+    p = ifr;
+    ifr = (__net_ifconf6entry_t*)((char*)ifr + ifc.__nif6h_entrylen);
 
-  *count = ifc.__nif6h_entries;
+    if (!(p->__nif6e_addr.sin6_family == AF_INET6 ||
+          p->__nif6e_addr.sin6_family == AF_INET))
+      continue;
+
+    if (!(p->__nif6e_flags & _NIF6E_FLAGS_ON_LINK_ACTIVE))
+      continue;
+
+    ++(*count);
+  }
 
   /* Alloc the return interface structs */
   *addresses = uv__malloc(*count * sizeof(uv_interface_address_t));
@@ -465,9 +474,6 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
     address++;
   }
 
-#undef ADDR_SIZE
-#undef MAX
-
   uv__close(sockfd);
   return 0;
 }
@@ -493,7 +499,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
   if (0 > sockfd)
     return -errno;
 
-  ifc.ifc_req = uv__malloc(size);
+  ifc.ifc_req = uv__calloc(1, size);
   ifc.ifc_len = size;
   if (ioctl(sockfd, SIOCGIFCONF, &ifc) == -1) {
     SAVE_ERRNO(uv__close(sockfd));
@@ -540,7 +546,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
   memcpy(address, addresses_v6, count_v6 * sizeof(uv_interface_address_t));
   address += count_v6;
   *count += count_v6;
-  free(addresses_v6);
+  uv__free(addresses_v6);
 
   ifr = ifc.ifc_req;
   while ((char*)ifr < (char*)ifc.ifc_req + ifc.ifc_len) {
