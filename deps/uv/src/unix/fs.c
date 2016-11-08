@@ -309,7 +309,7 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
 #endif
   ssize_t result;
 
-#if defined(_AIX)
+#if defined(_AIX) || defined(__MVS__)
   struct stat buf;
   if(fstat(req->file, &buf))
     return -1;
