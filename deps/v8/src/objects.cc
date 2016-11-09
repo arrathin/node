@@ -13744,6 +13744,16 @@ void HashTable<Derived, Shape, Key>::Rehash(Key key) {
       }
     }
   }
+  // Wipe deleted entries.
+  Heap* heap = GetHeap();
+  Object* the_hole = heap->the_hole_value();
+  Object* undefined = heap->undefined_value();
+  for (uint32_t current = 0; current < capacity; current++) {
+    if (get(EntryToIndex(current)) == the_hole) {
+      set(EntryToIndex(current), undefined);
+    }
+  }
+  SetNumberOfDeletedElements(0);
 }
 
 
@@ -13756,14 +13766,8 @@ Handle<Derived> HashTable<Derived, Shape, Key>::EnsureCapacity(
   Isolate* isolate = table->GetIsolate();
   int capacity = table->Capacity();
   int nof = table->NumberOfElements() + n;
-  int nod = table->NumberOfDeletedElements();
-  // Return if:
-  //   50% is still free after adding n elements and
-  //   at most 50% of the free elements are deleted elements.
-  if (nod <= (capacity - nof) >> 1) {
-    int needed_free = nof >> 1;
-    if (nof + needed_free <= capacity) return table;
-  }
+
+  if (table->HasSufficientCapacityToAdd(n)) return table;
 
   const int kMinCapacityForPretenure = 256;
   bool should_pretenure = pretenure == TENURED ||
@@ -13777,6 +13781,23 @@ Handle<Derived> HashTable<Derived, Shape, Key>::EnsureCapacity(
 
   table->Rehash(new_table, key);
   return new_table;
+}
+
+
+template <typename Derived, typename Shape, typename Key>
+bool HashTable<Derived, Shape, Key>::HasSufficientCapacityToAdd(
+    int number_of_additional_elements) {
+  int capacity = Capacity();
+  int nof = NumberOfElements() + number_of_additional_elements;
+  int nod = NumberOfDeletedElements();
+  // Return true if:
+  //   50% is still free after adding number_of_additional_elements elements and
+  //   at most 50% of the free elements are deleted elements.
+  if ((nof < capacity) && ((nod <= (capacity - nof) >> 1))) {
+    int needed_free = nof >> 1;
+    if (nof + needed_free <= capacity) return true;
+  }
+  return false;
 }
 
 
@@ -14656,6 +14677,7 @@ Handle<CompilationCacheTable> CompilationCacheTable::PutRegExp(
 void CompilationCacheTable::Age() {
   DisallowHeapAllocation no_allocation;
   Object* the_hole_value = GetHeap()->the_hole_value();
+  uint32_t capacity = Capacity();
   for (int entry = 0, size = Capacity(); entry < size; entry++) {
     int entry_index = EntryToIndex(entry);
     int value_index = entry_index + 1;
@@ -14679,6 +14701,16 @@ void CompilationCacheTable::Age() {
       }
     }
   }
+  // Wipe deleted entries.
+  Heap* heap = GetHeap();
+  Object* the_hole = heap->the_hole_value();
+  Object* undefined = heap->undefined_value();
+  for (uint32_t current = 0; current < capacity; current++) {
+    if (get(EntryToIndex(current)) == the_hole) {
+      set(EntryToIndex(current), undefined);
+    }
+  }
+  SetNumberOfDeletedElements(0);
 }
 
 
@@ -14806,7 +14838,7 @@ Dictionary<Derived, Shape, Key>::GenerateNewEnumerationIndices(
 }
 
 
-template<typename Derived, typename Shape, typename Key>
+template <typename Derived, typename Shape, typename Key>
 Handle<Derived> Dictionary<Derived, Shape, Key>::EnsureCapacity(
     Handle<Derived> dictionary, int n, Key key) {
   // Check whether there are enough enumeration indices to add n elements.
@@ -15185,6 +15217,25 @@ Handle<ObjectHashTable> ObjectHashTable::Put(Handle<ObjectHashTable> table,
   if (entry != kNotFound) {
     table->set(EntryToIndex(entry) + 1, *value);
     return table;
+  }
+
+  // Rehash if more than 25% of the entries are deleted entries.
+  // TODO(jochen): Consider to shrink the fixed array in place.
+  if ((table->NumberOfDeletedElements() << 1) > table->NumberOfElements()) {
+    table->Rehash(isolate->factory()->undefined_value());
+  }
+  // If we're out of luck, we didn't get a GC recently, and so rehashing
+  // isn't enough to avoid a crash.
+  if (!table->HasSufficientCapacityToAdd(1)) {
+    int nof = table->NumberOfElements() + 1;
+    int capacity = ObjectHashTable::ComputeCapacity(nof * 2);
+    if (capacity > ObjectHashTable::kMaxCapacity) {
+      for (size_t i = 0; i < 2; ++i) {
+        isolate->heap()->CollectAllGarbage(
+            Heap::kFinalizeIncrementalMarkingMask, "full object hash table");
+      }
+      table->Rehash(isolate->factory()->undefined_value());
+    }
   }
 
   // Check whether the hash table should be extended.

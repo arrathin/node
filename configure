@@ -223,6 +223,11 @@ parser.add_option('--release-urlbase',
          '`sourceUrl` and `headersUrl`. When compiling a release build, this '
          'will default to https://nodejs.org/download/release/')
 
+parser.add_option('--enable-d8',
+    action='store_true',
+    dest='enable_d8',
+    help=optparse.SUPPRESS_HELP)  # Unsupported, undocumented.
+
 parser.add_option('--v8-options',
     action='store',
     dest='v8_options',
@@ -337,7 +342,7 @@ parser.add_option('--without-etw',
 parser.add_option('--without-npm',
     action='store_true',
     dest='without_npm',
-    help='don\'t install the bundled npm package manager')
+    help='do not install the bundled npm (package manager)')
 
 parser.add_option('--without-perfctr',
     action='store_true',
@@ -364,6 +369,11 @@ parser.add_option('--xcode',
     action='store_true',
     dest='use_xcode',
     help='generate build files for use with xcode')
+
+parser.add_option('--ninja',
+    action='store_true',
+    dest='use_ninja',
+    help='generate build files for use with Ninja')
 
 parser.add_option('--enable-asan',
     action='store_true',
@@ -780,10 +790,15 @@ def configure_node(o):
   if options.enable_static:
     o['variables']['node_target_type'] = 'static_library'
 
+  o['variables']['node_module_version'] = 46
+
   if options.linked_module:
     o['variables']['library_files'] = options.linked_module
 
   o['variables']['asan'] = int(options.enable_asan or 0)
+
+  if options.use_xcode and options.use_ninja:
+    raise Exception('--xcode and --ninja cannot be used together.')
 
 def configure_library(lib, output):
   shared_lib = 'shared_' + lib
@@ -820,6 +835,8 @@ def configure_v8(o):
   o['variables']['v8_optimized_debug'] = 0  # Compile with -O0 in debug builds.
   o['variables']['v8_random_seed'] = 0  # Use a random seed for hash tables.
   o['variables']['v8_use_snapshot'] = 'false' if options.without_snapshot else 'true'
+  o['variables']['node_enable_d8'] = b(options.enable_d8)
+
 
 def configure_openssl(o):
   o['variables']['node_use_openssl'] = b(not options.without_ssl)
@@ -1204,6 +1221,8 @@ gyp_args = [sys.executable, 'tools/gyp_node.py', '--no-parallel']
 
 if options.use_xcode:
   gyp_args += ['-f', 'xcode']
+elif options.use_ninja:
+  gyp_args += ['-f', 'ninja']
 elif flavor == 'win' and sys.platform != 'msys':
   gyp_args += ['-f', 'msvs', '-G', 'msvs_version=auto']
 else:

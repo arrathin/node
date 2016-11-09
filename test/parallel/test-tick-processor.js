@@ -1,8 +1,8 @@
 'use strict';
-var fs = require('fs');
-var assert = require('assert');
-var cp = require('child_process');
-var common = require('../common');
+const fs = require('fs');
+const assert = require('assert');
+const cp = require('child_process');
+const common = require('../common');
 
 // TODO(mhdawson) Currently the test-tick-processor functionality in V8
 // depends on addresses being smaller than a full 64 bits.  Aix supports
@@ -45,16 +45,14 @@ runTest(/RunInDebugContext/,
 
 function runTest(pattern, code) {
   cp.execFileSync(process.execPath, ['-prof', '-pe', code]);
-  var matches = fs.readdirSync(common.tmpDir).filter(function(file) {
-    return /^isolate-/.test(file);
-  });
-  if (matches.length != 1) {
-    assert.fail(null, null, 'There should be a single log file.');
-  }
+  var matches = fs.readdirSync(common.tmpDir);
+
+  assert.strictEqual(matches.length, 1, 'There should be a single log file.');
+
   var log = matches[0];
   var out = cp.execSync(process.execPath +
                         ' --prof-process --call-graph-size=10 ' + log,
                         {encoding: 'utf8'});
-  assert(pattern.test(out));
+  assert(pattern.test(out), `${pattern} not matching ${out}`);
   fs.unlinkSync(log);
 }

@@ -77,8 +77,14 @@ void StreamBase::AddMethods(Environment* env,
 template <class Base>
 void StreamBase::GetFD(Local<String> key,
                        const PropertyCallbackInfo<Value>& args) {
-  StreamBase* wrap = Unwrap<Base>(args.Holder());
+  Base* handle = Unwrap<Base>(args.Holder());
 
+  // Mimic implementation of StreamBase::GetFD() and UDPWrap::GetFD().
+  ASSIGN_OR_RETURN_UNWRAP(&handle,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EINVAL));
+
+  StreamBase* wrap = static_cast<StreamBase*>(handle);
   if (!wrap->IsAlive())
     return args.GetReturnValue().Set(UV_EINVAL);
 
@@ -89,8 +95,14 @@ void StreamBase::GetFD(Local<String> key,
 template <class Base>
 void StreamBase::GetBytesRead(Local<String> key,
                               const PropertyCallbackInfo<Value>& args) {
-  StreamBase* wrap = Unwrap<Base>(args.Holder());
+  Base* handle = Unwrap<Base>(args.Holder());
 
+  // The handle instance hasn't been set. So no bytes could have been read.
+  ASSIGN_OR_RETURN_UNWRAP(&handle,
+                          args.Holder(),
+                          args.GetReturnValue().Set(0));
+
+  StreamBase* wrap = static_cast<StreamBase*>(handle);
   // uint64_t -> double. 53bits is enough for all real cases.
   args.GetReturnValue().Set(static_cast<double>(wrap->bytes_read_));
 }
@@ -99,8 +111,11 @@ void StreamBase::GetBytesRead(Local<String> key,
 template <class Base>
 void StreamBase::GetExternal(Local<String> key,
                              const PropertyCallbackInfo<Value>& args) {
-  StreamBase* wrap = Unwrap<Base>(args.Holder());
+  Base* handle = Unwrap<Base>(args.Holder());
 
+  ASSIGN_OR_RETURN_UNWRAP(&handle, args.Holder());
+
+  StreamBase* wrap = static_cast<StreamBase*>(handle);
   Local<External> ext = External::New(args.GetIsolate(), wrap);
   args.GetReturnValue().Set(ext);
 }
@@ -109,8 +124,11 @@ void StreamBase::GetExternal(Local<String> key,
 template <class Base,
           int (StreamBase::*Method)(const FunctionCallbackInfo<Value>& args)>
 void StreamBase::JSMethod(const FunctionCallbackInfo<Value>& args) {
-  StreamBase* wrap = Unwrap<Base>(args.Holder());
+  Base* handle = Unwrap<Base>(args.Holder());
 
+  ASSIGN_OR_RETURN_UNWRAP(&handle, args.Holder());
+
+  StreamBase* wrap = static_cast<StreamBase*>(handle);
   if (!wrap->IsAlive())
     return args.GetReturnValue().Set(UV_EINVAL);
 

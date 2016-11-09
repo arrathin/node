@@ -225,6 +225,7 @@ int StreamBase::WriteBuffer(const FunctionCallbackInfo<Value>& args) {
 
   err = DoWrite(req_wrap, bufs, count, nullptr);
   req_wrap_obj->Set(env->async(), True(env->isolate()));
+  req_wrap_obj->Set(env->buffer_string(), args[1]);
 
   if (err)
     req_wrap->Dispose();
@@ -327,7 +328,8 @@ int StreamBase::WriteString(const FunctionCallbackInfo<Value>& args) {
     uv_handle_t* send_handle = nullptr;
 
     if (!send_handle_obj.IsEmpty()) {
-      HandleWrap* wrap = Unwrap<HandleWrap>(send_handle_obj);
+      HandleWrap* wrap;
+      ASSIGN_OR_RETURN_UNWRAP(&wrap, send_handle_obj, UV_EINVAL);
       send_handle = wrap->GetHandle();
       // Reference StreamWrap instance to prevent it from being garbage
       // collected before `AfterWrite` is called.

@@ -33,7 +33,6 @@ set noperfctr=
 set noperfctr_msi_arg=
 set i18n_arg=
 set download_arg=
-set release_urls_arg=
 set build_release=
 set configure_flags=
 set build_addons=
@@ -78,7 +77,8 @@ if /i "%1"=="download-all"  set download_arg="--download=all"&goto arg-ok
 if /i "%1"=="ignore-flaky"  set test_args=%test_args% --flaky-tests=dontcare&goto arg-ok
 if /i "%1"=="enable-vtune"  set enable_vtune_profiling="--enable-vtune-profiling"&goto arg-ok
 
-echo Warning: ignoring invalid command line option `%1`.
+echo Error: invalid command line option `%1`.
+exit /b 1
 
 :arg-ok
 :arg-ok
@@ -103,7 +103,7 @@ if "%config%"=="Debug" set configure_flags=%configure_flags% --debug
 if defined nosnapshot set configure_flags=%configure_flags% --without-snapshot
 if defined noetw set configure_flags=%configure_flags% --without-etw& set noetw_msi_arg=/p:NoETW=1
 if defined noperfctr set configure_flags=%configure_flags% --without-perfctr& set noperfctr_msi_arg=/p:NoPerfCtr=1
-if defined release_urlbase set release_urlbase_arg=--release-urlbase=%release_urlbase%
+if defined release_urlbase set configure_flags=%configure_flags% --release-urlbase=%release_urlbase%
 if defined download_arg set configure_flags=%configure_flags% %download_arg%
 
 if "%i18n_arg%"=="full-icu" set configure_flags=%configure_flags% --with-intl=full-icu
@@ -118,6 +118,10 @@ if "%target%"=="Clean" rmdir /S /Q %~dp0deps\icu
 :no-depsicu
 
 call :getnodeversion || exit /b 1
+
+if "%target%"=="Clean" rmdir /Q /S "%~dp0%config%\node-v%FULLVERSION%-win-%target_arch%" > nul 2> nul
+
+if defined noprojgen if defined nobuild if defined nosign if not defined msi goto licensertf
 
 @rem Set environment for msbuild
 
@@ -235,6 +239,16 @@ copy /Y ..\deps\npm\bin\npm node-v%FULLVERSION%-win-%target_arch%\ > nul
 if errorlevel 1 echo Cannot copy npm && goto package_error
 copy /Y ..\deps\npm\bin\npm.cmd node-v%FULLVERSION%-win-%target_arch%\ > nul
 if errorlevel 1 echo Cannot copy npm.cmd && goto package_error
+copy /Y ..\tools\msvs\nodevars.bat node-v%FULLVERSION%-win-%target_arch%\ > nul
+if errorlevel 1 echo Cannot copy nodevars.bat && goto package_error
+if not defined noetw (
+    copy /Y ..\src\res\node_etw_provider.man node-v%FULLVERSION%-win-%target_arch%\ > nul
+    if errorlevel 1 echo Cannot copy node_etw_provider.man && goto package_error
+)
+if not defined noperfctr (
+    copy /Y ..\src\res\node_perfctr_provider.man node-v%FULLVERSION%-win-%target_arch%\ > nul
+    if errorlevel 1 echo Cannot copy node_perfctr_provider.man && goto package_error
+)
 
 echo Creating node-v%FULLVERSION%-win-%target_arch%.7z
 del node-v%FULLVERSION%-win-%target_arch%.7z > nul 2> nul
@@ -321,12 +335,16 @@ for /d %%F in (test\addons\??_*) do (
 )
 :: generate
 "%node_exe%" tools\doc\addon-verify.js
+if %errorlevel% neq 0 exit /b %errorlevel%
 :: building addons
+SetLocal EnableDelayedExpansion
 for /d %%F in (test\addons\*) do (
   "%node_exe%" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild ^
     --directory="%%F" ^
     --nodedir="%cd%"
+  if !errorlevel! neq 0 exit /b !errorlevel!
 )
+EndLocal
 goto run-tests
 
 :run-tests
@@ -342,7 +360,7 @@ goto jslint
 :jslint
 if not defined jslint goto exit
 echo running jslint
-%config%\node tools\eslint\bin\eslint.js benchmark lib src test tools\doc tools\eslint-rules --rulesdir tools\eslint-rules
+%config%\node tools\eslint\bin\eslint.js benchmark lib src test tools --rulesdir tools\eslint-rules
 goto exit
 
 :create-msvs-files-failed

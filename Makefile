@@ -35,6 +35,7 @@ EXEEXT := $(shell $(PYTHON) -c \
 NODE_EXE = node$(EXEEXT)
 NODE ?= ./$(NODE_EXE)
 NODE_G_EXE = node_g$(EXEEXT)
+NPM ?= ./deps/npm/bin/npm-cli.js
 
 # Flags for packaging.
 BUILD_DOWNLOAD_FLAGS ?= --download=all
@@ -83,7 +84,8 @@ uninstall:
 	$(PYTHON) tools/install.py $@ '$(DESTDIR)' '$(PREFIX)'
 
 clean:
-	-rm -rf out/Makefile $(NODE_EXE) $(NODE_G_EXE) out/$(BUILDTYPE)/$(NODE_EXE)
+	-rm -rf out/Makefile $(NODE_EXE) $(NODE_G_EXE) out/$(BUILDTYPE)/$(NODE_EXE) \
+                out/$(BUILDTYPE)/node.exp
 	@if [ -d out ]; then find out/ -name '*.o' -o -name '*.a' -o -name '*.d' | xargs rm -rf; fi
 	-rm -rf node_modules
 	@if [ -d deps/icu ]; then echo deleting deps/icu; rm -rf deps/icu; fi
@@ -128,7 +130,13 @@ test/gc/node_modules/weak/build/Release/weakref.node: $(NODE_EXE)
 		--nodedir="$(shell pwd)"
 
 # Implicitly depends on $(NODE_EXE), see the build-addons rule for rationale.
-test/addons/.docbuildstamp: tools/doc/addon-verify.js doc/api/addons.md
+DOCBUILDSTAMP_PREREQS = tools/doc/addon-verify.js doc/api/addons.md
+
+ifeq ($(OSTYPE),aix)
+DOCBUILDSTAMP_PREREQS := $(DOCBUILDSTAMP_PREREQS) out/$(BUILDTYPE)/node.exp
+endif
+
+test/addons/.docbuildstamp: $(DOCBUILDSTAMP_PREREQS)
 	$(RM) -r test/addons/??_*/
 	$(NODE) $<
 	touch $@
@@ -140,7 +148,8 @@ ADDONS_BINDING_GYPS := \
 # Implicitly depends on $(NODE_EXE), see the build-addons rule for rationale.
 # Depends on node-gyp package.json so that build-addons is (re)executed when
 # node-gyp is updated as part of an npm update.
-test/addons/.buildstamp: deps/npm/node_modules/node-gyp/package.json \
+test/addons/.buildstamp: config.gypi \
+	deps/npm/node_modules/node-gyp/package.json \
 	$(ADDONS_BINDING_GYPS) test/addons/.docbuildstamp
 	# Cannot use $(wildcard test/addons/*/) here, it's evaluated before
 	# embedded addons have been generated from the documentation.
@@ -278,11 +287,25 @@ out/doc/%: doc/%
 # check if ./node is actually set, else use user pre-installed binary
 gen-json = tools/doc/generate.js --format=json $< > $@
 out/doc/api/%.json: doc/api/%.md
+	[ -e tools/doc/node_modules/js-yaml/package.json ] || \
+		[ -e tools/eslint/node_modules/js-yaml/package.json ] || \
+		if [ -x $(NODE) ]; then \
+			cd tools/doc && ../../$(NODE) ../../$(NPM) install; \
+		else \
+			cd tools/doc && node ../../$(NPM) install; \
+		fi
 	[ -x $(NODE) ] && $(NODE) $(gen-json) || node $(gen-json)
 
 # check if ./node is actually set, else use user pre-installed binary
 gen-html = tools/doc/generate.js --node-version=$(FULLVERSION) --format=html --template=doc/template.html $< > $@
 out/doc/api/%.html: doc/api/%.md
+	[ -e tools/doc/node_modules/js-yaml/package.json ] || \
+		[ -e tools/eslint/node_modules/js-yaml/package.json ] || \
+		if [ -x $(NODE) ]; then \
+			cd tools/doc && ../../$(NODE) ../../$(NPM) install; \
+		else \
+			cd tools/doc && node ../../$(NPM) install; \
+		fi
 	[ -x $(NODE) ] && $(NODE) $(gen-html) || node $(gen-html)
 
 docopen: out/doc/api/all.html
@@ -432,7 +455,8 @@ PACKAGEMAKER ?= /Developer/Applications/Utilities/PackageMaker.app/Contents/MacO
 PKGDIR=out/dist-osx
 
 release-only:
-	@if `grep -q REPLACEME doc/api/*.md`; then \
+	@if [ "$(DISTTYPE)" != "nightly" ] && [ "$(DISTTYPE)" != "next-nightly" ] && \
+		`grep -q REPLACEME doc/api/*.md`; then \
 		echo 'Please update Added: tags in the documentation first.' ; \
 		exit 1 ; \
 	fi
@@ -644,8 +668,8 @@ bench-idle:
 	$(NODE) benchmark/idle_clients.js &
 
 jslint:
-	$(NODE) tools/eslint/bin/eslint.js benchmark lib src test tools/doc \
-	  tools/eslint-rules --rulesdir tools/eslint-rules
+	$(NODE) tools/eslint/bin/eslint.js benchmark lib src test tools \
+	  --rulesdir tools/eslint-rules
 
 CPPLINT_EXCLUDE ?=
 CPPLINT_EXCLUDE += src/node_root_certs.h
@@ -668,7 +692,16 @@ cpplint:
 
 lint: jslint cpplint
 
+CONFLICT_RE=^>>>>>>> [0-9A-Fa-f]+|^<<<<<<< [A-Za-z]+
 lint-ci: lint
+	@if ! ( grep -IEqrs "$(CONFLICT_RE)" benchmark deps doc lib src test tools ) \
+		&& ! ( find . -maxdepth 1 -type f | xargs grep -IEqs "$(CONFLICT_RE)" ); then \
+		exit 0 ; \
+	else \
+		echo "" >&2 ; \
+		echo "Conflict marker detected in one or more files. Please fix them first." >&2 ; \
+		exit 1 ; \
+	fi
 
 .PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean \
 	check uninstall install install-includes install-bin all staticlib \

@@ -80,6 +80,8 @@ v8::Local<v8::Object> AddressToJS(
 template <typename T, int (*F)(const typename T::HandleType*, sockaddr*, int*)>
 void GetSockOrPeerName(const v8::FunctionCallbackInfo<v8::Value>& args) {
   T* const wrap = Unwrap<T>(args.Holder());
+  if (wrap == nullptr)
+    return args.GetReturnValue().Set(UV_EBADF);
   CHECK(args[0]->IsObject());
   sockaddr_storage storage;
   int addrlen = sizeof(storage);
@@ -158,24 +160,6 @@ inline bool IsLittleEndian() {
 
 inline bool IsBigEndian() {
   return GetEndianness() == kBigEndian;
-}
-
-// parse index for external array data
-inline MUST_USE_RESULT bool ParseArrayIndex(v8::Local<v8::Value> arg,
-                                            size_t def,
-                                            size_t* ret) {
-  if (arg->IsUndefined()) {
-    *ret = def;
-    return true;
-  }
-
-  int32_t tmp_i = arg->Int32Value();
-
-  if (tmp_i < 0)
-    return false;
-
-  *ret = static_cast<size_t>(tmp_i);
-  return true;
 }
 
 void ThrowError(v8::Isolate* isolate, const char* errmsg);

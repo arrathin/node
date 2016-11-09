@@ -41,6 +41,12 @@ assert.equal(util.inspect(Object.create({},
   '{ visible: 1 }'
 );
 
+{
+  const regexp = /regexp/;
+  regexp.aprop = 42;
+  assert.strictEqual(util.inspect({a: regexp}, false, 0), '{ a: /regexp/ }');
+}
+
 // Due to the hash seed randomization it's not deterministic the order that
 // the following ways this hash is displayed.
 // See http://codereview.chromium.org/9124004/
@@ -98,6 +104,11 @@ assert.equal(util.inspect(value), '[ 1, 2, 3, growingLength: [Getter] ]');
 value = function() {};
 value.aprop = 42;
 assert.equal(util.inspect(value), '{ [Function] aprop: 42 }');
+
+// Anonymous function with properties
+value = (() => function() {})();
+value.aprop = 42;
+assert.strictEqual(util.inspect(value), '{ [Function] aprop: 42 }');
 
 // Regular expressions with properties
 value = /123/ig;
@@ -333,6 +344,7 @@ test_lines({
 
 // test boxed primitives output the correct values
 assert.equal(util.inspect(new String('test')), '[String: \'test\']');
+assert.equal(util.inspect(Object(Symbol('test'))), '[Symbol: Symbol(test)]');
 assert.equal(util.inspect(new Boolean(false)), '[Boolean: false]');
 assert.equal(util.inspect(new Boolean(true)), '[Boolean: true]');
 assert.equal(util.inspect(new Number(0)), '[Number: 0]');
@@ -511,5 +523,5 @@ checkAlignment(new Map(big_array.map(function(y) { return [y, null]; })));
 
 {
   const x = Object.create(null);
-  assert.equal(util.inspect(x), '{}');
+  assert.strictEqual(util.inspect(x), '{}');
 }

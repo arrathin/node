@@ -75,10 +75,10 @@ does not align with the project team. Node.js has two IRC channels,
 
 ### Step 2: Branch
 
-Create a feature branch and start hacking:
+Create a branch and start hacking:
 
 ```text
-$ git checkout -b my-feature-branch -t origin/master
+$ git checkout -b my-branch -t origin/master
 ```
 
 ### Step 3: Commit
@@ -136,7 +136,6 @@ $ git fetch upstream
 $ git rebase upstream/master
 ```
 
-
 ### Step 5: Test
 
 Bug fixes and features **should come with tests**. Add your tests in the
@@ -144,15 +143,28 @@ Bug fixes and features **should come with tests**. Add your tests in the
 project, see this [guide](./doc/guides/writing_tests.md). Looking at other tests
 to see how they should be structured can also help.
 
+To run the tests on Unix / OS X:
+
 ```text
 $ ./configure && make -j8 test
 ```
 
+Windows:
+
+```text
+> vcbuild test
+```
+
+(See the [BUILDING.md](./BUILDING.md) for more details.)
+
 Make sure the linter is happy and that all tests pass. Please, do not submit
 patches that fail either check.
 
-Running `make test` will run the linter as well unless one or more tests fail.
-If you want to run the linter without running tests, use `make lint`.
+Running `make test`/`vcbuild test` will run the linter as well unless one or
+more tests fail.
+
+If you want to run the linter without running tests, use
+`make lint`/`vcbuild jslint`.
 
 If you are updating tests and just want to run a single test to check it, you
 can use this syntax to run it exactly as the test harness would:
@@ -173,15 +185,15 @@ core modules.
 ### Step 6: Push
 
 ```text
-$ git push origin my-feature-branch
+$ git push origin my-branch
 ```
 
-Go to https://github.com/yourusername/node and select your feature branch.
+Go to https://github.com/yourusername/node and select your branch.
 Click the 'Pull Request' button and fill out the form.
 
 Pull requests are usually reviewed within a few days. If there are comments
 to address, apply your changes in a separate commit and push that to your
-feature branch. Post a comment in the pull request afterwards; GitHub does
+branch. Post a comment in the pull request afterwards; GitHub does
 not send out notifications when you add commits.
 
 <a id="developers-certificate-of-origin"></a>

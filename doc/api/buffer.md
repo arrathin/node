@@ -1,6 +1,6 @@
 # Buffer
 
-    Stability: 2 - Stable
+> Stability: 2 - Stable
 
 Prior to the introduction of `TypedArray` in ECMAScript 2015 (ES6), the
 JavaScript language had no mechanism for reading or manipulating streams
@@ -595,7 +595,7 @@ console.log(bufA.length);
 
 ### Class Method: Buffer.from(array)
 <!-- YAML
-added: v3.0.0
+added: v4.5.0
 -->
 
 * `array` {Array}
@@ -643,7 +643,7 @@ A `TypeError` will be thrown if `arrayBuffer` is not an `ArrayBuffer`.
 
 ### Class Method: Buffer.from(buffer)
 <!-- YAML
-added: v3.0.0
+added: v4.5.0
 -->
 
 * `buffer` {Buffer}
@@ -757,7 +757,7 @@ console.log(buf1.compare(buf1));
 console.log(buf1.compare(buf2));
   // Prints: -1
 console.log(buf1.compare(buf3));
-  // Prints: 1
+  // Prints: -1
 console.log(buf2.compare(buf1));
   // Prints: 1
 console.log(buf2.compare(buf3));
@@ -890,7 +890,8 @@ Operates similar to [`Array#indexOf()`][] in that it returns either the
 starting index position of `value` in Buffer or `-1` if the Buffer does not
 contain `value`. The `value` can be a String, Buffer or Number. Strings are by
 default interpreted as UTF8. Buffers will use the entire Buffer (to compare a
-partial Buffer use [`buf.slice()`][]).  Numbers can range from 0 to 255.
+partial Buffer use [`buf.slice()`][]). Numbers will be interpreted as unsigned 8-bit
+integer values between `0` and `255`.
 
 ```js
 const buf = new Buffer('this is a buffer');

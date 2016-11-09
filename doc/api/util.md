@@ -1,6 +1,6 @@
 # util
 
-    Stability: 2 - Stable
+> Stability: 2 - Stable
 
 These functions are in the module `'util'`. Use `require('util')` to
 access them.
@@ -14,11 +14,14 @@ are unnecessary for Node.js's internal functionality.
 
 ## util.debug(string)
 
-    Stability: 0 - Deprecated: Use [`console.error()`][] instead.
+> Stability: 0 - Deprecated: Use [`console.error()`][] instead.
 
 Deprecated predecessor of `console.error`.
 
 ## util.debuglog(section)
+<!-- YAML
+added: v0.11.3
+-->
 
 * `section` {String} The section of the program to be debugged
 * Returns: {Function} The logging function
@@ -52,13 +55,16 @@ You may separate multiple `NODE_DEBUG` environment variables with a
 comma.  For example, `NODE_DEBUG=fs,net,tls`.
 
 ## util.deprecate(function, string)
+<!-- YAML
+added: v0.8.0
+-->
 
 Marks that a method should not be used any more.
 
 ```js
 const util = require('util');
 
-exports.puts = util.deprecate(() => {
+exports.puts = util.deprecate(function() {
   for (var i = 0, len = arguments.length; i < len; ++i) {
     process.stdout.write(arguments[i] + '\n');
   }
@@ -82,12 +88,19 @@ when the deprecated API is used.  Configurable at run-time through the
 `process.throwDeprecation` takes precedence over `process.traceDeprecation`.
 
 ## util.error([...])
+<!-- YAML
+added: v0.3.0
+deprecated: v0.11.3
+-->
 
-    Stability: 0 - Deprecated: Use [`console.error()`][] instead.
+> Stability: 0 - Deprecated: Use [`console.error()`][] instead.
 
 Deprecated predecessor of `console.error`.
 
 ## util.format(format[, ...])
+<!-- YAML
+added: v0.5.3
+-->
 
 Returns a formatted string using the first argument as a `printf`-like format.
 
@@ -125,6 +138,9 @@ util.format(1, 2, 3); // '1 2 3'
 ```
 
 ## util.inherits(constructor, superConstructor)
+<!-- YAML
+added: v0.3.0
+-->
 
 Inherit the prototype methods from one [constructor][] into another.  The
 prototype of `constructor` will be set to a new object created from
@@ -159,6 +175,9 @@ stream.write('It works!'); // Received data: "It works!"
 ```
 
 ## util.inspect(object[, options])
+<!-- YAML
+added: v0.3.0
+-->
 
 Return a string representation of `object`, which is useful for debugging.
 
@@ -249,8 +268,12 @@ util.inspect(obj);
 ```
 
 ## util.isArray(object)
+<!-- YAML
+added: v0.6.0
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Internal alias for [`Array.isArray`][].
 
@@ -268,8 +291,12 @@ util.isArray({})
 ```
 
 ## util.isBoolean(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is a `Boolean`. Otherwise, returns `false`.
 
@@ -285,8 +312,12 @@ util.isBoolean(false)
 ```
 
 ## util.isBuffer(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated: Use [`Buffer.isBuffer()`][] instead.
+> Stability: 0 - Deprecated: Use [`Buffer.isBuffer()`][] instead.
 
 Returns `true` if the given "object" is a `Buffer`. Otherwise, returns `false`.
 
@@ -302,8 +333,12 @@ util.isBuffer(new Buffer('hello world'))
 ```
 
 ## util.isDate(object)
+<!-- YAML
+added: v0.6.0
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is a `Date`. Otherwise, returns `false`.
 
@@ -319,8 +354,12 @@ util.isDate({})
 ```
 
 ## util.isError(object)
+<!-- YAML
+added: v0.6.0
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is an [`Error`][]. Otherwise, returns
 `false`.
@@ -337,8 +376,12 @@ util.isError({ name: 'Error', message: 'an error occurred' })
 ```
 
 ## util.isFunction(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is a `Function`. Otherwise, returns
 `false`.
@@ -358,8 +401,12 @@ util.isFunction(Bar)
 ```
 
 ## util.isNull(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is strictly `null`. Otherwise, returns
 `false`.
@@ -376,8 +423,12 @@ util.isNull(null)
 ```
 
 ## util.isNullOrUndefined(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is `null` or `undefined`. Otherwise,
 returns `false`.
@@ -394,8 +445,12 @@ util.isNullOrUndefined(null)
 ```
 
 ## util.isNumber(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is a `Number`. Otherwise, returns `false`.
 
@@ -413,8 +468,12 @@ util.isNumber(NaN)
 ```
 
 ## util.isObject(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is strictly an `Object` __and__ not a
 `Function`. Otherwise, returns `false`.
@@ -433,8 +492,12 @@ util.isObject(function(){})
 ```
 
 ## util.isPrimitive(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is a primitive type. Otherwise, returns
 `false`.
@@ -463,8 +526,12 @@ util.isPrimitive(new Date())
 ```
 
 ## util.isRegExp(object)
+<!-- YAML
+added: v0.6.0
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is a `RegExp`. Otherwise, returns `false`.
 
@@ -480,8 +547,12 @@ util.isRegExp({})
 ```
 
 ## util.isString(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is a `String`. Otherwise, returns `false`.
 
@@ -499,8 +570,12 @@ util.isString(5)
 ```
 
 ### util.isSymbol(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is a `Symbol`. Otherwise, returns `false`.
 
@@ -516,8 +591,12 @@ util.isSymbol(Symbol('foo'))
 ```
 
 ## util.isUndefined(object)
+<!-- YAML
+added: v0.11.5
+deprecated: v4.0.0
+-->
 
-    Stability: 0 - Deprecated
+> Stability: 0 - Deprecated
 
 Returns `true` if the given "object" is `undefined`. Otherwise, returns `false`.
 
@@ -534,26 +613,42 @@ util.isUndefined(null)
 ```
 
 ## util.log(string)
+<!-- YAML
+added: v0.3.0
+deprecated: v6.0.0
+-->
 
 Output with timestamp on `stdout`.
 
     require('util').log('Timestamped message.');
 
 ## util.print([...])
+<!-- YAML
+added: v0.3.0
+deprecated: v0.11.3
+-->
 
-    Stability: 0 - Deprecated: Use [`console.log()`][] instead.
+> Stability: 0 - Deprecated: Use [`console.log()`][] instead.
 
 Deprecated predecessor of `console.log`.
 
 ## util.pump(readableStream, writableStream[, callback])
+<!-- YAML
+added: v0.3.0
+deprecated: v0.9.1
+-->
 
-    Stability: 0 - Deprecated: Use readableStream.pipe(writableStream)
+> Stability: 0 - Deprecated: Use readableStream.pipe(writableStream)
 
 Deprecated predecessor of `stream.pipe()`.
 
 ## util.puts([...])
+<!-- YAML
+added: v0.3.0
+deprecated: v0.11.3
+-->
 
-    Stability: 0 - Deprecated: Use [`console.log()`][] instead.
+> Stability: 0 - Deprecated: Use [`console.log()`][] instead.
 
 Deprecated predecessor of `console.log`.
 

@@ -189,10 +189,16 @@ Once you have produced builds that you're happy with, create a new tag. By waiti
 
 Tag summaries have a predictable format, look at a recent tag to see, `git tag -v v6.0.0`. The message should look something like `2016-04-26 Node.js v6.0.0 (Current) Release`.
 
+Install `git-secure-tag` npm module:
+
+```console
+$ npm install -g git-secure-tag
+```
+
 Create a tag using the following command:
 
-```
-$ git tag <vx.y.z> <commit-sha> -sm 'YYYY-MM-DD Node.js vx.y.z (Release Type) Release'
+```sh
+$ git secure-tag <vx.y.z> <commit-sha> -sm 'YYYY-MM-DD Node.js vx.y.z (Release Type) Release'
 ```
 
 The tag **must** be signed using the GPG key that's listed for you on the project README.
@@ -261,14 +267,21 @@ Create a new blog post by running the [nodejs.org release-post.js script](https:
 * You can add a short blurb just under the main heading if you want to say something important, otherwise the text should be publication ready.
 * The links to the download files won't be complete unless you waited for the ARMv6 builds. Any downloads that are missing will have `*Coming soon*` next to them. It's your responsibility to manually update these later when you have the outstanding builds.
 * The SHASUMS256.txt.asc content is at the bottom of the post. When you update the list of tarballs you'll need to copy/paste the new contents of this file to reflect those changes.
-* Always use pull-requests on the nodejs.org repo. Be respectful of that working group, but you shouldn't have to wait for PR sign-off. Opening a PR and merging it immediately _should_ be fine.
+* Always use pull-requests on the nodejs.org repo. Be respectful of that working group, but you shouldn't have to wait for PR sign-off. Opening a PR and merging it immediately _should_ be fine. However, please follow the following commit message format:
+```
+Blog: vX.Y.Z release post
+
+Refs: <full URL to your release proposal PR>
+```
 * Changes to `master` on the nodejs.org repo will trigger a new build of nodejs.org so your changes should appear in a few minutes after pushing.
 
 ### 15. Announce
 
-The nodejs.org website will automatically rebuild and include the new version. You simply need to announce the build, preferably via Twitter with a message such as:
+The nodejs.org website will automatically rebuild and include the new version. To announce the build on Twitter through the official @nodejs account, email [pr@nodejs.org](pr@nodejs.org) with a message such as:
 
 > v5.8.0 of @nodejs is out: https://nodejs.org/en/blog/release/v5.8.0/ … something here about notable changes
+
+To ensure communication goes out with the timing of the blog post, please allow 24 hour prior notice. If known, please include the date and time the release will be shared with the community in the email to coordinate these announcements.
 
 ### 16. Cleanup
 

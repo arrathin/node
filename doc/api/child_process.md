@@ -1,6 +1,6 @@
 # Child Process
 
-    Stability: 2 - Stable
+> Stability: 2 - Stable
 
 The `child_process` module provides the ability to spawn child processes in
 a manner that is similar, but not identical, to [`popen(3)`][]. This capability
@@ -814,7 +814,7 @@ const spawn = require('child_process').spawn;
 
 let child = spawn('sh', ['-c',
   `node -e "setInterval(() => {
-      console.log(process.pid + 'is alive')
+      console.log(process.pid, 'is alive')
     }, 500);"`
   ], {
     stdio: ['inherit', 'inherit', 'inherit']

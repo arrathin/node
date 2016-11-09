@@ -1,6 +1,6 @@
 # Readline
 
-    Stability: 2 - Stable
+> Stability: 2 - Stable
 
 To use this module, do `require('readline')`. Readline allows reading of a
 stream (such as [`process.stdin`][]) on a line-by-line basis.
@@ -315,6 +315,9 @@ rl.on('line', (line) => {
   console.log('Line from file:', line);
 });
 ```
+
+*Note*: The `rl.write()` method will write the data to the `readline`
+Interface's `input` *as if it were provided by the user*.
 
 ## readline.clearLine(stream, dir)
 <!-- YAML

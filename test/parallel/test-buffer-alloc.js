@@ -1060,6 +1060,19 @@ assert.throws(function() {
   Buffer.allocUnsafe(0xFFFFFFFFF);
 }, RangeError);
 
+assert(Buffer.alloc.toString().length < 600, 'Buffer.alloc is not inlineable');
+
+// https://github.com/nodejs/node/issues/9226
+{
+  const buf = Buffer.alloc(4, 'YQ==', 'base64');
+  const expectedBuf = Buffer.from([97, 97, 97, 97]);
+  assert(buf.equals(expectedBuf));
+}
+{
+  const buf = Buffer.alloc(4, 'ab', 'ascii');
+  const expectedBuf = Buffer.from([97, 98, 97, 98]);
+  assert(buf.equals(expectedBuf));
+}
 
 // attempt to overflow buffers, similar to previous bug in array buffers
 assert.throws(function() {
@@ -1443,6 +1456,13 @@ assert.equal(Buffer.prototype.parent, undefined);
 assert.equal(Buffer.prototype.offset, undefined);
 assert.equal(SlowBuffer.prototype.parent, undefined);
 assert.equal(SlowBuffer.prototype.offset, undefined);
+
+// ParseArrayIndex() should reject values that don't fit in a 32 bits size_t.
+assert.throws(() => {
+  const a = Buffer(1).fill(0);
+  const b = Buffer(1).fill(0);
+  a.copy(b, 0, 0x100000000, 0x100000001);
+}), /out of range index/;
 
 // Unpooled buffer (replaces SlowBuffer)
 const ubuf = Buffer.allocUnsafeSlow(10);
