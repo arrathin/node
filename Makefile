@@ -13,7 +13,7 @@ OSTYPE := $(shell uname -s | tr '[A-Z]' '[a-z]')
 
 # Flags for packaging.
 BUILD_DOWNLOAD_FLAGS ?= --download=all
-BUILD_INTL_FLAGS ?= --with-intl=small-icu
+BUILD_INTL_FLAGS ?=
 BUILD_RELEASE_FLAGS ?= $(BUILD_DOWNLOAD_FLAGS) $(BUILD_INTL_FLAGS)
 NODE ?= ./node
 
@@ -472,7 +472,7 @@ endif
 $(BINARYTAR): release-only
 	rm -rf $(BINARYNAME)
 	rm -rf out/deps out/Release
-	$(PYTHON) ./configure --prefix=/ --download=all --with-intl=small-icu \
+	$(PYTHON) ./configure --prefix=/ --download=all \
 		--without-snapshot --dest-cpu=$(DESTCPU) --tag=$(TAG) $(CONFIG_FLAGS)
 	$(MAKE) install DESTDIR=$(BINARYNAME) V=$(V) PORTABLE=1
 	cp README.md $(BINARYNAME)
@@ -525,7 +525,7 @@ endif
 $(PKGSRC): release-only
 	rm -rf dist out
 	$(PYTHON) configure --prefix=/ --without-snapshot --download=all \
-		--with-intl=small-icu --dest-cpu=$(DESTCPU) --tag=$(TAG) \
+		--dest-cpu=$(DESTCPU) --tag=$(TAG) \
 		$(CONFIG_FLAGS)
 	$(MAKE) install DESTDIR=dist
 	(cd dist; find * -type f | sort) > packlist
