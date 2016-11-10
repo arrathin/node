@@ -74,3 +74,6 @@ deps/zlib/zlib.target.mk
 # test artifacts
 tools/faketime
 icu_config.gypi
+
+# temporary v8z
+deps/v8z
