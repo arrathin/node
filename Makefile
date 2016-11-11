@@ -9,7 +9,7 @@ PREFIX ?= /usr/local
 FLAKY_TESTS ?= run
 STAGINGSERVER ?= node-www
 
-OSTYPE := $(shell uname -s | tr '[A-Z]' '[a-z]')
+OSTYPE := $(shell uname -s | tr '[A-Z]' '[a-z]' | tr -d '/')
 
 # Flags for packaging.
 BUILD_DOWNLOAD_FLAGS ?= --download=all
@@ -335,10 +335,23 @@ ifeq ($(DESTCPU),ia32)
 override DESTCPU=x86
 endif
 
+ifeq ($(OSTYPE),os390)
+TAR=pax
+TAROPTS=-w -x pax -ofrom=ISO8859-1,to=IBM-1047,fromfiletag -f
+GZIP=compress
+GZIPOPTS=-c -f
+GZIPEXT=Z
+else
+TAR=tar
+TAROPTS=-cf
+GZIP=gzip
+GZIPOPTS=-c -f -9
+GZIPEXT=gz
+endif
 TARNAME=node-$(FULLVERSION)
-TARBALL=$(TARNAME).tar
+TARBALL=$(TARNAME).$(TAR)
 BINARYNAME=$(TARNAME)-$(OSTYPE)-$(ARCH)
-BINARYTAR=$(BINARYNAME).tar
+BINARYTAR=$(BINARYNAME).$(TAR)
 # OSX doesn't have xz installed by default, http://macpkg.sourceforge.net/
 XZ=$(shell which xz > /dev/null 2>&1; echo $$?)
 XZ_COMPRESSION ?= 9
@@ -478,13 +491,13 @@ $(BINARYTAR): release-only
 	cp README.md $(BINARYNAME)
 	cp LICENSE $(BINARYNAME)
 	cp ChangeLog $(BINARYNAME)
-	tar -cf $(BINARYNAME).tar $(BINARYNAME)
+	$(TAR) $(TAROPTS) $(BINARYNAME).$(TAR) $(BINARYNAME)
 	rm -rf $(BINARYNAME)
-	gzip -c -f -9 $(BINARYNAME).tar > $(BINARYNAME).tar.gz
+	$(GZIP) $(GZIPOPTS) $(BINARYNAME).$(TAR) > $(BINARYNAME).$(TAR).$(GZIPEXT)
 ifeq ($(XZ), 0)
-	xz -c -f -$(XZ_COMPRESSION) $(BINARYNAME).tar > $(BINARYNAME).tar.xz
+	xz -c -f -$(XZ_COMPRESSION) $(BINARYNAME).$(TAR) > $(BINARYNAME).$(TAR).xz
 endif
-	rm $(BINARYNAME).tar
+	rm $(BINARYNAME).$(TAR)
 
 binary: $(BINARYTAR)
 
