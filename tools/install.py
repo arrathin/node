@@ -171,7 +171,7 @@ def headers(action):
     action(['deps/openssl/config/opensslconf.h'], 'include/node/openssl/')
 
   if 'false' == variables.get('node_shared_v8'):
-    subdir_files('deps/v8/include', 'include/node/', action)
+    subdir_files('deps/v8z/include', 'include/node/', action)
 
   if 'false' == variables.get('node_shared_zlib'):
     action([

@@ -429,7 +429,21 @@
             '-qxplink',
             '-q64',
           ],
-          'ldflags': ['-qxplink -q64']
+          'ldflags': [
+            '-Wl,DLL',
+            '-qxplink',
+            '-q64'
+          ],
+          'actions': [
+            {
+              'action_name': 'sidedeck',
+              'inputs': [ 'out/node.x' ], 
+              'outputs': [ 'node.x' ],
+              'action': [
+                'cp', '<@(_inputs)', '<(PRODUCT_DIR)/<@(_outputs)'
+              ],
+            }
+          ]
         }],
 
       ],

@@ -2173,6 +2173,9 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   Local<String> exports_string = env->exports_string();
   Local<Object> exports = module->Get(exports_string)->ToObject();
 
+#ifdef __MVS__
+  __a2e_s(*filename);
+#endif
   if (uv_dlopen(*filename, &lib)) {
     Local<String> errmsg = OneByteString(env->isolate(), uv_dlerror(&lib));
 #ifdef _WIN32

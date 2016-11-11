@@ -24,10 +24,12 @@
 
 #ifdef _WIN32
 # ifndef BUILDING_NODE_EXTENSION
-#   define NODE_EXTERN __declspec(dllexport)
+#   define NODE_EXTERN(type)  __declspec(dllexport) type
 # else
-#   define NODE_EXTERN __declspec(dllimport)
+#   define NODE_EXTERN(type)  __declspec(dllimport) type
 # endif
+#elif defined(__MVS__)
+# define NODE_EXTERN(type) type _Export
 #else
 # define NODE_EXTERN /* nothing */
 #endif
@@ -70,12 +72,12 @@ struct uv_loop_s;
 // terminally confused when it's done in node_internals.h
 namespace node {
 
-NODE_EXTERN v8::Local<v8::Value> ErrnoException(v8::Isolate* isolate,
+NODE_EXTERN(v8::Local<v8::Value>) ErrnoException(v8::Isolate* isolate,
                                                 int errorno,
                                                 const char* syscall = NULL,
                                                 const char* message = NULL,
                                                 const char* path = NULL);
-NODE_EXTERN v8::Local<v8::Value> UVException(v8::Isolate* isolate,
+NODE_EXTERN(v8::Local<v8::Value>) UVException(v8::Isolate* isolate,
                                              int errorno,
                                              const char* syscall = NULL,
                                              const char* message = NULL,
@@ -116,19 +118,19 @@ inline v8::Local<v8::Value> UVException(int errorno,
  * cb, you will appear to leak 4-bytes for every invocation. Take heed.
  */
 
-NODE_EXTERN v8::Handle<v8::Value> MakeCallback(
+NODE_EXTERN(v8::Handle<v8::Value>) MakeCallback(
     v8::Isolate* isolate,
     v8::Handle<v8::Object> recv,
     const char* method,
     int argc,
     v8::Handle<v8::Value>* argv);
-NODE_EXTERN v8::Handle<v8::Value> MakeCallback(
+NODE_EXTERN(v8::Handle<v8::Value>) MakeCallback(
     v8::Isolate* isolate,
     v8::Handle<v8::Object> recv,
     v8::Handle<v8::String> symbol,
     int argc,
     v8::Handle<v8::Value>* argv);
-NODE_EXTERN v8::Handle<v8::Value> MakeCallback(
+NODE_EXTERN(v8::Handle<v8::Value>) MakeCallback(
     v8::Isolate* isolate,
     v8::Handle<v8::Object> recv,
     v8::Handle<v8::Function> callback,
@@ -170,29 +172,29 @@ typedef intptr_t ssize_t;
 
 namespace node {
 
-NODE_EXTERN extern bool no_deprecation;
+NODE_EXTERN(extern bool) no_deprecation;
 
-NODE_EXTERN int Start(int argc, char *argv[]);
-NODE_EXTERN void Init(int* argc,
+NODE_EXTERN(int) Start(int argc, char *argv[]);
+NODE_EXTERN(void) Init(int* argc,
                       const char** argv,
                       int* exec_argc,
                       const char*** exec_argv);
 
 class Environment;
 
-NODE_EXTERN Environment* CreateEnvironment(v8::Isolate* isolate,
+NODE_EXTERN(Environment*) CreateEnvironment(v8::Isolate* isolate,
                                            struct uv_loop_s* loop,
                                            v8::Handle<v8::Context> context,
                                            int argc,
                                            const char* const* argv,
                                            int exec_argc,
                                            const char* const* exec_argv);
-NODE_EXTERN void LoadEnvironment(Environment* env);
+NODE_EXTERN(void) LoadEnvironment(Environment* env);
 
 // NOTE: Calling this is the same as calling
 // CreateEnvironment() + LoadEnvironment() from above.
 // `uv_default_loop()` will be passed as `loop`.
-NODE_EXTERN Environment* CreateEnvironment(v8::Isolate* isolate,
+NODE_EXTERN(Environment*) CreateEnvironment(v8::Isolate* isolate,
                                            v8::Handle<v8::Context> context,
                                            int argc,
                                            const char* const* argv,
@@ -200,9 +202,9 @@ NODE_EXTERN Environment* CreateEnvironment(v8::Isolate* isolate,
                                            const char* const* exec_argv);
 
 
-NODE_EXTERN void EmitBeforeExit(Environment* env);
-NODE_EXTERN int EmitExit(Environment* env);
-NODE_EXTERN void RunAtExit(Environment* env);
+NODE_EXTERN(void) EmitBeforeExit(Environment* env);
+NODE_EXTERN(int) EmitExit(Environment* env);
+NODE_EXTERN(void) RunAtExit(Environment* env);
 
 /* Converts a unixtime to V8 Date */
 #define NODE_UNIXTIME_V8(t) v8::Date::New(v8::Isolate::GetCurrent(),          \
@@ -267,7 +269,7 @@ NODE_DEPRECATED("Use ParseEncoding(isolate, ...)",
   return ParseEncoding(v8::Isolate::GetCurrent(), encoding_v, _default);
 })
 
-NODE_EXTERN void FatalException(v8::Isolate* isolate,
+NODE_EXTERN(void) FatalException(v8::Isolate* isolate,
                                 const v8::TryCatch& try_catch);
 
 NODE_DEPRECATED("Use FatalException(isolate, ...)",
@@ -275,7 +277,7 @@ NODE_DEPRECATED("Use FatalException(isolate, ...)",
   return FatalException(v8::Isolate::GetCurrent(), try_catch);
 })
 
-NODE_EXTERN v8::Local<v8::Value> Encode(v8::Isolate* isolate,
+NODE_EXTERN(v8::Local<v8::Value>) Encode(v8::Isolate* isolate,
                                         const void* buf,
                                         size_t len,
                                         enum encoding encoding = BINARY);
@@ -288,7 +290,7 @@ NODE_DEPRECATED("Use Encode(isolate, ...)",
 })
 
 // Returns -1 if the handle was not valid for decoding
-NODE_EXTERN ssize_t DecodeBytes(v8::Isolate* isolate,
+NODE_EXTERN(ssize_t) DecodeBytes(v8::Isolate* isolate,
                                 v8::Handle<v8::Value>,
                                 enum encoding encoding = BINARY);
 NODE_DEPRECATED("Use DecodeBytes(isolate, ...)",
@@ -299,7 +301,7 @@ NODE_DEPRECATED("Use DecodeBytes(isolate, ...)",
 })
 
 // returns bytes written.
-NODE_EXTERN ssize_t DecodeWrite(v8::Isolate* isolate,
+NODE_EXTERN(ssize_t) DecodeWrite(v8::Isolate* isolate,
                                 char* buf,
                                 size_t buflen,
                                 v8::Handle<v8::Value>,
@@ -313,7 +315,7 @@ NODE_DEPRECATED("Use DecodeWrite(isolate, ...)",
 })
 
 #ifdef _WIN32
-NODE_EXTERN v8::Local<v8::Value> WinapiErrnoException(
+NODE_EXTERN(v8::Local<v8::Value>) WinapiErrnoException(
     v8::Isolate* isolate,
     int errorno,
     const char *syscall = NULL,
@@ -364,7 +366,7 @@ struct node_module {
 node_module* get_builtin_module(const char *name);
 node_module* get_linked_module(const char *name);
 
-extern "C" NODE_EXTERN void node_module_register(void* mod);
+extern "C" NODE_EXTERN(void) node_module_register(void* mod);
 
 #ifdef _WIN32
 # define NODE_MODULE_EXPORT __declspec(dllexport)
@@ -410,9 +412,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       priv,                                                           \
       NULL                                                            \
     };                                                                \
-    NODE_C_CTOR(_register_ ## modname) {                              \
-      node_module_register(&_module);                                 \
-    }                                                                 \
+    NODE_C_CTOR(_register_ ## modname)                                \
   }
 
 #define NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, priv, flags)    \
@@ -449,7 +449,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
 /* Called after the event loop exits but before the VM is disposed.
  * Callbacks are run in reverse order of registration, i.e. newest first.
  */
-NODE_EXTERN void AtExit(void (*cb)(void* arg), void* arg = 0);
+NODE_EXTERN(void) AtExit(void (*cb)(void* arg), void* arg = 0);
 
 }  // namespace node
 

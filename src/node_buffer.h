@@ -35,21 +35,21 @@ namespace Buffer {
 
 static const unsigned int kMaxLength = smalloc::kMaxLength;
 
-NODE_EXTERN bool HasInstance(v8::Handle<v8::Value> val);
-NODE_EXTERN bool HasInstance(v8::Handle<v8::Object> val);
-NODE_EXTERN char* Data(v8::Handle<v8::Value> val);
-NODE_EXTERN char* Data(v8::Handle<v8::Object> val);
-NODE_EXTERN size_t Length(v8::Handle<v8::Value> val);
-NODE_EXTERN size_t Length(v8::Handle<v8::Object> val);
+NODE_EXTERN(bool) HasInstance(v8::Handle<v8::Value> val);
+NODE_EXTERN(bool) HasInstance(v8::Handle<v8::Object> val);
+NODE_EXTERN(char*) Data(v8::Handle<v8::Value> val);
+NODE_EXTERN(char*) Data(v8::Handle<v8::Object> val);
+NODE_EXTERN(size_t) Length(v8::Handle<v8::Value> val);
+NODE_EXTERN(size_t) Length(v8::Handle<v8::Object> val);
 
 // public constructor
-NODE_EXTERN v8::Local<v8::Object> New(v8::Isolate* isolate, size_t length);
+NODE_EXTERN(v8::Local<v8::Object>) New(v8::Isolate* isolate, size_t length);
 NODE_DEPRECATED("Use New(isolate, ...)",
                 inline v8::Local<v8::Object> New(size_t length) {
   return New(v8::Isolate::GetCurrent(), length);
 })
 // public constructor from string
-NODE_EXTERN v8::Local<v8::Object> New(v8::Isolate* isolate,
+NODE_EXTERN(v8::Local<v8::Object>) New(v8::Isolate* isolate,
                                       v8::Handle<v8::String> string,
                                       enum encoding enc = UTF8);
 NODE_DEPRECATED("Use New(isolate, ...)",
@@ -59,7 +59,7 @@ NODE_DEPRECATED("Use New(isolate, ...)",
 })
 // public constructor - data is copied
 // TODO(trevnorris): should be something like Copy()
-NODE_EXTERN v8::Local<v8::Object> New(v8::Isolate* isolate,
+NODE_EXTERN(v8::Local<v8::Object>) New(v8::Isolate* isolate,
                                       const char* data,
                                       size_t len);
 NODE_DEPRECATED("Use New(isolate, ...)",
@@ -67,7 +67,7 @@ NODE_DEPRECATED("Use New(isolate, ...)",
   return New(v8::Isolate::GetCurrent(), data, len);
 })
 // public constructor - data is used, callback is passed data on object gc
-NODE_EXTERN v8::Local<v8::Object> New(v8::Isolate* isolate,
+NODE_EXTERN(v8::Local<v8::Object>) New(v8::Isolate* isolate,
                                       char* data,
                                       size_t length,
                                       smalloc::FreeCallback callback,
@@ -82,7 +82,7 @@ NODE_DEPRECATED("Use New(isolate, ...)",
 
 // public constructor - data is used.
 // TODO(trevnorris): should be New() for consistency
-NODE_EXTERN v8::Local<v8::Object> Use(v8::Isolate* isolate,
+NODE_EXTERN(v8::Local<v8::Object>) Use(v8::Isolate* isolate,
                                       char* data,
                                       uint32_t len);
 NODE_DEPRECATED("Use Use(isolate, ...)",
