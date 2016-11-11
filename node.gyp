@@ -301,7 +301,7 @@
           ]
         } ],
         # Conditionally include v8 or v8ppc or v8z
-        [ 'v8_postmortem_support=="true" and target_arch not in "ppc ppc64 s390 s390x"', {
+        [ 'v8_postmortem_support=="true" and target_arch not in "ppc ppc64 s390 s390x os390"', {
           'dependencies': [ 'deps/v8/tools/gyp/v8.gyp:postmortem-metadata' ],
           'xcode_settings': {
             'OTHER_LDFLAGS': [
@@ -312,11 +312,11 @@
         [ 'v8_postmortem_support=="true" and target_arch in "ppc ppc64"', {
           'dependencies': [ 'deps/v8ppc/tools/gyp/v8.gyp:postmortem-metadata' ],
         }],
-        [ 'v8_postmortem_support=="true" and target_arch in "s390 s390x"', {
+        [ 'v8_postmortem_support=="true" and target_arch in "s390 s390x os390"', {
           'dependencies': [ 'deps/v8z/tools/gyp/v8.gyp:postmortem-metadata' ],
         }],
         # Conditionally include v8 or v8ppc or v8z
-        [ 'node_shared_v8=="false" and target_arch not in "ppc ppc64 s390 s390x"', {
+        [ 'node_shared_v8=="false" and target_arch not in "ppc ppc64 s390 s390x os390"', {
           'sources': [
             'deps/v8/include/v8.h',
             'deps/v8/include/v8-debug.h',
@@ -330,7 +330,7 @@
           ],
           'dependencies': [ 'deps/v8ppc/tools/gyp/v8.gyp:v8' ],
         }],
-        [ 'node_shared_v8=="false" and target_arch in "s390 s390x"', {
+        [ 'node_shared_v8=="false" and target_arch in "s390 s390x os390"', {
           'sources': [
             'deps/v8z/include/v8.h',
             'deps/v8z/include/v8-debug.h',
@@ -648,17 +648,17 @@
           ]
         } ],
         # Conditionally include v8 or v8ppc or v8z
-        [ 'v8_postmortem_support=="true" and target_arch not in "ppc ppc64 s390 s390x"', {
+        [ 'v8_postmortem_support=="true" and target_arch not in "ppc ppc64 s390 s390x os390"', {
           'dependencies': [ 'deps/v8/tools/gyp/v8.gyp:postmortem-metadata' ],
         }],
         [ 'v8_postmortem_support=="true" and target_arch in "ppc ppc64"', {
           'dependencies': [ 'deps/v8ppc/tools/gyp/v8.gyp:postmortem-metadata' ],
         }],
-        [ 'v8_postmortem_support=="true" and target_arch in "s390 s390x"', {
+        [ 'v8_postmortem_support=="true" and target_arch in "s390 s390x os390"', {
           'dependencies': [ 'deps/v8z/tools/gyp/v8.gyp:postmortem-metadata' ],
         }],
         # Conditionally include v8 or v8ppc or v8z
-        [ 'node_shared_v8=="false" and target_arch not in "ppc ppc64 s390 s390x"', {
+        [ 'node_shared_v8=="false" and target_arch not in "ppc ppc64 s390 s390x os390"', {
           'sources': [
             'deps/v8/include/v8.h',
             'deps/v8/include/v8-debug.h',
@@ -672,7 +672,7 @@
           ],
           'dependencies': [ 'deps/v8ppc/tools/gyp/v8.gyp:v8' ],
         }],
-        [ 'node_shared_v8=="false" and target_arch in "s390 s390x"', {
+        [ 'node_shared_v8=="false" and target_arch in "s390 s390x os390"', {
           'sources': [
             'deps/v8z/include/v8.h',
             'deps/v8z/include/v8-debug.h',
@@ -744,7 +744,7 @@
           ],
         }],
         [
-          'OS=="linux freebsd" and node_shared_v8=="false" and target_arch not in "ppc ppc64 s390 s390x"', {
+          'OS=="linux freebsd" and node_shared_v8=="false" and target_arch not in "ppc ppc64 s390 s390x os390"', {
             'ldflags': [
               '-Wl,--whole-archive <(V8_BASE) -Wl,--no-whole-archive',
             ],
