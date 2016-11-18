@@ -31,7 +31,7 @@
 #elif defined(__MVS__)
 # define NODE_EXTERN(type) type _Export
 #else
-# define NODE_EXTERN /* nothing */
+# define NODE_EXTERN(type) type/* nothing */
 #endif
 
 #ifdef BUILDING_NODE_EXTENSION

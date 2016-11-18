@@ -178,7 +178,7 @@ test-npm-publish: node
 	npm_package_config_publishtest=true ./node deps/npm/test/run.js
 
 test-addons: test-build
-	$(PYTHON) tools/test.py --mode=release addons
+	$(PYTHON) tools/test.py --arch=$(DESTCPU) --mode=release addons
 
 test-timers:
 	$(MAKE) --directory=tools faketime
