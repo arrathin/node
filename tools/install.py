@@ -160,6 +160,9 @@ def headers(action):
   if 'aix' in sys.platform:
     action(['out/Release/node.exp'], 'include/node/')
 
+  if 'os390' in sys.platform:
+    action(['out/node.x'], 'include/node/')
+
   if 'false' == variables.get('node_shared_cares'):
     subdir_files('deps/cares/include', 'include/node/', action)
 

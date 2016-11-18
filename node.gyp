@@ -434,18 +434,7 @@
             '-qxplink',
             '-q64'
           ],
-          'actions': [
-            {
-              'action_name': 'sidedeck',
-              'inputs': [ 'out/node.x' ], 
-              'outputs': [ 'node.x' ],
-              'action': [
-                'cp', '<@(_inputs)', '<(PRODUCT_DIR)/<@(_outputs)'
-              ],
-            }
-          ]
         }],
-
       ],
       'msvs_settings': {
         'VCManifestTool': {
