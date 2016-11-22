@@ -454,7 +454,7 @@ doc-upload: tar
 	scp -pr out/doc/ $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/docs/
 	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/docs.done"
 
-$(TARBALL)-headers: config.gypi release-only
+$(TARBALL)-headers: release-only
 	$(PYTHON) ./configure \
 		--prefix=/ \
 		--dest-cpu=$(DESTCPU) \
