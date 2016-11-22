@@ -426,7 +426,7 @@ $(TARBALL): release-only node doc
 	cp -r out/doc/api/* $(TARNAME)/doc/api/
 	rm -rf $(TARNAME)/deps/v8z/test # too big
 	rm -rf $(TARNAME)/doc/images # too big
-	find $(TARNAME)/ -type l | xargs rm # annoying on windows
+	find $(TARNAME)/ -type l | xargs rm -f # annoying on windows
 	tar -cf $(TARNAME).tar $(TARNAME)
 	rm -rf $(TARNAME)
 	gzip -c -f -9 $(TARNAME).tar > $(TARNAME).tar.gz
@@ -461,7 +461,7 @@ $(TARBALL)-headers: release-only
 		--tag=$(TAG) \
 		$(CONFIG_FLAGS) $(BUILD_RELEASE_FLAGS)
 	HEADERS_ONLY=1 $(PYTHON) tools/install.py install '$(TARNAME)' '/'
-	find $(TARNAME)/ -type l | xargs rm # annoying on windows
+	find $(TARNAME)/ -type l | xargs rm -f # annoying on windows
 	tar -cf $(TARNAME)-headers.tar $(TARNAME)
 	rm -rf $(TARNAME)
 	gzip -c -f -9 $(TARNAME)-headers.tar > $(TARNAME)-headers.tar.gz
