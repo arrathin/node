@@ -427,13 +427,13 @@ $(TARBALL): release-only node doc
 	rm -rf $(TARNAME)/deps/v8z/test # too big
 	rm -rf $(TARNAME)/doc/images # too big
 	find $(TARNAME)/ -type l | xargs rm -f # annoying on windows
-	tar -cf $(TARNAME).tar $(TARNAME)
+	$(TAR) $(TAROPTS) $(TARNAME).$(TAR) $(TARNAME)
 	rm -rf $(TARNAME)
-	gzip -c -f -9 $(TARNAME).tar > $(TARNAME).tar.gz
+	$(GZIP) $(GZIPOPTS) $(TARNAME).$(TAR) > $(TARNAME).$(TAR).$(GZIPEXT)
 ifeq ($(XZ), 0)
 	xz -c -f -$(XZ_COMPRESSION) $(TARNAME).tar > $(TARNAME).tar.xz
 endif
-	rm $(TARNAME).tar
+	rm $(TARNAME).$(TAR)
 
 tar: $(TARBALL)
 
@@ -462,13 +462,13 @@ $(TARBALL)-headers: release-only
 		$(CONFIG_FLAGS) $(BUILD_RELEASE_FLAGS)
 	HEADERS_ONLY=1 $(PYTHON) tools/install.py install '$(TARNAME)' '/'
 	find $(TARNAME)/ -type l | xargs rm -f # annoying on windows
-	tar -cf $(TARNAME)-headers.tar $(TARNAME)
+	$(TAR) $(TAROPTS) $(TARNAME)-headers.$(TAR) $(TARNAME)
 	rm -rf $(TARNAME)
-	gzip -c -f -9 $(TARNAME)-headers.tar > $(TARNAME)-headers.tar.gz
+	$(GZIP) $(GZIPOPTS) $(TARNAME)-headers.$(TAR) > $(TARNAME)-headers.$(TAR).$(GZIPEXT)
 ifeq ($(XZ), 0)
 	xz -c -f -$(XZ_COMPRESSION) $(TARNAME)-headers.tar > $(TARNAME)-headers.tar.xz
 endif
-	rm $(TARNAME)-headers.tar
+	rm $(TARNAME)-headers.$(TAR)
 
 tar-headers: $(TARBALL)-headers
 
