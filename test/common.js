@@ -35,7 +35,11 @@ if (process.env.NODE_PIPE_DIR === undefined) {
 }
 exports.PORT = +process.env.NODE_COMMON_PORT || 12346;
 
-exports.opensslCli = path.join(path.dirname(process.execPath), 'openssl-cli');
+if (process.env.NODE_SSLCLI === undefined) {
+  exports.opensslCli = path.join(path.dirname(process.execPath), 'openssl-cli');
+} else {
+  exports.opensslCli = process.env.NODE_SSLCLI;
+}
 if (process.platform === 'win32') {
   exports.PIPE = '\\\\.\\pipe\\libuv-test';
   exports.opensslCli += '.exe';
