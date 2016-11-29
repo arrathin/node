@@ -1139,6 +1139,7 @@
               '-qlonglong',
               '-qbitfields=signed',
               '-qchars=signed',
+              '-qexportall',
             ],
             'defines': [
               '_XOPEN_SOURCE_EXTENDED',
