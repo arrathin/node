@@ -2809,9 +2809,16 @@ void SetupProcessObject(Environment* env,
   READONLY_PROPERTY(versions,
                     "\x76\x38",
                     OneByteString(env->isolate(), V8::GetVersion()));
+
+  char uv_version[strlen(uv_version_string())];
+  memcpy(&uv_version[0], uv_version_string(), sizeof(uv_version));
+#ifdef __MVS__
+  __e2a_s(&uv_version[0]);
+#endif
   READONLY_PROPERTY(versions,
                     "\x75\x76",
-                    OneByteString(env->isolate(), uv_version_string()));
+                    OneByteString(env->isolate(), uv_version));
+
   READONLY_PROPERTY(versions,
                     "\x7a\x6c\x69\x62",
                     FIXED_ONE_BYTE_STRING(env->isolate(), ZLIB_VERSION));
