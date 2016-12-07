@@ -186,6 +186,8 @@ more information about the governance of the Node.js project, see
 **Shigeki Ohtsu** &lt;ohtsu@iij.ad.jp&gt;
 * [TheAlphaNerd](https://github.com/TheAlphaNerd) -
 **Myles Borins** &lt;myles.borins@gmail.com&gt;
+* [thefourtheye](https://github.com/thefourtheye) -
+**Sakthipriyan Vairamani** &lt;thechargingvolcano@gmail.com&gt;
 * [trevnorris](https://github.com/trevnorris) -
 **Trevor Norris** &lt;trev.norris@gmail.com&gt;
 * [Trott](https://github.com/Trott) -
@@ -237,10 +239,12 @@ more information about the governance of the Node.js project, see
 **Ilkka Myller** &lt;ilkka.myller@nodefield.com&gt;
 * [isaacs](https://github.com/isaacs) -
 **Isaac Z. Schlueter** &lt;i@izs.me&gt;
+* [italoacasas](https://github.com/italoacasas)
+**Italo A. Casas**  &lt;me@italoacasas.com&gt;
 * [iWuzHere](https://github.com/iWuzHere) -
 **Imran Iqbal** &lt;imran@imraniqbal.org&gt;
 * [JacksonTian](https://github.com/JacksonTian) -
-**Jackson Tian** &lt;shvyo1987@gmail.com&gt;
+**Jackson Tian** &lt;shyvo1987@gmail.com&gt;
 * [jbergstroem](https://github.com/jbergstroem) -
 **Johan Bergström** &lt;bugs@bergstroem.nu&gt;
 * [jhamhader](https://github.com/jhamhader) -
@@ -319,8 +323,6 @@ more information about the governance of the Node.js project, see
 **Michaël Zasso** &lt;targos@protonmail.com&gt;
 * [tellnes](https://github.com/tellnes) -
 **Christian Tellnes** &lt;christian@tellnes.no&gt;
-* [thefourtheye](https://github.com/thefourtheye) -
-**Sakthipriyan Vairamani** &lt;thechargingvolcano@gmail.com&gt;
 * [thekemkid](https://github.com/thekemkid) -
 **Glen Keane** &lt;glenkeane.94@gmail.com&gt;
 * [thlorenz](https://github.com/thlorenz) -

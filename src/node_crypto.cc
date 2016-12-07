@@ -2090,7 +2090,7 @@ int SSLWrap<Base>::TLSExtStatusCallback(SSL* s, void* arg) {
     size_t len = Buffer::Length(obj);
 
     // OpenSSL takes control of the pointer after accepting it
-    char* data = reinterpret_cast<char*>(malloc(len));
+    char* data = reinterpret_cast<char*>(node::Malloc(len));
     CHECK_NE(data, nullptr);
     memcpy(data, resp, len);
 
@@ -3068,11 +3068,10 @@ void CipherBase::InitIv(const char* cipher_type,
     return env()->ThrowError("Unknown cipher");
   }
 
-  /* OpenSSL versions up to 0.9.8l failed to return the correct
-     iv_length (0) for ECB ciphers */
-  if (EVP_CIPHER_iv_length(cipher_) != iv_len &&
-      !(EVP_CIPHER_mode(cipher_) == EVP_CIPH_ECB_MODE && iv_len == 0) &&
-      !(EVP_CIPHER_mode(cipher_) == EVP_CIPH_GCM_MODE) && iv_len > 0) {
+  const int expected_iv_len = EVP_CIPHER_iv_length(cipher_);
+  const bool is_gcm_mode = (EVP_CIPH_GCM_MODE == EVP_CIPHER_mode(cipher_));
+
+  if (is_gcm_mode == false && iv_len != expected_iv_len) {
     return env()->ThrowError("Invalid IV length");
   }
 
@@ -3080,13 +3079,10 @@ void CipherBase::InitIv(const char* cipher_type,
   const bool encrypt = (kind_ == kCipher);
   EVP_CipherInit_ex(&ctx_, cipher_, nullptr, nullptr, nullptr, encrypt);
 
-  /* Set IV length. Only required if GCM cipher and IV is not default iv. */
-  if (EVP_CIPHER_mode(cipher_) == EVP_CIPH_GCM_MODE &&
-      iv_len != EVP_CIPHER_iv_length(cipher_)) {
-    if (!EVP_CIPHER_CTX_ctrl(&ctx_, EVP_CTRL_GCM_SET_IVLEN, iv_len, nullptr)) {
-      EVP_CIPHER_CTX_cleanup(&ctx_);
-      return env()->ThrowError("Invalid IV length");
-    }
+  if (is_gcm_mode &&
+      !EVP_CIPHER_CTX_ctrl(&ctx_, EVP_CTRL_GCM_SET_IVLEN, iv_len, nullptr)) {
+    EVP_CIPHER_CTX_cleanup(&ctx_);
+    return env()->ThrowError("Invalid IV length");
   }
 
   if (!EVP_CIPHER_CTX_set_key_length(&ctx_, key_len)) {
@@ -3139,7 +3135,7 @@ bool CipherBase::GetAuthTag(char** out, unsigned int* out_len) const {
   if (initialised_ || kind_ != kCipher || !auth_tag_)
     return false;
   *out_len = auth_tag_len_;
-  *out = static_cast<char*>(malloc(auth_tag_len_));
+  *out = static_cast<char*>(node::Malloc(auth_tag_len_));
   CHECK_NE(*out, nullptr);
   memcpy(*out, auth_tag_, auth_tag_len_);
   return true;
@@ -4694,7 +4690,7 @@ void ECDH::ComputeSecret(const FunctionCallbackInfo<Value>& args) {
   // NOTE: field_size is in bits
   int field_size = EC_GROUP_get_degree(ecdh->group_);
   size_t out_len = (field_size + 7) / 8;
-  char* out = static_cast<char*>(malloc(out_len));
+  char* out = static_cast<char*>(node::Malloc(out_len));
   CHECK_NE(out, nullptr);
 
   int r = ECDH_compute_key(out, out_len, pub, ecdh->key_, nullptr);
@@ -4733,7 +4729,7 @@ void ECDH::GetPublicKey(const FunctionCallbackInfo<Value>& args) {
   if (size == 0)
     return env->ThrowError("Failed to get public key length");
 
-  unsigned char* out = static_cast<unsigned char*>(malloc(size));
+  unsigned char* out = static_cast<unsigned char*>(node::Malloc(size));
   CHECK_NE(out, nullptr);
 
   int r = EC_POINT_point2oct(ecdh->group_, pub, form, out, size, nullptr);
@@ -4762,7 +4758,7 @@ void ECDH::GetPrivateKey(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowError("Failed to get ECDH private key");
 
   int size = BN_num_bytes(b);
-  unsigned char* out = static_cast<unsigned char*>(malloc(size));
+  unsigned char* out = static_cast<unsigned char*>(node::Malloc(size));
   CHECK_NE(out, nullptr);
 
   if (size != BN_bn2bin(b, out)) {
@@ -4839,7 +4835,7 @@ class PBKDF2Request : public AsyncWrap {
         saltlen_(saltlen),
         salt_(salt),
         keylen_(keylen),
-        key_(static_cast<char*>(malloc(keylen))),
+        key_(static_cast<char*>(node::Malloc(keylen))),
         iter_(iter) {
     if (key() == nullptr)
       FatalError("node::PBKDF2Request()", "Out of Memory");
@@ -5002,7 +4998,7 @@ void PBKDF2(const FunctionCallbackInfo<Value>& args) {
 
   THROW_AND_RETURN_IF_NOT_BUFFER(args[1]);
 
-  pass = static_cast<char*>(malloc(passlen));
+  pass = static_cast<char*>(node::Malloc(passlen));
   if (pass == nullptr) {
     FatalError("node::PBKDF2()", "Out of Memory");
   }
@@ -5014,7 +5010,7 @@ void PBKDF2(const FunctionCallbackInfo<Value>& args) {
     goto err;
   }
 
-  salt = static_cast<char*>(malloc(saltlen));
+  salt = static_cast<char*>(node::Malloc(saltlen));
   if (salt == nullptr) {
     FatalError("node::PBKDF2()", "Out of Memory");
   }
@@ -5107,7 +5103,7 @@ class RandomBytesRequest : public AsyncWrap {
       : AsyncWrap(env, object, AsyncWrap::PROVIDER_CRYPTO),
         error_(0),
         size_(size),
-        data_(static_cast<char*>(malloc(size))) {
+        data_(static_cast<char*>(node::Malloc(size))) {
     if (data() == nullptr)
       FatalError("node::RandomBytesRequest()", "Out of Memory");
     Wrap(object, this);
@@ -5336,7 +5332,7 @@ void GetCurves(const FunctionCallbackInfo<Value>& args) {
 
   if (num_curves) {
     alloc_size = sizeof(*curves) * num_curves;
-    curves = static_cast<EC_builtin_curve*>(malloc(alloc_size));
+    curves = static_cast<EC_builtin_curve*>(node::Malloc(alloc_size));
 
     CHECK_NE(curves, nullptr);
 

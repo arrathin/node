@@ -5,7 +5,11 @@
     'node_use_lttng%': 'false',
     'node_use_etw%': 'false',
     'node_use_perfctr%': 'false',
-    'node_use_static_libstdcpp%': 'false',
+    'node_use_v8_platform%': 'true',
+    'node_use_bundled_v8%': 'true',
+    'node_shared%': 'false',
+    'force_dynamic_crt%': 0,
+    'node_module_version%': 'true',
     'node_has_winsdk%': 'false',
     'node_shared_zlib%': 'false',
     'node_shared_http_parser%': 'false',
@@ -93,6 +97,20 @@
       '<(v8_parent_path)/tools/tickprocessor.js',
       '<(v8_parent_path)/tools/SourceMap.js',
       '<(v8_parent_path)/tools/tickprocessor-driver.js',
+    ],
+    'conditions': [
+      [ 'OS=="win" and '
+        'node_use_openssl=="true" and '
+        'node_shared_openssl=="false"', {
+        'use_openssl_def': 1,
+      }, {
+        'use_openssl_def': 0,
+      }],
+      [ 'node_shared=="true"', {
+        'node_target_type%': 'shared_library',
+      }, {
+        'node_target_type%': 'executable',
+      }],
     ],
   },
 
@@ -212,6 +230,42 @@
 
 
       'conditions': [
+        [ 'node_shared=="false"', {
+          'msvs_settings': {
+            'VCManifestTool': {
+              'EmbedManifest': 'true',
+              'AdditionalManifestFiles': 'src/res/node.exe.extra.manifest'
+            }
+          },
+        }, {
+          'defines': [
+            'NODE_SHARED_MODE',
+         ],
+          'conditions': [
+            [ 'node_module_version!="" and OS!="win"', {
+              'product_extension': '<(shlib_suffix)',
+            }]
+          ],
+        }],
+        [ 'node_use_bundled_v8=="true"', {
+          'include_dirs': [
+            'deps/v8' # include/v8_platform.h
+          ],
+
+          'dependencies': [
+            'deps/v8/tools/gyp/v8.gyp:v8',
+            'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
+          ],
+        }],
+        [ 'node_use_v8_platform=="true"', {
+         'defines': [
+            'NODE_USE_V8_PLATFORM=1',
+          ],
+        }, {
+          'defines': [
+            'NODE_USE_V8_PLATFORM=0',
+          ],
+        }],
         [ 'node_enable_d8=="true"', {
           'dependencies': [ 'deps/v8/src/d8.gyp:d8' ],
         }],
@@ -284,13 +338,16 @@
                     ],
                   },
                   'conditions': [
-                    ['OS in "linux freebsd"', {
+                    ['OS in "linux freebsd" and node_shared=="false"', {
                       'ldflags': [
                         '-Wl,--whole-archive,'
                             '<(PRODUCT_DIR)/obj.target/deps/openssl/'
                             '<(OPENSSL_PRODUCT)',
                         '-Wl,--no-whole-archive',
                       ],
+                    }],
+                    ['use_openssl_def==1', {
+                      'sources': ['<(SHARED_INTERMEDIATE_DIR)/openssl.def'],
                     }],
                   ],
                 }],
@@ -449,7 +506,7 @@
             'NODE_PLATFORM="sunos"',
           ],
         }],
-        [ 'OS=="freebsd" or OS=="linux"', {
+        [ '(OS=="freebsd" or OS=="linux") and node_shared=="false"', {
           'ldflags': [ '-Wl,-z,noexecstack',
                        '-Wl,--whole-archive <(V8_BASE)',
                        '-Wl,--no-whole-archive' ]
@@ -458,12 +515,53 @@
           'ldflags': [ '-Wl,-M,/usr/lib/ld/map.noexstk' ],
         }],
       ],
-      'msvs_settings': {
-        'VCManifestTool': {
-          'EmbedManifest': 'true',
-          'AdditionalManifestFiles': 'src/res/node.exe.extra.manifest'
-        }
-      },
+    },
+    {
+      'target_name': 'mkssldef',
+      'type': 'none',
+      # TODO(bnoordhuis) Make all platforms export the same list of symbols.
+      # Teach mkssldef.py to generate linker maps that UNIX linkers understand.
+      'conditions': [
+        [ 'use_openssl_def==1', {
+          'variables': {
+            'mkssldef_flags': [
+              # Categories to export.
+              '-CAES,BF,BIO,DES,DH,DSA,EC,ECDH,ECDSA,ENGINE,EVP,HMAC,MD4,MD5,'
+              'NEXTPROTONEG,PSK,RC2,RC4,RSA,SHA,SHA0,SHA1,SHA256,SHA512,SOCK,'
+              'STDIO,TLSEXT',
+              # Defines.
+              '-DWIN32',
+              # Symbols to filter from the export list.
+              '-X^DSO',
+              '-X^_',
+              '-X^private_',
+            ],
+          },
+          'conditions': [
+            ['openssl_fips!=""', {
+              'variables': { 'mkssldef_flags': ['-DOPENSSL_FIPS'] },
+            }],
+          ],
+          'actions': [
+            {
+              'action_name': 'mkssldef',
+              'inputs': [
+                'deps/openssl/openssl/util/libeay.num',
+                'deps/openssl/openssl/util/ssleay.num',
+              ],
+              'outputs': ['<(SHARED_INTERMEDIATE_DIR)/openssl.def'],
+              'action': [
+                'python',
+                'tools/mkssldef.py',
+                '<@(mkssldef_flags)',
+                '-o',
+                '<@(_outputs)',
+                '<@(_inputs)',
+              ],
+            },
+          ],
+        }],
+      ],
     },
     # generate ETW header and resource files
     {

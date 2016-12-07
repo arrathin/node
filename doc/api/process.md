@@ -254,7 +254,7 @@ cases:
 <!--type=event-->
 <!--name=SIGINT, SIGHUP, etc.-->
 
-Emitted when the processes receives a signal. See sigaction(2) for a list of
+Emitted when the processes receives a signal. See sigaction(7) for a list of
 standard POSIX signal names such as `SIGINT`, `SIGHUP`, etc.
 
 Example of listening for `SIGINT`:
@@ -768,9 +768,7 @@ Returns an object describing the memory usage of the Node.js process
 measured in bytes.
 
 ```js
-const util = require('util');
-
-console.log(util.inspect(process.memoryUsage()));
+console.log(process.memoryUsage());
 ```
 
 This will generate:

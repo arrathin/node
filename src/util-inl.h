@@ -217,6 +217,34 @@ bool StringEqualNoCase(const char* a, const char* b) {
   return false;
 }
 
+// These should be used in our code as opposed to the native
+// versions as they abstract out some platform and or
+// compiler version specific functionality.
+// malloc(0) and realloc(ptr, 0) have implementation-defined behavior in
+// that the standard allows them to either return a unique pointer or a
+// nullptr for zero-sized allocation requests.  Normalize by always using
+// a nullptr.
+void* Realloc(void* pointer, size_t size) {
+  if (size == 0) {
+    free(pointer);
+    return nullptr;
+  }
+  return realloc(pointer, size);
+}
+
+// As per spec realloc behaves like malloc if passed nullptr.
+void* Malloc(size_t size) {
+  if (size == 0) size = 1;
+  return Realloc(nullptr, size);
+}
+
+void* Calloc(size_t n, size_t size) {
+  if (n == 0) n = 1;
+  if (size == 0) size = 1;
+  CHECK_GE(n * size, n);  // Overflow guard.
+  return calloc(n, size);
+}
+
 }  // namespace node
 
 #endif  // SRC_UTIL_INL_H_
