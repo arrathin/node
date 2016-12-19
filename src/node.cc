@@ -958,7 +958,7 @@ static const char *winapi_strerror(const int errorno, bool* must_free) {
 
     // Remove trailing newlines
     for (int i = strlen(errmsg) - 1;
-        i >= 0 && (errmsg[i] == '\xa' || errmsg[i] == '\xd'); i--) {
+        i >= 0 && (errmsg[i] == '\x15' || errmsg[i] == '\xd'); i--) {
       errmsg[i] = '\x0';
     }
 
@@ -1091,7 +1091,7 @@ void SetupDomainUse(const FunctionCallbackInfo<Value>& args) {
       process_object->Get(tick_callback_function_key).As<Function>();
 
   if (!tick_callback_function->IsFunction()) {
-    fprintf(stderr, "\x70\x72\x6f\x63\x65\x73\x73\x2e\x5f\x74\x69\x63\x6b\x44\x6f\x6d\x61\x69\x6e\x43\x61\x6c\x6c\x62\x61\x63\x6b\x20\x61\x73\x73\x69\x67\x6e\x65\x64\x20\x74\x6f\x20\x6e\x6f\x6e\x2d\x66\x75\x6e\x63\x74\x69\x6f\x6e\xa");
+    fprintf(stderr, "\x70\x72\x6f\x63\x65\x73\x73\x2e\x5f\x74\x69\x63\x6b\x44\x6f\x6d\x61\x69\x6e\x43\x61\x6c\x6c\x62\x61\x63\x6b\x20\x61\x73\x73\x69\x67\x6e\x65\x64\x20\x74\x6f\x20\x6e\x6f\x6e\x2d\x66\x75\x6e\x63\x74\x69\x6f\x6e\x15");
     abort();
   }
 
@@ -1194,7 +1194,7 @@ Handle<Value> MakeCallback(Environment* env,
     try_catch.SetVerbose(false);
     env->async_hooks_pre_function()->Call(object, 0, NULL);
     if (try_catch.HasCaught())
-      FatalError("\x6e\x6f\x64\x65\x3a\x3b\x4d\x61\x6b\x65\x43\x61\x6c\x6c\x62\x61\x63\x6b", "\x70\x72\x65\x20\x68\x6f\x6f\x6b\x20\x74\x68\x72\x65\x77");
+      FatalError("\x6e\x6f\x64\x65\x7a\x3b\x4d\x61\x6b\x65\x43\x61\x6c\x6c\x62\x61\x63\x6b", "\x70\x72\x65\x20\x68\x6f\x6f\x6b\x20\x74\x68\x72\x65\x77");
     try_catch.SetVerbose(true);
   }
 
@@ -1204,7 +1204,7 @@ Handle<Value> MakeCallback(Environment* env,
     try_catch.SetVerbose(false);
     env->async_hooks_post_function()->Call(object, 0, NULL);
     if (try_catch.HasCaught())
-      FatalError("\x6e\x6f\x64\x65\x3a\x3a\x4d\x61\x6b\x65\x43\x61\x6c\x6c\x62\x61\x63\x6b", "\x70\x6f\x73\x74\x20\x68\x6f\x6f\x6b\x20\x74\x68\x72\x65\x77");
+      FatalError("\x6e\x6f\x64\x65\x7a\x7a\x4d\x61\x6b\x65\x43\x61\x6c\x6c\x62\x61\x63\x6b", "\x70\x6f\x73\x74\x20\x68\x6f\x6f\x6b\x20\x74\x68\x72\x65\x77");
     try_catch.SetVerbose(true);
   }
 
@@ -1363,13 +1363,13 @@ enum encoding ParseEncoding(Isolate* isolate,
   } else if (strcasecmp(*encoding, "\x72\x61\x77") == 0) {
     if (!no_deprecation) {
       fprintf(stderr, "\x27\x72\x61\x77\x27\x20\x28\x61\x72\x72\x61\x79\x20\x6f\x66\x20\x69\x6e\x74\x65\x67\x65\x72\x73\x29\x20\x68\x61\x73\x20\x62\x65\x65\x6e\x20\x72\x65\x6d\x6f\x76\x65\x64\x2e\x20"
-                      "\x55\x73\x65\x20\x27\x62\x69\x6e\x61\x72\x79\x27\x2e\xa");
+                      "\x55\x73\x65\x20\x27\x62\x69\x6e\x61\x72\x79\x27\x2e\x15");
     }
     return BINARY;
   } else if (strcasecmp(*encoding, "\x72\x61\x77\x73") == 0) {
     if (!no_deprecation) {
       fprintf(stderr, "\x27\x72\x61\x77\x73\x27\x20\x65\x6e\x63\x6f\x64\x69\x6e\x67\x20\x68\x61\x73\x20\x62\x65\x65\x6e\x20\x72\x65\x6e\x61\x6d\x65\x64\x20\x74\x6f\x20\x27\x62\x69\x6e\x61\x72\x79\x27\x2e\x20"
-                      "\x50\x6c\x65\x61\x73\x65\x20\x75\x70\x64\x61\x74\x65\x20\x79\x6f\x75\x72\x20\x63\x6f\x64\x65\x2e\xa");
+                      "\x50\x6c\x65\x61\x73\x65\x20\x75\x70\x64\x61\x74\x65\x20\x79\x6f\x75\x72\x20\x63\x6f\x64\x65\x2e\x15");
     }
     return BINARY;
   } else {
@@ -1395,7 +1395,7 @@ ssize_t DecodeBytes(Isolate* isolate,
 
   if (val->IsArray()) {
     fprintf(stderr, "\x27\x72\x61\x77\x27\x20\x65\x6e\x63\x6f\x64\x69\x6e\x67\x20\x28\x61\x72\x72\x61\x79\x20\x6f\x66\x20\x69\x6e\x74\x65\x67\x65\x72\x73\x29\x20\x68\x61\x73\x20\x62\x65\x65\x6e\x20\x72\x65\x6d\x6f\x76\x65\x64\x2e\x20"
-                    "\x55\x73\x65\x20\x27\x62\x69\x6e\x61\x72\x79\x27\x2e\xa");
+                    "\x55\x73\x65\x20\x27\x62\x69\x6e\x61\x72\x79\x27\x2e\x15");
     assert(0);
     return -1;
   }
@@ -1443,6 +1443,11 @@ void AppendExceptionLine(Environment* env,
   node::Utf8Value sourceline(message->GetSourceLine());
   const char* sourceline_string = *sourceline;
 
+#if defined(__MVS__)
+  __a2e_s(*filename);
+  __a2e_s(*sourceline);
+#endif
+
   // Because of how node modules work, all scripts are wrapped with a
   // "function (module, exports, __filename, ...) {"
   // to provide script local variables.
@@ -1469,7 +1474,7 @@ void AppendExceptionLine(Environment* env,
 
   int off = snprintf(arrow,
                      sizeof(arrow),
-                     "\x6c\xa2\x3a\x6c\x89\xa\x6c\xa2\xa",
+                     "\x6c\xa2\x7a\x6c\x89\x15\x6c\xa2\x15",
                      filename_string,
                      linenum,
                      sourceline_string);
@@ -1482,7 +1487,7 @@ void AppendExceptionLine(Environment* env,
       break;
     }
     assert(static_cast<size_t>(off) < sizeof(arrow));
-    arrow[off++] = (sourceline_string[i] == '\x9') ? '\x9' : '\x20';
+    arrow[off++] = (sourceline_string[i] == '\x5') ? '\x5' : '\x40';
   }
   for (int i = start; i < end; i++) {
     if (sourceline_string[i] == '\x0' ||
@@ -1490,10 +1495,10 @@ void AppendExceptionLine(Environment* env,
       break;
     }
     assert(static_cast<size_t>(off) < sizeof(arrow));
-    arrow[off++] = '\x5e';
+    arrow[off++] = '\x5f';
   }
   assert(static_cast<size_t>(off - 1) <= sizeof(arrow) - 1);
-  arrow[off++] = '\xa';
+  arrow[off++] = '\x15';
   arrow[off] = '\x0';
 
   Local<String> arrow_str = String::NewFromUtf8(env->isolate(), arrow);
@@ -1521,7 +1526,7 @@ void AppendExceptionLine(Environment* env,
     return;
   env->set_printed_error(true);
   uv_tty_reset_mode();
-  fprintf(stderr, "\xa\x6c\xa2", arrow);
+  fprintf(stderr, "\x15\x6c\xa2", arrow);
 }
 
 
@@ -1539,11 +1544,12 @@ static void ReportException(Environment* env,
   else
     trace_value = er->ToObject()->Get(env->stack_string());
 
-  node::Utf8Value trace(trace_value);
+  node::Utf8Value tracei(trace_value);
+  node::NativeEncodingValue trace(tracei);
 
   // range errors have a trace member set to undefined
   if (trace.length() > 0 && !trace_value->IsUndefined()) {
-    fprintf(stderr, "\x6c\xa2\xa", *trace);
+    fprintf(stderr, "\x6c\xa2\x15", *trace);
   } else {
     // this really only happens for RangeErrors, since they're the only
     // kind that won't have all this info in the trace, or when non-Error
@@ -1563,11 +1569,11 @@ static void ReportException(Environment* env,
         name->IsUndefined()) {
       // Not an error object. Just print as-is.
       node::Utf8Value message(er);
-      fprintf(stderr, "\x6c\xa2\xa", *message);
+      fprintf(stderr, "\x6c\xa2\x15", *message);
     } else {
       node::Utf8Value name_string(name);
       node::Utf8Value message_string(message);
-      fprintf(stderr, "\x6c\xa2\x3a\x20\x6c\xa2\xa", *name_string, *message_string);
+      fprintf(stderr, "\x6c\xa2\x7a\x20\x6c\xa2\x15", *name_string, *message_string);
     }
   }
 
@@ -2232,9 +2238,9 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
 
 static void OnFatalError(const char* location, const char* message) {
   if (location) {
-    fprintf(stderr, "\x46\x41\x54\x41\x4c\x20\x45\x52\x52\x4f\x52\x3a\x20\x6c\xa2\x20\x6c\xa2\xa", location, message);
+    fprintf(stderr, "\x46\x41\x54\x41\x4c\x20\x45\x52\x52\x4f\x52\x7a\x20\x6c\xa2\x20\x6c\xa2\x15", location, message);
   } else {
-    fprintf(stderr, "\x46\x41\x54\x41\x4c\x20\x45\x52\x52\x4f\x52\x3a\x20\x6c\xa2\xa", message);
+    fprintf(stderr, "\x46\x41\x54\x41\x4c\x20\x45\x52\x52\x4f\x52\x7a\x20\x6c\xa2\x15", message);
   }
   fflush(stderr);
   abort();
@@ -2375,7 +2381,7 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
-             "\x4e\x6f\x20\x73\x75\x63\x68\x20\x6d\x6f\x64\x75\x6c\x65\x20\x77\x61\x73\x20\x6c\x69\x6e\x6b\x65\x64\x3a\x20\x6c\xa2",
+             "\x4e\x6f\x20\x73\x75\x63\x68\x20\x6d\x6f\x64\x75\x6c\x65\x20\x77\x61\x73\x20\x6c\x69\x6e\x6b\x65\x64\x7a\x20\x6c\xa2",
              *module_v);
     return env->ThrowError(errmsg);
   }
@@ -3147,7 +3153,7 @@ static bool ParseDebugOpt(const char* arg) {
 #endif
   
     if (debug_port < 1024 || debug_port > 65535) {
-      fprintf(stderr, "\x44\x65\x62\x75\x67\x20\x70\x6f\x72\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x69\x6e\x20\x72\x61\x6e\x67\x65\x20\x31\x30\x32\x34\x20\x74\x6f\x20\x36\x35\x35\x33\x35\x2e\xa");
+      fprintf(stderr, "\x44\x65\x62\x75\x67\x20\x70\x6f\x72\x74\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x69\x6e\x20\x72\x61\x6e\x67\x65\x20\x31\x30\x32\x34\x20\x74\x6f\x20\x36\x35\x35\x33\x35\x2e\x15");
       PrintHelp();
       exit(12);
     }
@@ -3261,7 +3267,7 @@ static void ParseArgs(int* argc,
     } else if (strcmp(arg, "\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x73\x73\x6c\x32") == 0) {
 #if HAVE_OPENSSL
       fprintf(stderr,
-              "\x45\x72\x72\x6f\x72\x3a\x20\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x73\x73\x6c\x32\x20\x69\x73\x20\x6e\x6f\x20\x6c\x6f\x6e\x67\x65\x72\x20\x73\x75\x70\x70\x6f\x72\x74\x65\x64\x20\x28\x43\x56\x45\x2d\x32\x30\x31\x36\x2d\x30\x38\x30\x30\x29\x2e\xa");
+              "\x45\x72\x72\x6f\x72\x7a\x20\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x73\x73\x6c\x32\x20\x69\x73\x20\x6e\x6f\x20\x6c\x6f\x6e\x67\x65\x72\x20\x73\x75\x70\x70\x6f\x72\x74\x65\x64\x20\x28\x43\x56\x45\x2d\x32\x30\x31\x36\x2d\x30\x38\x30\x30\x29\x2e\x15");
       exit(12);
 #endif
     } else if (strcmp(arg, "\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x73\x73\x6c\x33") == 0) {
@@ -3288,7 +3294,7 @@ static void ParseArgs(int* argc,
         args_consumed += 1;
         eval_string = argv[index + 1];
         if (eval_string == NULL) {
-          fprintf(stderr, "\x6c\xa2\x3a\x20\x6c\xa2\x20\x72\x65\x71\x75\x69\x72\x65\x73\x20\x61\x6e\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\xa", argv[0], arg);
+          fprintf(stderr, "\x6c\xa2\x7a\x20\x6c\xa2\x20\x72\x65\x71\x75\x69\x72\x65\x73\x20\x61\x6e\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x15", argv[0], arg);
           exit(9);
         }
       } else if ((index + 1 < nargs) &&
@@ -3364,7 +3370,7 @@ static void StartDebug(Environment* env, bool wait) {
         DispatchMessagesDebugAgentCallback);
   debugger_running = env->debugger_agent()->Start(debug_port, wait);
   if (debugger_running == false) {
-    fprintf(stderr, "\x53\x74\x61\x72\x74\x69\x6e\x67\x20\x64\x65\x62\x75\x67\x67\x65\x72\x20\x6f\x6e\x20\x70\x6f\x72\x74\x20\x6c\x84\x20\x66\x61\x69\x6c\x65\x64\xa", debug_port);
+    fprintf(stderr, "\x53\x74\x61\x72\x74\x69\x6e\x67\x20\x64\x65\x62\x75\x67\x67\x65\x72\x20\x6f\x6e\x20\x70\x6f\x72\x74\x20\x6c\x84\x20\x66\x61\x69\x6c\x65\x64\x15", debug_port);
     fflush(stderr);
     return;
   }
@@ -3703,7 +3709,7 @@ void Init(int* argc,
 
   // Anything that's still in v8_argv is not a V8 or a node option.
   for (int i = 1; i < v8_argc; i++) {
-    fprintf(stderr, "\x6c\xa2\x3a\x20\x62\x61\x64\x20\x6f\x70\x74\x69\x6f\x6e\x3a\x20\x6c\xa2\xa", argv[0], v8_argv[i]);
+    fprintf(stderr, "\x6c\xa2\x7a\x20\x62\x61\x64\x20\x6f\x70\x74\x69\x6f\x6e\x7a\x20\x6c\xa2\x15", argv[0], v8_argv[i]);
   }
   delete[] v8_argv;
   v8_argv = NULL;
