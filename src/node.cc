@@ -1443,11 +1443,6 @@ void AppendExceptionLine(Environment* env,
   node::Utf8Value sourceline(message->GetSourceLine());
   const char* sourceline_string = *sourceline;
 
-#if defined(__MVS__)
-  __a2e_s(*filename);
-  __a2e_s(*sourceline);
-#endif
-
   // Because of how node modules work, all scripts are wrapped with a
   // "function (module, exports, __filename, ...) {"
   // to provide script local variables.
@@ -1474,7 +1469,7 @@ void AppendExceptionLine(Environment* env,
 
   int off = snprintf(arrow,
                      sizeof(arrow),
-                     "\x6c\xa2\x7a\x6c\x89\x15\x6c\xa2\x15",
+                     "\x6c\xa2\x3a\x6c\x89\x0a\x6c\xa2\x0a",
                      filename_string,
                      linenum,
                      sourceline_string);
@@ -1482,24 +1477,24 @@ void AppendExceptionLine(Environment* env,
 
   // Print wavy underline (GetUnderline is deprecated).
   for (int i = 0; i < start; i++) {
-    if (sourceline_string[i] == '\x0' ||
+    if (sourceline_string[i] == '\0' ||
         static_cast<size_t>(off) >= sizeof(arrow)) {
       break;
     }
     assert(static_cast<size_t>(off) < sizeof(arrow));
-    arrow[off++] = (sourceline_string[i] == '\x5') ? '\x5' : '\x40';
+    arrow[off++] = (sourceline_string[i] == '\t') ? '\t' : ' ';
   }
   for (int i = start; i < end; i++) {
-    if (sourceline_string[i] == '\x0' ||
+    if (sourceline_string[i] == '\0' ||
         static_cast<size_t>(off) >= sizeof(arrow)) {
       break;
     }
     assert(static_cast<size_t>(off) < sizeof(arrow));
-    arrow[off++] = '\x5f';
+    arrow[off++] = '^';
   }
   assert(static_cast<size_t>(off - 1) <= sizeof(arrow) - 1);
-  arrow[off++] = '\x15';
-  arrow[off] = '\x0';
+  arrow[off++] = '\n';
+  arrow[off] = '\0';
 
   Local<String> arrow_str = String::NewFromUtf8(env->isolate(), arrow);
   Local<Value> msg;
@@ -1526,6 +1521,9 @@ void AppendExceptionLine(Environment* env,
     return;
   env->set_printed_error(true);
   uv_tty_reset_mode();
+#if defined(__MVS__)
+  __a2e_s(arrow);
+#endif
   fprintf(stderr, "\x15\x6c\xa2", arrow);
 }
 
@@ -1573,7 +1571,7 @@ static void ReportException(Environment* env,
     } else {
       node::Utf8Value name_string(name);
       node::Utf8Value message_string(message);
-      fprintf(stderr, "\x6c\xa2\x7a\x20\x6c\xa2\x15", *name_string, *message_string);
+      fprintf(stderr, "\x6c\xa2\x3a\x20\x6c\xa2\x15", *name_string, *message_string);
     }
   }
 
