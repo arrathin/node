@@ -1467,13 +1467,20 @@ void AppendExceptionLine(Environment* env,
   int start = message->GetStartColumn();
   int end = message->GetEndColumn();
 
+#ifdef __MVS__
+  __a2e_s(*filename);
+  __a2e_s(*sourceline);
+#endif
   int off = snprintf(arrow,
                      sizeof(arrow),
-                     "\x6c\xa2\x3a\x6c\x89\x0a\x6c\xa2\x0a",
+                     "\x6c\xa2\x7a\x6c\x89\x15\x6c\xa2\x15",
                      filename_string,
                      linenum,
                      sourceline_string);
   assert(off >= 0);
+#if defined(__MVS__)
+  __e2a_l(arrow, sizeof(arrow));
+#endif
 
   // Print wavy underline (GetUnderline is deprecated).
   for (int i = 0; i < start; i++) {
@@ -1571,7 +1578,7 @@ static void ReportException(Environment* env,
     } else {
       node::Utf8Value name_string(name);
       node::Utf8Value message_string(message);
-      fprintf(stderr, "\x6c\xa2\x3a\x20\x6c\xa2\x15", *name_string, *message_string);
+      fprintf(stderr, "\x6c\xa2\x7a\x20\x6c\xa2\x15", *name_string, *message_string);
     }
   }
 
