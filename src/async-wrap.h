@@ -2,6 +2,7 @@
 #define SRC_ASYNC_WRAP_H_
 
 #include "base-object.h"
+#include "uv.h"
 #include "v8.h"
 
 #include <stdint.h>
@@ -47,12 +48,18 @@ class AsyncWrap : public BaseObject {
 #undef V
   };
 
-  inline AsyncWrap(Environment* env,
-                   v8::Local<v8::Object> object,
-                   ProviderType provider,
-                   AsyncWrap* parent = nullptr);
+  AsyncWrap(Environment* env,
+            v8::Local<v8::Object> object,
+            ProviderType provider,
+            AsyncWrap* parent = nullptr);
 
-  inline virtual ~AsyncWrap();
+  virtual ~AsyncWrap();
+
+  static void Initialize(v8::Local<v8::Object> target,
+                         v8::Local<v8::Value> unused,
+                         v8::Local<v8::Context> context);
+
+  static void DestroyIdsCb(uv_idle_t* handle);
 
   inline ProviderType provider_type() const;
 

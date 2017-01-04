@@ -30,7 +30,7 @@ assert.strictEqual(SlowBuffer(0).length, 0);
 try {
   assert.strictEqual(SlowBuffer(buffer.kMaxLength).length, buffer.kMaxLength);
 } catch (e) {
-  assert.equal(e.message, 'Invalid array buffer length');
+  assert.strictEqual(e.message, 'Invalid array buffer length');
 }
 
 // should work with number-coercible values
@@ -46,10 +46,10 @@ assert.strictEqual(SlowBuffer('string').length, 0);
 // should throw with invalid length
 assert.throws(function() {
   new SlowBuffer(Infinity);
-}, 'invalid Buffer length');
+}, /^RangeError: Invalid typed array length$/);
 assert.throws(function() {
   new SlowBuffer(-1);
-}, 'invalid Buffer length');
+}, /^RangeError: Invalid typed array length$/);
 assert.throws(function() {
   new SlowBuffer(buffer.kMaxLength + 1);
-}, 'invalid Buffer length');
+}, /^RangeError: (Invalid typed array length|Array buffer allocation failed)$/);

@@ -6,7 +6,7 @@ const assert = require('assert');
 const crypto = require('crypto');
 const domain = require('domain');
 const spawn = require('child_process').spawn;
-const callbacks = [ 'init', 'pre', 'post', 'destroy' ];
+const callbacks = [ 'init', 'pre', 'post' ];
 const toCall = process.argv[2];
 var msgCalled = 0;
 var msgReceived = 0;
@@ -23,13 +23,9 @@ function post() {
   if (toCall === 'post')
     throw new Error('post');
 }
-function destroy() {
-  if (toCall === 'destroy')
-    throw new Error('destroy');
-}
 
 if (typeof process.argv[2] === 'string') {
-  async_wrap.setupHooks({ init, pre, post, destroy });
+  async_wrap.setupHooks({ init, pre, post });
   async_wrap.enable();
 
   process.on('uncaughtException', () => assert.ok(0, 'UNREACHABLE'));
@@ -44,8 +40,8 @@ if (typeof process.argv[2] === 'string') {
 } else {
 
   process.on('exit', (code) => {
-    assert.equal(msgCalled, callbacks.length);
-    assert.equal(msgCalled, msgReceived);
+    assert.strictEqual(msgCalled, callbacks.length);
+    assert.strictEqual(msgCalled, msgReceived);
   });
 
   callbacks.forEach((item) => {
@@ -62,7 +58,7 @@ if (typeof process.argv[2] === 'string') {
       if (errstring.includes('Error: ' + item))
         msgReceived++;
 
-      assert.equal(code, 1, `${item} closed with code ${code}`);
+      assert.strictEqual(code, 1, `${item} closed with code ${code}`);
     });
   });
 }

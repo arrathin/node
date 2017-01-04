@@ -506,10 +506,21 @@
             'NODE_PLATFORM="sunos"',
           ],
         }],
-        [ '(OS=="freebsd" or OS=="linux") and node_shared=="false"', {
+        [ '(OS=="freebsd" or OS=="linux") and node_shared=="false" and coverage=="false"', {
           'ldflags': [ '-Wl,-z,noexecstack',
                        '-Wl,--whole-archive <(V8_BASE)',
                        '-Wl,--no-whole-archive' ]
+        }],
+        [ '(OS=="freebsd" or OS=="linux") and node_shared=="false" and coverage=="true"', {
+          'ldflags': [ '-Wl,-z,noexecstack',
+                       '-Wl,--whole-archive <(V8_BASE)',
+                       '-Wl,--no-whole-archive',
+                       '--coverage',
+                       '-g',
+                       '-O0' ],
+           'cflags': [ '--coverage',
+                       '-g',
+                       '-O0' ]
         }],
         [ 'OS=="sunos"', {
           'ldflags': [ '-Wl,-M,/usr/lib/ld/map.noexstk' ],
@@ -811,7 +822,15 @@
       'targets': [
         {
           'target_name': 'node',
-          'type': 'executable',
+          'conditions': [
+            ['node_shared=="true"', {
+              'type': 'shared_library',
+              'ldflags': ['--shared'],
+              'product_extension': '<(shlib_suffix)',
+            }, {
+              'type': 'executable',
+            }],
+          ],
           'dependencies': ['<(node_core_target_name)', 'node_exp'],
 
           'include_dirs': [

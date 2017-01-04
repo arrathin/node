@@ -8,6 +8,7 @@ PREFIX ?= /usr/local
 FLAKY_TESTS ?= run
 TEST_CI_ARGS ?=
 STAGINGSERVER ?= node-www
+LOGLEVEL ?= silent
 
 OSTYPE := $(shell uname -s | tr '[A-Z]' '[a-z]')
 
@@ -147,10 +148,12 @@ ADDONS_BINDING_GYPS := \
 test/addons/.buildstamp: config.gypi \
 	deps/npm/node_modules/node-gyp/package.json \
 	$(ADDONS_BINDING_GYPS) test/addons/.docbuildstamp
-	# Cannot use $(wildcard test/addons/*/) here, it's evaluated before
-	# embedded addons have been generated from the documentation.
-	for dirname in test/addons/*/; do \
-		$(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp rebuild \
+#	Cannot use $(wildcard test/addons/*/) here, it's evaluated before
+#	embedded addons have been generated from the documentation.
+	@for dirname in test/addons/*/; do \
+		echo "\nBuilding addon $$PWD/$$dirname" ; \
+		env MAKEFLAGS="-j1" $(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp \
+		        --loglevel=$(LOGLEVEL) rebuild \
 			--python="$(PYTHON)" \
 			--directory="$$PWD/$$dirname" \
 			--nodedir="$$PWD"; \
@@ -180,6 +183,7 @@ CI_NATIVE_SUITES := addons
 CI_JS_SUITES := doctool message parallel pseudo-tty sequential
 
 # Build and test addons without building anything else
+test-ci-native: LOGLEVEL := info
 test-ci-native: | test/addons/.buildstamp
 	$(PYTHON) tools/test.py -p tap --logfile test.tap \
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
@@ -191,6 +195,7 @@ test-ci-js:
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
 		$(TEST_CI_ARGS) $(CI_JS_SUITES)
 
+test-ci: LOGLEVEL := info
 test-ci: | build-addons
 	out/Release/cctest --gtest_output=tap:cctest.tap
 	$(PYTHON) tools/test.py -p tap --logfile test.tap --mode=release --flaky-tests=$(FLAKY_TESTS) \
@@ -237,7 +242,7 @@ test-timers-clean:
 	$(MAKE) --directory=tools clean
 
 test-v8: v8
-	# note: performs full test unless QUICKCHECK is specified
+#	note: performs full test unless QUICKCHECK is specified
 	deps/v8/tools/run-tests.py --arch=$(V8_ARCH) \
         --mode=$(BUILDTYPE_LOWER) $(V8_TEST_NO_I18N) $(QUICKCHECK_ARG) \
         --no-presubmit \
@@ -245,7 +250,7 @@ test-v8: v8
 	 $(TAP_V8)
 
 test-v8-intl: v8
-	# note: performs full test unless QUICKCHECK is specified
+#	note: performs full test unless QUICKCHECK is specified
 	deps/v8/tools/run-tests.py --arch=$(V8_ARCH) \
         --mode=$(BUILDTYPE_LOWER) --no-presubmit $(QUICKCHECK_ARG) \
         --shell-dir=deps/v8/out/$(V8_ARCH).$(BUILDTYPE_LOWER) intl \
@@ -258,18 +263,17 @@ test-v8-benchmarks: v8
 	 $(TAP_V8_BENCHMARKS)
 
 test-v8-all: test-v8 test-v8-intl test-v8-benchmarks
-	# runs all v8 tests
+# runs all v8 tests
 
 apidoc_sources = $(wildcard doc/api/*.md)
-apidocs = $(addprefix out/,$(apidoc_sources:.md=.html)) \
-		$(addprefix out/,$(apidoc_sources:.md=.json))
+apidocs_html = $(apidoc_dirs) $(apiassets) $(addprefix out/,$(apidoc_sources:.md=.html))
+apidocs_json = $(apidoc_dirs) $(apiassets) $(addprefix out/,$(apidoc_sources:.md=.json))
 
 apidoc_dirs = out/doc out/doc/api/ out/doc/api/assets
 
 apiassets = $(subst api_assets,api/assets,$(addprefix out/,$(wildcard doc/api_assets/*)))
 
-doc-only: $(apidoc_dirs) $(apiassets) $(apidocs) tools/doc/
-
+doc-only: $(apidocs_html) $(apidocs_json)
 doc: $(NODE_EXE) doc-only
 
 $(apidoc_dirs):
@@ -305,8 +309,8 @@ out/doc/api/%.html: doc/api/%.md
 		fi
 	[ -x $(NODE) ] && $(NODE) $(gen-html) || node $(gen-html)
 
-docopen: out/doc/api/all.html
-	-google-chrome out/doc/api/all.html
+docopen: $(apidocs_html)
+	@$(PYTHON) -mwebbrowser file://$(PWD)/out/doc/api/all.html
 
 docclean:
 	-rm -rf out/doc
@@ -680,6 +684,8 @@ CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard \
 	src/*.h \
 	test/addons/*/*.cc \
 	test/addons/*/*.h \
+	test/cctest/*.cc \
+	test/cctest/*.h \
 	tools/icu/*.cc \
 	tools/icu/*.h \
 	))

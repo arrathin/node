@@ -135,7 +135,7 @@ added: v0.1.90
   * `error` {Error}
   * `stdout` {String|Buffer}
   * `stderr` {String|Buffer}
-* Return: {ChildProcess}
+* Returns: {ChildProcess}
 
 Spawns a shell then executes the `command` within that shell, buffering any
 generated output.
@@ -212,7 +212,7 @@ added: v0.1.91
   * `error` {Error}
   * `stdout` {String|Buffer}
   * `stderr` {String|Buffer}
-* Return: {ChildProcess}
+* Returns: {ChildProcess}
 
 The `child_process.execFile()` function is similar to [`child_process.exec()`][]
 except that it does not spawn a shell. Rather, the specified executable `file`
@@ -258,7 +258,7 @@ added: v0.5.0
     [`stdio`][] for more details (default is false)
   * `uid` {Number} Sets the user identity of the process. (See setuid(2).)
   * `gid` {Number} Sets the group identity of the process. (See setgid(2).)
-* Return: {ChildProcess}
+* Returns: {ChildProcess}
 
 The `child_process.fork()` method is a special case of
 [`child_process.spawn()`][] used specifically to spawn new Node.js processes.
@@ -269,7 +269,7 @@ allows messages to be passed back and forth between the parent and child. See
 
 It is important to keep in mind that spawned Node.js child processes are
 independent of the parent with exception of the IPC communication channel
-that is established between the two. Each process has it's own memory, with
+that is established between the two. Each process has its own memory, with
 their own V8 instances. Because of the additional resource allocations
 required, spawning a large number of child Node.js processes is not
 recommended.
@@ -776,7 +776,7 @@ added: v0.1.90
 * `signal` {String}
 
 The `child.kill()` methods sends a signal to the child process. If no argument
-is given, the process will be sent the `'SIGTERM'` signal. See `signal(7)` for
+is given, the process will be sent the `'SIGTERM'` signal. See signal(7) for
 a list of available signals.
 
 ```js
@@ -852,7 +852,7 @@ added: v0.5.9
 * `message` {Object}
 * `sendHandle` {Handle}
 * `callback` {Function}
-* Return: {Boolean}
+* Returns: {Boolean}
 
 When an IPC channel has been established between the parent and child (
 i.e. when using [`child_process.fork()`][]), the `child.send()` method can be
