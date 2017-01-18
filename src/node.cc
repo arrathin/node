@@ -3029,6 +3029,8 @@ void SetupProcessObject(Environment* env,
 
 static void AtExit() {
   uv_tty_reset_mode();
+  V8::ReleaseSystemResources();
+  debugger::Agent::ReleaseSystemResources();
 }
 
 

@@ -33,6 +33,7 @@
 #include "queue.h"
 
 #include <string.h>
+#include <algorithm>
 
 namespace node {
 namespace debugger {
@@ -51,6 +52,7 @@ using v8::Object;
 using v8::String;
 using v8::Value;
 
+std::vector<uv_sem_t> Agent::system_ipc;
 
 Agent::Agent(Environment* env) : state_(kNone),
                                  port_(5858),
@@ -63,6 +65,10 @@ Agent::Agent(Environment* env) : state_(kNone),
   err = uv_sem_init(&start_sem_, 0);
   CHECK_EQ(err, 0);
 
+#ifdef __MVS__
+  system_ipc.push_back(start_sem_);
+#endif
+
   err = uv_mutex_init(&message_mutex_);
   CHECK_EQ(err, 0);
 
@@ -73,6 +79,8 @@ Agent::Agent(Environment* env) : state_(kNone),
 Agent::~Agent() {
   Stop();
 
+  system_ipc.erase(std::remove(system_ipc.begin(), system_ipc.end(), start_sem_),
+            system_ipc.end());
   uv_sem_destroy(&start_sem_);
   uv_mutex_destroy(&message_mutex_);
 
@@ -341,6 +349,17 @@ void Agent::MessageHandler(const v8::Debug::Message& message) {
 
   AgentMessage* msg = new AgentMessage(*v, v.length());
   a->EnqueueMessage(msg);
+}
+
+
+void Agent::ReleaseSystemResources() {
+#ifdef __MVS__
+  std::vector<uv_sem_t>::iterator i = system_ipc.begin();
+  while(i != system_ipc.end()) {
+    uv_sem_destroy(&(*i));
+    i++;
+  }
+#endif
 }
 
 }  // namespace debugger

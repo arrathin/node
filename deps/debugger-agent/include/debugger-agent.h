@@ -25,6 +25,7 @@
 #include "uv.h"
 #include "v8.h"
 #include "v8-debug.h"
+#include <vector>
 
 namespace node {
 
@@ -49,6 +50,8 @@ class Agent {
   void Enable();
   // Stop the debugger agent
   void Stop();
+  // Release persistent system resources
+  static void ReleaseSystemResources();
 
   inline void set_dispatch_handler(DispatchHandler handler) {
     dispatch_handler_ = handler;
@@ -96,6 +99,7 @@ class Agent {
   node::Environment* child_env_;
   uv_loop_t child_loop_;
   v8::Persistent<v8::Object> api_;
+  static std::vector<uv_sem_t> system_ipc;
 
   // QUEUE
   void* messages_[2];
