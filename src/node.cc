@@ -3043,6 +3043,8 @@ static void SignalExit(int signo) {
   sa.sa_handler = SIG_DFL;
   CHECK_EQ(sigaction(signo, &sa, NULL), 0);
 #endif
+  V8::ReleaseSystemResources();
+  debugger::Agent::ReleaseSystemResources();
   raise(signo);
 }
 
