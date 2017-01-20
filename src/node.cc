@@ -67,6 +67,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <csetjmp>
 
 #if defined(_MSC_VER)
 #include <direct.h>
@@ -162,6 +163,13 @@ static Isolate* node_isolate = NULL;
 
 int WRITE_UTF8_FLAGS = v8::String::HINT_MANY_WRITES_EXPECTED |
                        v8::String::NO_NULL_TERMINATION;
+
+jmp_buf env;
+void on_sigabrt (int signum)
+{
+  longjmp (env, 1);
+}
+
 
 class ArrayBufferAllocator : public ArrayBuffer::Allocator {
  public:
@@ -3987,7 +3995,10 @@ int Start(int argc, char** argv) {
   int code;
   V8::Initialize();
   node_is_initialized = true;
-  {
+
+  if (setjmp (env) == 0) {
+    signal(SIGABRT, &on_sigabrt);
+    signal(SIGABND, &on_sigabrt);
     Locker locker(node_isolate);
     Isolate::Scope isolate_scope(node_isolate);
     HandleScope handle_scope(node_isolate);
@@ -4034,7 +4045,12 @@ int Start(int argc, char** argv) {
 
     env->Dispose();
     env = NULL;
+  } else {
+    V8::ReleaseSystemResources();
+    debugger::Agent::ReleaseSystemResources();
+    abort();
   }
+ 
 
   CHECK_NE(node_isolate, NULL);
   node_isolate->Dispose();
