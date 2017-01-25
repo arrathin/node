@@ -22,9 +22,12 @@
 var assert = require('assert');
 var common = require('../common');
 
+var abortCode = 134;
 if (process.platform === 'win32') {
   console.log('skipping test on windows');
   process.exit(0);
+} else if (process.platform == 'os390') {
+  abortCode = 131;
 }
 
 var exec = require('child_process').exec;
@@ -41,7 +44,7 @@ exec(cmdline, function(err, stdout, stderr) {
     return;
   }
 
-  if (err.code !== 134 && err.signal !== 'SIGABRT') {
+  if (err.code !== abortCode && err.signal !== 'SIGABRT') {
     console.log(stdout);
     console.log(stderr);
     console.log(err);
