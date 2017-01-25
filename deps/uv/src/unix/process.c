@@ -277,6 +277,13 @@ static void uv__process_child_init(const uv_process_options_t* options,
   int use_fd;
   int fd;
 
+#ifdef __MVS__
+  /* Unblock signals in child */
+  sigset_t set;
+  sigfillset(&set);
+  sigprocmask(SIG_UNBLOCK, &set, NULL);
+#endif
+
   if (options->flags & UV_PROCESS_DETACHED)
     setsid();
 
