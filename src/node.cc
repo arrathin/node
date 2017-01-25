@@ -3672,6 +3672,14 @@ static void DebugEnd(const FunctionCallbackInfo<Value>& args) {
 }
 
 
+void SignalHandlerThread(void* data) {
+  while(true) {
+    CHECK_EQ(pause(),-1);
+    CHECK_EQ(errno,EINTR);
+  }
+}
+
+
 void Init(int* argc,
           const char** argv,
           int* exec_argc,
@@ -3783,6 +3791,14 @@ void Init(int* argc,
   if (!use_debug_agent) {
     RegisterDebugSignalHandler();
   }
+
+#ifdef __MVS__
+  sigset_t set;
+  sigfillset(&set);
+  uv_thread_t thread;
+  uv_thread_create(&thread, SignalHandlerThread, NULL);
+  sigprocmask(SIG_BLOCK, &set, NULL);
+#endif
 }
 
 
