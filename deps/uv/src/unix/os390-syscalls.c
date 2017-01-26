@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <search.h>
-#include <sys/wait.h>
 
 #define CW_CONDVAR 32
 
@@ -209,26 +208,12 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 
   uv_mutex_lock(&global_epoll_lock);
   lst = global_epoll_list[epfd];
-  uv_mutex_lock(&lst->lock);
   uv_mutex_unlock(&global_epoll_lock);
   size = lst->size;
   pfds = lst->items;
   pollret = poll(pfds, size, timeout);
-  if (pollret == -1 && errno == EINTR)
-
-  {
-    //TODO: (jBarz) figure out how to properly handle this
-    siginfo_t signalinfo;
-    if(waitid(P_ALL, NULL, &signalinfo, WEXITED | WNOHANG | WNOWAIT) == 0)
-      raise(SIGCHLD);
-    uv_mutex_unlock(&lst->lock);
-    errno = EINTR;
-    return -1;
-  }
-  else if(pollret == -1) {
-    uv_mutex_unlock(&lst->lock);
+  if(pollret == -1)
     return pollret;
-  }
 
   int reventcount=0;
   int realsize = lst->size;
@@ -252,7 +237,6 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
     events[reventcount++] = ev; 
   }
 
-  uv_mutex_unlock(&lst->lock);
   return reventcount;
 }
 
