@@ -895,9 +895,8 @@ static void Query(const FunctionCallbackInfo<Value>& args) {
   Local<String> string = args[1].As<String>();
   Wrap* wrap = new Wrap(env, req_wrap_obj);
 
-  node::Utf8Value name(string);
-  node::NativeEncodingValue native_name(name);
-  int err = wrap->Send(*native_name);
+  node::NativeEncodingValue name((node::Utf8Value(string)));
+  int err = wrap->Send(*name);
   if (err)
     delete wrap;
 
@@ -1043,14 +1042,13 @@ static void IsIP(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args.GetIsolate());
   HandleScope scope(env->isolate());
 
-  node::Utf8Value ip(args[0]);
-  node::NativeEncodingValue native_ip(ip);
+  node::NativeEncodingValue ip((node::Utf8Value(args[0])));
   char address_buffer[sizeof(struct in6_addr)];
 
   int rc = 0;
-  if (uv_inet_pton(AF_INET, *native_ip, &address_buffer) == 0)
+  if (uv_inet_pton(AF_INET, *ip, &address_buffer) == 0)
     rc = 4;
-  else if (uv_inet_pton(AF_INET6, *native_ip, &address_buffer) == 0)
+  else if (uv_inet_pton(AF_INET6, *ip, &address_buffer) == 0)
     rc = 6;
   args.GetReturnValue().Set(rc);
 }
@@ -1064,8 +1062,7 @@ static void GetAddrInfo(const FunctionCallbackInfo<Value>& args) {
   assert(args[1]->IsString());
   assert(args[2]->IsInt32());
   Local<Object> req_wrap_obj = args[0].As<Object>();
-  node::Utf8Value hostname(args[1]);
-  node::NativeEncodingValue native_hostname(hostname);
+  node::NativeEncodingValue hostname((node::Utf8Value(args[1])));
   int32_t flags = (args[3]->IsInt32()) ? args[3]->Int32Value() : 0;
   int family;
 
@@ -1095,7 +1092,7 @@ static void GetAddrInfo(const FunctionCallbackInfo<Value>& args) {
   int err = uv_getaddrinfo(env->event_loop(),
                            &req_wrap->req_,
                            AfterGetAddrInfo,
-                           *native_hostname,
+                           *hostname,
                            NULL,
                            &hints);
   req_wrap->Dispatched();
@@ -1114,13 +1111,12 @@ static void GetNameInfo(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[1]->IsString());
   CHECK(args[2]->IsUint32());
   Local<Object> req_wrap_obj = args[0].As<Object>();
-  node::Utf8Value ip(args[1]);
-  node::NativeEncodingValue native_ip(ip);
+  node::NativeEncodingValue ip((node::Utf8Value(args[1])));
   const unsigned port = args[2]->Uint32Value();
   struct sockaddr_storage addr;
 
-  CHECK(uv_ip4_addr(*native_ip, port, reinterpret_cast<sockaddr_in*>(&addr)) == 0 ||
-        uv_ip6_addr(*native_ip, port, reinterpret_cast<sockaddr_in6*>(&addr)) == 0);
+  CHECK(uv_ip4_addr(*ip, port, reinterpret_cast<sockaddr_in*>(&addr)) == 0 ||
+        uv_ip6_addr(*ip, port, reinterpret_cast<sockaddr_in6*>(&addr)) == 0);
 
   GetNameInfoReqWrap* req_wrap = new GetNameInfoReqWrap(env, req_wrap_obj);
 
@@ -1198,19 +1194,18 @@ static void SetServers(const FunctionCallbackInfo<Value>& args) {
     assert(elm->Get(1)->IsString());
 
     int fam = elm->Get(0)->Int32Value();
-    node::Utf8Value ip(elm->Get(1));
-    node::NativeEncodingValue native_ip(ip);
+    node::NativeEncodingValue ip((node::Utf8Value(elm->Get(1))));
 
     ares_addr_node* cur = &servers[i];
 
     switch (fam) {
       case 4:
         cur->family = AF_INET;
-        err = uv_inet_pton(AF_INET, *native_ip, &cur->addr);
+        err = uv_inet_pton(AF_INET, *ip, &cur->addr);
         break;
       case 6:
         cur->family = AF_INET6;
-        err = uv_inet_pton(AF_INET6, *native_ip, &cur->addr);
+        err = uv_inet_pton(AF_INET6, *ip, &cur->addr);
         break;
       default:
         assert(0 && "\x42\x61\x64\x20\x61\x64\x64\x72\x65\x73\x73\x20\x66\x61\x6d\x69\x6c\x79\x2e");

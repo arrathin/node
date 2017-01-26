@@ -307,12 +307,11 @@ void TCPWrap::Bind(const FunctionCallbackInfo<Value>& args) {
 
   TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
 
-  node::Utf8Value ip_address(args[0]);
-  node::NativeEncodingValue native_ip_address(ip_address);
+  node::NativeEncodingValue ip_address((node::Utf8Value(args[0])));
   int port = args[1]->Int32Value();
 
   sockaddr_in addr;
-  int err = uv_ip4_addr(*native_ip_address, port, &addr);
+  int err = uv_ip4_addr(*ip_address, port, &addr);
   if (err == 0) {
     err = uv_tcp_bind(&wrap->handle_,
                       reinterpret_cast<const sockaddr*>(&addr),
@@ -329,12 +328,11 @@ void TCPWrap::Bind6(const FunctionCallbackInfo<Value>& args) {
 
   TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
 
-  node::Utf8Value ip6_address(args[0]);
-  node::NativeEncodingValue native_ip6_address(ip6_address);
+  node::NativeEncodingValue ip6_address((node::Utf8Value(args[0])));
   int port = args[1]->Int32Value();
 
   sockaddr_in6 addr;
-  int err = uv_ip6_addr(*native_ip6_address, port, &addr);
+  int err = uv_ip6_addr(*ip6_address, port, &addr);
   if (err == 0) {
     err = uv_tcp_bind(&wrap->handle_,
                       reinterpret_cast<const sockaddr*>(&addr),
@@ -434,12 +432,11 @@ void TCPWrap::Connect(const FunctionCallbackInfo<Value>& args) {
   assert(args[2]->IsUint32());
 
   Local<Object> req_wrap_obj = args[0].As<Object>();
-  node::Utf8Value ip_address(args[1]);
-  node::NativeEncodingValue native_ip_address(ip_address);
+  node::NativeEncodingValue ip_address((node::Utf8Value(args[1])));
   int port = args[2]->Uint32Value();
 
   sockaddr_in addr;
-  int err = uv_ip4_addr(*native_ip_address, port, &addr);
+  int err = uv_ip4_addr(*ip_address, port, &addr);
 
   if (err == 0) {
     TCPConnectWrap* req_wrap = new TCPConnectWrap(env, req_wrap_obj);
@@ -467,12 +464,11 @@ void TCPWrap::Connect6(const FunctionCallbackInfo<Value>& args) {
   assert(args[2]->IsUint32());
 
   Local<Object> req_wrap_obj = args[0].As<Object>();
-  node::Utf8Value ip_address(args[1]);
-  node::NativeEncodingValue native_ip_address(ip_address);
+  node::NativeEncodingValue ip_address((node::Utf8Value(args[1])));
   int port = args[2]->Int32Value();
 
   sockaddr_in6 addr;
-  int err = uv_ip6_addr(*native_ip_address, port, &addr);
+  int err = uv_ip6_addr(*ip_address, port, &addr);
 
   if (err == 0) {
     TCPConnectWrap* req_wrap = new TCPConnectWrap(env, req_wrap_obj);

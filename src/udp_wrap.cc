@@ -178,8 +178,7 @@ void UDPWrap::DoBind(const FunctionCallbackInfo<Value>& args, int family) {
   // bind(ip, port, flags)
   assert(args.Length() == 3);
 
-  node::Utf8Value address(args[0]);
-  node::NativeEncodingValue native_address(address);
+  node::NativeEncodingValue address((node::Utf8Value(args[0])));
   const int port = args[1]->Uint32Value();
   const int flags = args[2]->Uint32Value();
   char addr[sizeof(sockaddr_in6)];
@@ -187,10 +186,10 @@ void UDPWrap::DoBind(const FunctionCallbackInfo<Value>& args, int family) {
 
   switch (family) {
   case AF_INET:
-    err = uv_ip4_addr(*native_address, port, reinterpret_cast<sockaddr_in*>(&addr));
+    err = uv_ip4_addr(*address, port, reinterpret_cast<sockaddr_in*>(&addr));
     break;
   case AF_INET6:
-    err = uv_ip6_addr(*native_address, port, reinterpret_cast<sockaddr_in6*>(&addr));
+    err = uv_ip6_addr(*address, port, reinterpret_cast<sockaddr_in6*>(&addr));
     break;
   default:
     assert(0 && "\x75\x6e\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x64\x64\x72\x65\x73\x73\x20\x66\x61\x6d\x69\x6c\x79");
@@ -243,8 +242,7 @@ void UDPWrap::SetMembership(const FunctionCallbackInfo<Value>& args,
 
   assert(args.Length() == 2);
 
-  node::Utf8Value address(args[0]);
-  node::NativeEncodingValue native_address(address);
+  node::NativeEncodingValue address((node::Utf8Value(args[0])));
   
   node::Utf8Value iface(args[1]);
   
@@ -254,7 +252,7 @@ void UDPWrap::SetMembership(const FunctionCallbackInfo<Value>& args,
   }
 
   int err = uv_udp_set_membership(&wrap->handle_,
-                                  *native_address,
+                                  *address,
                                   iface_cstr,
                                   membership);
   args.GetReturnValue().Set(err);
@@ -292,8 +290,7 @@ void UDPWrap::DoSend(const FunctionCallbackInfo<Value>& args, int family) {
   size_t length = args[3]->Uint32Value();
   const unsigned short port = args[4]->Uint32Value();
   
-  node::Utf8Value address(args[5]);
-  node::NativeEncodingValue native_address(address);
+  node::NativeEncodingValue address((node::Utf8Value(args[5])));
 
   const bool have_callback = args[6]->IsTrue();
 
@@ -308,10 +305,10 @@ void UDPWrap::DoSend(const FunctionCallbackInfo<Value>& args, int family) {
 
   switch (family) {
   case AF_INET:
-    err = uv_ip4_addr(*native_address, port, reinterpret_cast<sockaddr_in*>(&addr));
+    err = uv_ip4_addr(*address, port, reinterpret_cast<sockaddr_in*>(&addr));
     break;
   case AF_INET6:
-    err = uv_ip6_addr(*native_address, port, reinterpret_cast<sockaddr_in6*>(&addr));
+    err = uv_ip6_addr(*address, port, reinterpret_cast<sockaddr_in6*>(&addr));
     break;
   default:
     assert(0 && "\x75\x6e\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x64\x64\x72\x65\x73\x73\x20\x66\x61\x6d\x69\x6c\x79");

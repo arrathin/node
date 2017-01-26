@@ -145,9 +145,8 @@ friend class NativeEncodingValue;
 
 class NativeEncodingValue {
     public:
-      explicit NativeEncodingValue(Utf8Value& val);
-      
-      explicit NativeEncodingValue(const Utf8Value & val);
+      explicit NativeEncodingValue(const node::Utf8Value & val);
+      explicit NativeEncodingValue(const char* val);
 
       ~NativeEncodingValue(){
         if(str_ != NULL)

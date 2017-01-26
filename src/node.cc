@@ -1557,8 +1557,7 @@ static void ReportException(Environment* env,
   else
     trace_value = er->ToObject()->Get(env->stack_string());
 
-  node::Utf8Value tracei(trace_value);
-  node::NativeEncodingValue trace(tracei);
+  node::NativeEncodingValue trace((node::Utf8Value(trace_value)));
 
   // range errors have a trace member set to undefined
   if (trace.length() > 0 && !trace_value->IsUndefined()) {
@@ -1686,9 +1685,8 @@ static void Chdir(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowError("\x42\x61\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x2e");
   }
 
-  node::Utf8Value path(args[0]);
-  node::NativeEncodingValue native_path(path);
-  int err = uv_chdir(*native_path);
+  node::NativeEncodingValue path((node::Utf8Value(args[0])));
+  int err = uv_chdir(*path);
   if (err) {
     return env->ThrowUVException(err, "\x75\x76\x5f\x63\x68\x64\x69\x72");
   }
@@ -2250,10 +2248,14 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
 
 
 static void OnFatalError(const char* location, const char* message) {
+  node::NativeEncodingValue loc(location);
+  node::NativeEncodingValue mes(message);
   if (location) {
-    fprintf(stderr, "\x46\x41\x54\x41\x4c\x20\x45\x52\x52\x4f\x52\x7a\x20\x6c\xa2\x20\x6c\xa2\x15", location, message);
+#pragma convert("IBM-1047")
+    fprintf(stderr, "FATAL ERROR: %s %s\n", *loc, *mes);
   } else {
-    fprintf(stderr, "\x46\x41\x54\x41\x4c\x20\x45\x52\x52\x4f\x52\x7a\x20\x6c\xa2\x15", message);
+    fprintf(stderr, "FATAL ERROR: %s\n", *mes);
+#pragma convert(pop)
   }
   fflush(stderr);
   abort();
@@ -3068,9 +3070,8 @@ static void RawDebug(const FunctionCallbackInfo<Value>& args) {
   assert(args.Length() == 1 && args[0]->IsString() &&
          "\x6d\x75\x73\x74\x20\x62\x65\x20\x63\x61\x6c\x6c\x65\x64\x20\x77\x69\x74\x68\x20\x61\x20\x73\x69\x6e\x67\x6c\x65\x20\x73\x74\x72\x69\x6e\x67");
 
-  node::Utf8Value message(args[0]);
-  node::NativeEncodingValue n_message(message);
-  fprintf(stderr, "\x6c\xa2\x15", *n_message);
+  node::NativeEncodingValue message((node::Utf8Value(args[0])));
+  fprintf(stderr, "\x6c\xa2\x15", *message);
   fflush(stderr);
 }
 
