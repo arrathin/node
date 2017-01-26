@@ -48,7 +48,7 @@ setTimeout(function() {
       console.log('Child did not die on SIGINT, sending SIGTERM');
       child.kill('SIGTERM');
     }
-  }, 200);
+  }, process.platform === "os390" ? 2000 : 200);
 }, 200);
 
 process.on('exit', function() {
