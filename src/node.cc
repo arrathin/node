@@ -2258,6 +2258,8 @@ static void OnFatalError(const char* location, const char* message) {
 #pragma convert(pop)
   }
   fflush(stderr);
+  V8::ReleaseSystemResources();
+  debugger::Agent::ReleaseSystemResources();
   abort();
 }
 
