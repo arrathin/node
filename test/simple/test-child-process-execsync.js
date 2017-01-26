@@ -32,7 +32,7 @@ var SLEEP = 1000;
 
 // TODO: zOS Performance
 if (process.platform == 'os390') {
-  SLEEP = 2000;
+  SLEEP = 5000;
 }
 
 
