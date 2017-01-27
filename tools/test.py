@@ -1542,7 +1542,7 @@ def CleanupResources():
    os.system("for u in `ipcs | grep \"^s.*$(whoami)\" | tr -s ' ' | cut -d' ' -f2`;"
                "do ipcrm -s $u;"
              "done")
-   os.system("for u in `ps -ecf -o ppid,jobname,pid | grep \" 1 JENKINS\" | tr -s ' ' | cut -f4 -d' '`;"
+   os.system("for u in `ps -ecf -o ppid,jobname,pid | grep \" 1 $(whoami)\" | tr -s ' ' | cut -f4 -d' '`;"
                "do kill -9 $u > /dev/null 2>&1;"
              "done")
 
