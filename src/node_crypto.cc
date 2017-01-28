@@ -163,7 +163,7 @@ static void crypto_threadid_cb(CRYPTO_THREADID* tid) {
   CRYPTO_THREADID_set_pointer(tid, reinterpret_cast<void*>(uv_thread_self()));
 #else
   uv_thread_t thread_self = uv_thread_self();
-  void* thread_pointer = reinterpret_cast<void*>(&(thread_self.__));
+  void* thread_pointer = *reinterpret_cast<void**>(&(thread_self.__));
   CRYPTO_THREADID_set_pointer(tid, reinterpret_cast<void*>(thread_pointer));
 #endif
 }
