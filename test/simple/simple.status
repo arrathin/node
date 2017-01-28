@@ -23,5 +23,6 @@ test-child-process-fork-exec-argv     : PASS,FLAKY
 test-process-exec-argv                : PASS,FLAKY
 test-child-process-kill               : PASS,FLAKY
 test-fs-watch                         : SKIP
+test-dgram-broadcast-multi-process.js : SKIP
 
 [$system==solaris]
