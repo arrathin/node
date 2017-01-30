@@ -1557,11 +1557,12 @@ static void ReportException(Environment* env,
   else
     trace_value = er->ToObject()->Get(env->stack_string());
 
+#pragma convert("IBM-1047")
   node::NativeEncodingValue trace((node::Utf8Value(trace_value)));
 
   // range errors have a trace member set to undefined
   if (trace.length() > 0 && !trace_value->IsUndefined()) {
-    fprintf(stderr, "\x6c\xa2\x15", *trace);
+    fprintf(stderr, "%s\n", *trace);
   } else {
     // this really only happens for RangeErrors, since they're the only
     // kind that won't have all this info in the trace, or when non-Error
@@ -1581,13 +1582,14 @@ static void ReportException(Environment* env,
         name->IsUndefined()) {
       // Not an error object. Just print as-is.
       node::NativeEncodingValue message((node::Utf8Value(er)));
-      fprintf(stderr, "\x6c\xa2\x15", *message);
+      fprintf(stderr, "%s\n", *message);
     } else {
       node::NativeEncodingValue name_string((node::Utf8Value(name)));
       node::NativeEncodingValue message_string((node::Utf8Value(message)));
-      fprintf(stderr, "\x6c\xa2\x7a\x20\x6c\xa2\x15", *name_string, *message_string);
+      fprintf(stderr, "%s: %s\n", *name_string, *message_string);
     }
   }
+#pragma convert(pop)
 
   fflush(stderr);
 }
