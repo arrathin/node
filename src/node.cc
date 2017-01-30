@@ -1580,11 +1580,11 @@ static void ReportException(Environment* env,
         name.IsEmpty() ||
         name->IsUndefined()) {
       // Not an error object. Just print as-is.
-      node::Utf8Value message(er);
+      node::NativeEncodingValue message((node::Utf8Value(er)));
       fprintf(stderr, "\x6c\xa2\x15", *message);
     } else {
-      node::Utf8Value name_string(name);
-      node::Utf8Value message_string(message);
+      node::NativeEncodingValue name_string((node::Utf8Value(name)));
+      node::NativeEncodingValue message_string((node::Utf8Value(message)));
       fprintf(stderr, "\x6c\xa2\x7a\x20\x6c\xa2\x15", *name_string, *message_string);
     }
   }
