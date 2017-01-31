@@ -1,1 +1,4 @@
 prefix pummel
+
+[$system==os390]
+test-watch-file                         : SKIP
