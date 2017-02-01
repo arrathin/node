@@ -36,9 +36,11 @@ if (cluster.isMaster) {
     assert.equal(msg, 'DONE');
     ok = true;
   });
+/*
   worker.on('exit', function() {
     process.exit();
   });
+*/
   process.on('exit', function() {
     assert(ok);
   });
