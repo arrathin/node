@@ -165,6 +165,9 @@ if (process.argv[2] === 'child') {
             if (process.platform === 'linux')
               expectedExitCode.push(133);
 
+            if (process.platform === 'os390')
+              expectedExitCode = [ 137 ];
+
             // On some platforms with KSH being the default shell
             // (like SmartOS), when a process aborts, KSH exits with an exit
             // code that is greater than 256, and thus the exit code emitted
