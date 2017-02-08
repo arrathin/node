@@ -28,7 +28,7 @@
 # else
 #   define NODE_EXTERN(type)  __declspec(dllimport) type
 # endif
-#elif defined(__MVS__)
+#elif defined(__MVS__) && !defined(__clang__)
 # define NODE_EXTERN(type) type _Export
 #else
 # define NODE_EXTERN(type) type/* nothing */
