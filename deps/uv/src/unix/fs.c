@@ -669,10 +669,6 @@ static ssize_t uv__fs_utime(uv_fs_t* req) {
 
 
 static ssize_t uv__fs_write(uv_fs_t* req) {
-#if defined(__MVS__)
-  for (int idx = 0; idx < req->nbufs; idx++)
-      __a2e_l(req->bufs[idx].base, req->bufs[idx].len);
-#endif
 
 #if defined(__linux__)
   static int no_pwritev;

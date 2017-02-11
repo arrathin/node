@@ -903,13 +903,15 @@ static void WriteString(const FunctionCallbackInfo<Value>& args) {
   int64_t pos;
   size_t len;
   bool must_free = false;
+  enum encoding enc;
+
+  enc = ParseEncoding(env->isolate(), args[3], UTF8);
 
   // will assign buf and len if string was external
   if (!StringBytes::GetExternalParts(env->isolate(),
                                      string,
                                      const_cast<const char**>(&buf),
                                      &len)) {
-    enum encoding enc = ParseEncoding(env->isolate(), args[3], UTF8);
     len = StringBytes::StorageSize(env->isolate(), string, enc);
     buf = new char[len];
     // StorageSize may return too large a char, so correct the actual length
@@ -921,6 +923,11 @@ static void WriteString(const FunctionCallbackInfo<Value>& args) {
   req = args[4];
 
   uv_buf_t uvbuf = uv_buf_init(const_cast<char*>(buf), len);
+
+#if defined(__MVS__)
+  if (enc == UTF8 || enc == ASCII)
+    __a2e_l(uvbuf.base, uvbuf.len);
+#endif
 
   if (!req->IsObject()) {
     SYNC_CALL(write, NULL, fd, &uvbuf, 1, pos)
