@@ -120,6 +120,7 @@ inline TypeName* Unwrap(v8::Local<v8::Object> object);
 class Utf8Value {
   public:
     explicit Utf8Value(v8::Handle<v8::Value> value);
+    explicit Utf8Value(const char* val, int length);
 
     ~Utf8Value() {
         free(str_);
@@ -146,6 +147,7 @@ friend class NativeEncodingValue;
 class NativeEncodingValue {
     public:
       explicit NativeEncodingValue(const node::Utf8Value & val);
+      explicit NativeEncodingValue(const char* val, int length);
       explicit NativeEncodingValue(const char* val);
 
       ~NativeEncodingValue(){

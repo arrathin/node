@@ -52,6 +52,15 @@ Utf8Value::Utf8Value(v8::Handle<v8::Value> value)
   str_ = reinterpret_cast<char*>(str);
 }
 
+Utf8Value::Utf8Value(const char* val, int length)
+  : length_(length), str_(NULL) {
+    str_ = (char *)malloc(sizeof(char) * length_ + 1);
+    assert(str_ != NULL);
+    memcpy(str_, val, length_);
+    str_[length_] = NULL;
+    __e2a_s(str_);
+}
+
 //Assumption is that Utf8Value contains chars in
 //the range ASCII range (0x0 ... 0x7f)
 
@@ -74,5 +83,15 @@ NativeEncodingValue::NativeEncodingValue(const char* val)
   str_[length_] = NULL;
   __a2e_s(str_);
 }
+
+NativeEncodingValue::NativeEncodingValue(const char* val, int length)
+  : length_(length), str_(NULL) {
+  str_ = (char *)malloc(sizeof(char) * length_ + 1);
+  assert(str_ != NULL);
+  memcpy(str_, val, length_);
+  str_[length_] = NULL;
+  __a2e_s(str_);
+}
+
 
 }  // namespace node

@@ -720,6 +720,13 @@ Local<Value> StringBytes::Encode(Isolate* isolate,
       }
       break;
 
+    case EBCDIC:
+      val = String::NewFromUtf8(isolate,
+                                *(node::Utf8Value(buf, buflen)),
+                                String::kNormalString,
+                                buflen);
+      break;
+
     case UTF8:
       val = String::NewFromUtf8(isolate,
                                 buf,

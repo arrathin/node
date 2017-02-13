@@ -375,10 +375,6 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
 
 
 done:
-#ifdef __MVS__
-  for (int buf_idx = 0; buf_idx < req->nbufs; buf_idx++)
-    __e2a_l(req->bufs[buf_idx].base, req->bufs[buf_idx].len);
-#endif
   if (req->bufs != req->bufsml)
     uv__free(req->bufs);
   return result;

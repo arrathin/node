@@ -277,6 +277,11 @@ void AsciiSlice(const FunctionCallbackInfo<Value>& args) {
 }
 
 
+void EbcdicSlice(const FunctionCallbackInfo<Value>& args) {
+  StringSlice<EBCDIC>(args);
+}
+
+
 void Utf8Slice(const FunctionCallbackInfo<Value>& args) {
   StringSlice<UTF8>(args);
 }
@@ -613,6 +618,7 @@ void SetupBufferJS(const FunctionCallbackInfo<Value>& args) {
   NODE_SET_METHOD(proto, "\x68\x65\x78\x53\x6c\x69\x63\x65", HexSlice);
   NODE_SET_METHOD(proto, "\x75\x63\x73\x32\x53\x6c\x69\x63\x65", Ucs2Slice);
   NODE_SET_METHOD(proto, "\x75\x74\x66\x38\x53\x6c\x69\x63\x65", Utf8Slice);
+  NODE_SET_METHOD(proto, "ebcdicSlice", EbcdicSlice);
 
   NODE_SET_METHOD(proto, "\x61\x73\x63\x69\x69\x57\x72\x69\x74\x65", AsciiWrite);
   NODE_SET_METHOD(proto, "\x62\x61\x73\x65\x36\x34\x57\x72\x69\x74\x65", Base64Write);
