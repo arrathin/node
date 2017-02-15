@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <string.h>  // memcpy
+#include <unistd.h>  // a2e
 
 // When creating strings >= this length v8's gc spins up and consumes
 // most of the execution time. For these cases it's more performant to
@@ -322,6 +323,19 @@ size_t StringBytes::Write(Isolate* isolate,
                                 flags);
       if (chars_written != NULL)
         *chars_written = len;
+      break;
+
+    case EBCDIC:
+      if (is_extern)
+        memcpy(buf, data, len);
+      else
+        len = str->WriteOneByte(reinterpret_cast<uint8_t*>(buf),
+                                0,
+                                buflen,
+                                flags);
+      if (chars_written != NULL)
+        *chars_written = len;
+      __a2e_l(buf, len);
       break;
 
     case UTF8:
@@ -721,10 +735,10 @@ Local<Value> StringBytes::Encode(Isolate* isolate,
       break;
 
     case EBCDIC:
-      val = String::NewFromUtf8(isolate,
-                                *(node::Utf8Value(buf, buflen)),
-                                String::kNormalString,
-                                buflen);
+      val = String::NewFromOneByte(isolate,
+                                   (unsigned char*)(*node::Utf8Value(buf, buflen)),
+                                   String::kNormalString,
+                                   buflen);
       break;
 
     case UTF8:

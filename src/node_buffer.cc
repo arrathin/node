@@ -455,6 +455,11 @@ void AsciiWrite(const FunctionCallbackInfo<Value>& args) {
 }
 
 
+void EbcdicWrite(const FunctionCallbackInfo<Value>& args) {
+  StringWrite<EBCDIC>(args);
+}
+
+
 static inline void Swizzle(char* start, unsigned int len) {
   char* end = start + len - 1;
   while (start < end) {
@@ -626,6 +631,7 @@ void SetupBufferJS(const FunctionCallbackInfo<Value>& args) {
   NODE_SET_METHOD(proto, "\x68\x65\x78\x57\x72\x69\x74\x65", HexWrite);
   NODE_SET_METHOD(proto, "\x75\x63\x73\x32\x57\x72\x69\x74\x65", Ucs2Write);
   NODE_SET_METHOD(proto, "\x75\x74\x66\x38\x57\x72\x69\x74\x65", Utf8Write);
+  NODE_SET_METHOD(proto, "ebcdicWrite", EbcdicWrite);
 
   NODE_SET_METHOD(proto, "\x63\x6f\x70\x79", Copy);
 
