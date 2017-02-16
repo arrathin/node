@@ -20,8 +20,8 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-if (process.platform === 'win32') {
-  console.log('skipping this test because there is no wrk on windows');
+if (process.platform === 'win32' || process.platform === 'os390') {
+  console.log('skipping this test because there is no wrk on this platform');
   process.exit(0);
 }
 
