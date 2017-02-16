@@ -2,3 +2,4 @@ prefix pummel
 
 [$system==os390]
 test-watch-file                         : SKIP
+test-fs-watch-non-recursive.js          : SKIP
