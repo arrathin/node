@@ -2196,7 +2196,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   __a2e_s(*filename);
 #endif
   if (uv_dlopen(*filename, &lib)) {
-    Local<String> errmsg = OneByteString(env->isolate(), uv_dlerror(&lib));
+    Local<String> errmsg = OneByteString(env->isolate(), *node::Utf8Value(uv_dlerror(&lib)));
 #ifdef _WIN32
     // Windows needs to add the filename into the error message
     errmsg = String::Concat(errmsg, args[1]->ToString());

@@ -121,6 +121,7 @@ class Utf8Value {
   public:
     explicit Utf8Value(v8::Handle<v8::Value> value);
     explicit Utf8Value(const char* val, int length);
+    explicit Utf8Value(const char* val);
 
     ~Utf8Value() {
         free(str_);
