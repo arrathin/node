@@ -72,9 +72,6 @@ void SyncProcessOutputBuffer::OnRead(const uv_buf_t* buf, size_t nread) {
 
 
 size_t SyncProcessOutputBuffer::Copy(char* dest) const {
-#ifdef __MVS__
-  __e2a_l(data_, used());
-#endif
   memcpy(dest, data_, used());
   return used();
 }
@@ -334,6 +331,9 @@ void SyncProcessStdioPipe::ReadCallback(uv_stream_t* stream,
                                         const uv_buf_t* buf) {
   SyncProcessStdioPipe* self =
         reinterpret_cast<SyncProcessStdioPipe*>(stream->data);
+#ifdef __MVS__
+  __e2a_l(buf->base, nread);
+#endif
   self->OnRead(buf, nread);
 }
 
@@ -341,6 +341,9 @@ void SyncProcessStdioPipe::ReadCallback(uv_stream_t* stream,
 void SyncProcessStdioPipe::WriteCallback(uv_write_t* req, int result) {
   SyncProcessStdioPipe* self =
       reinterpret_cast<SyncProcessStdioPipe*>(req->handle->data);
+#ifdef __MVS__
+        __e2a_l(self->input_buffer_.base, self->input_buffer_.len);
+#endif
   self->OnWriteDone(result);
 }
 
@@ -872,6 +875,9 @@ int SyncProcessRunner::ParseStdioOption(int child_fd,
       if (Buffer::HasInstance(input)) {
         buf = uv_buf_init(Buffer::Data(input),
                           static_cast<unsigned int>(Buffer::Length(input)));
+#ifdef __MVS__
+        __a2e_l(buf.base, buf.len);
+#endif
       } else if (!input->IsUndefined() && !input->IsNull()) {
         // Strings, numbers etc. are currently unsupported. It's not possible
         // to create a buffer for them here because there is no way to free
