@@ -81,8 +81,6 @@ if (cluster.isWorker) {
     results.cluster_exitCode = worker.process.exitCode;
     results.cluster_signalCode = worker.process.signalCode;
     results.cluster_emitExit += 1;
-    assert.ok(results.cluster_emitDisconnect,
-        "cluster: 'exit' event before 'disconnect' event");
   });
 
   // Check worker events and properties
@@ -90,6 +88,9 @@ if (cluster.isWorker) {
     results.worker_emitDisconnect += 1;
     results.worker_suicideMode = worker.suicide;
     results.worker_state = worker.state;
+    if (results.worker_emitExit > 0) {
+      process.nextTick(function() { finish_test(); });
+    }
   });
 
   // Check that the worker died
