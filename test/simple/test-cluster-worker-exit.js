@@ -99,10 +99,10 @@ if (cluster.isWorker) {
     results.worker_signalCode = signalCode;
     results.worker_emitExit += 1;
     results.worker_died = !alive(worker.process.pid);
-    assert.ok(results.worker_emitDisconnect,
-        "worker: 'exit' event before 'disconnect' event");
+    if (results.worker_emitDisconnect > 0) {
+      process.nextTick(function() { finish_test(); });
+    }
 
-    process.nextTick(function() { finish_test(); });
   });
 
   var finish_test = function() {
