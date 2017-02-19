@@ -24,6 +24,11 @@ var assert = require('assert');
 var cluster = require('cluster');
 var net = require('net');
 
+if (process.platform === 'os390') {
+  console.log('Skipping test, no privileged ports on zOS.');
+  process.exit(0);
+}
+
 if (process.platform === 'win32') {
   console.log('Skipping test, not reliable on Windows.');
   process.exit(0);
