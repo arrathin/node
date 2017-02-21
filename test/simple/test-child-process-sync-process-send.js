@@ -23,12 +23,19 @@ var common = require('../common');
 var assert = require('assert');
 var fork = require('child_process').fork;
 var N = 4 << 20;  // 4 MB
+var timeout = 100;
+
+if (process.platform == 'os390') {
+  timeout = 5000;
+}
 
 for (var big = '*'; big.length < N; big += big);
 
 if (process.argv[2] === 'child') {
   process.send(big);
-  process.exit(42);
+  setTimeout(function () {
+    process.exit(42);
+  }, timeout)
 }
 
 var proc = fork(__filename, ['child']);
