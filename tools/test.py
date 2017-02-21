@@ -718,6 +718,7 @@ FLAGS = {
     'release' : []}
 TIMEOUT_SCALEFACTOR = {
     'debug'   : 4,
+    'OS/390'  : 2,
     'release' : 1 }
 
 
@@ -761,6 +762,8 @@ class Context(object):
     return testcase.variant_flags + FLAGS[mode]
 
   def GetTimeout(self, mode):
+    if (platform.system() == 'OS/390'):
+      return self.timeout * TIMEOUT_SCALEFACTOR['OS/390'] * TIMEOUT_SCALEFACTOR[mode];
     return self.timeout * TIMEOUT_SCALEFACTOR[mode]
 
 def RunTestCases(cases_to_run, progress, tasks, flaky_tests_mode):
