@@ -28,13 +28,18 @@ var assert = require('assert');
 var spawn = require('child_process').spawn;
 
 var is_windows = process.platform === 'win32';
+var is_zos = process.platform === 'os390';
 
 var SIZE = 1000 * 1024;
 var N = 40;
 var finished = false;
 
 function doSpawn(i) {
-  var child = spawn('python', ['-c', 'print ' + SIZE + ' * "C"']);
+  if (is_zos)
+    var child = spawn('perl', ['-e', 'print "C" x ' + SIZE]);
+  else
+    var child = spawn('python', ['-c', 'print ' + SIZE + ' * "C"']);
+
   var count = 0;
 
   child.stdout.setEncoding('ascii');
@@ -46,9 +51,15 @@ function doSpawn(i) {
     console.log('stderr: ' + chunk);
   });
 
+  var newline_sz = 1;
+  if (is_windows)
+    newline_sz = 2;
+  else if (is_zos)
+    newline_sz = 0;
+
   child.on('close', function() {
     // + 1 for \n or + 2 for \r\n on Windows
-    assert.equal(SIZE + (is_windows ? 2 : 1), count);
+    assert.equal(SIZE + newline_sz, count);
     if (i < N) {
       doSpawn(i + 1);
     } else {
