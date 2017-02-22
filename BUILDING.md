@@ -24,6 +24,15 @@ On OS X, you will also need:
     this under the menu `Xcode -> Preferences -> Downloads`
   * This step will install `gcc` and the related toolchain containing `make`
 
+* After building, you may want to setup [firewall rules](tools/macosx-firewall.sh)
+to avoid popups asking to accept incoming network connections when running tests:
+
+```console
+$ sudo ./tools/macosx-firewall.sh
+```
+Running this script will add rules for the executable `node` in the out
+directory and the symbolic `node` link in the projects root directory.
+
 On FreeBSD and OpenBSD, you may also need:
 * libexecinfo (FreeBSD and OpenBSD only)
 
@@ -108,13 +117,13 @@ Prerequisites:
   and tools which can be included in the global `PATH`.
 
 ```text
-> vcbuild nosign
+> .\vcbuild nosign
 ```
 
 To run the tests:
 
 ```text
-> vcbuild test
+> .\vcbuild nosign test
 ```
 
 To test if Node.js was built correctly:
@@ -163,7 +172,7 @@ $ ./configure --with-intl=small-icu --download=all
 ##### Windows:
 
 ```text
-> vcbuild small-icu download-all
+> .\vcbuild nosign small-icu download-all
 ```
 
 The `small-icu` mode builds with English-only data. You can add full
@@ -186,7 +195,7 @@ $ ./configure --with-intl=full-icu --download=all
 ##### Windows:
 
 ```text
-> vcbuild full-icu download-all
+> .\vcbuild nosign full-icu download-all
 ```
 
 #### Building without Intl support
@@ -203,7 +212,7 @@ $ ./configure --with-intl=none
 ##### Windows:
 
 ```text
-> vcbuild intl-none
+> .\vcbuild nosign intl-none
 ```
 
 #### Use existing installed ICU (Unix / OS X only):
@@ -242,7 +251,7 @@ First unpack latest ICU to `deps/icu`
 as `deps/icu` (You'll have: `deps/icu/source/...`)
 
 ```text
-> vcbuild full-icu
+> .\vcbuild nosign full-icu
 ```
 
 ## Building Node.js with FIPS-compliant OpenSSL

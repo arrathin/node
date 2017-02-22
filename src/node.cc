@@ -102,6 +102,7 @@ using v8::Boolean;
 using v8::Context;
 using v8::EscapableHandleScope;
 using v8::Exception;
+using v8::Float64Array;
 using v8::Function;
 using v8::FunctionCallbackInfo;
 using v8::FunctionTemplate;
@@ -2145,11 +2146,15 @@ void MemoryUsage(const FunctionCallbackInfo<Value>& args) {
       Number::New(env->isolate(), v8_heap_stats.total_heap_size());
   Local<Number> heap_used =
       Number::New(env->isolate(), v8_heap_stats.used_heap_size());
+  Local<Number> external_mem =
+      Number::New(env->isolate(),
+                  env->isolate()->AdjustAmountOfExternalAllocatedMemory(0));
 
   Local<Object> info = Object::New(env->isolate());
   info->Set(env->rss_string(), Number::New(env->isolate(), rss));
   info->Set(env->heap_total_string(), heap_total);
   info->Set(env->heap_used_string(), heap_used);
+  info->Set(env->external_string(), external_mem);
 
   args.GetReturnValue().Set(info);
 }
@@ -2197,6 +2202,38 @@ void Hrtime(const FunctionCallbackInfo<Value>& args) {
   tuple->Set(0, Integer::NewFromUnsigned(env->isolate(), t / NANOS_PER_SEC));
   tuple->Set(1, Integer::NewFromUnsigned(env->isolate(), t % NANOS_PER_SEC));
   args.GetReturnValue().Set(tuple);
+}
+
+// Microseconds in a second, as a float, used in CPUUsage() below
+#define MICROS_PER_SEC 1e6
+
+// CPUUsage use libuv's uv_getrusage() this-process resource usage accessor,
+// to access ru_utime (user CPU time used) and ru_stime (system CPU time used),
+// which are uv_timeval_t structs (long tv_sec, long tv_usec).
+// Returns those values as Float64 microseconds in the elements of the array
+// passed to the function.
+void CPUUsage(const FunctionCallbackInfo<Value>& args) {
+  uv_rusage_t rusage;
+
+  // Call libuv to get the values we'll return.
+  int err = uv_getrusage(&rusage);
+  if (err) {
+    // On error, return the strerror version of the error code.
+    Local<String> errmsg = OneByteString(args.GetIsolate(), uv_strerror(err));
+    args.GetReturnValue().Set(errmsg);
+    return;
+  }
+
+  // Get the double array pointer from the Float64Array argument.
+  CHECK(args[0]->IsFloat64Array());
+  Local<Float64Array> array = args[0].As<Float64Array>();
+  CHECK_EQ(array->Length(), 2);
+  Local<ArrayBuffer> ab = array->Buffer();
+  double* fields = static_cast<double*>(ab->GetContents().Data());
+
+  // Set the Float64Array elements to be user / system values in microseconds.
+  fields[0] = MICROS_PER_SEC * rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec;
+  fields[1] = MICROS_PER_SEC * rusage.ru_stime.tv_sec + rusage.ru_stime.tv_usec;
 }
 
 extern "C" void node_module_register(void* m) {
@@ -2703,6 +2740,13 @@ static Local<Object> GetFeatures(Environment* env) {
 #endif
   obj->Set(env->tls_npn_string(), tls_npn);
 
+#ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
+  Local<Boolean> tls_alpn = True(env->isolate());
+#else
+  Local<Boolean> tls_alpn = False(env->isolate());
+#endif
+  obj->Set(env->tls_alpn_string(), tls_alpn);
+
 #ifdef SSL_CTRL_SET_TLSEXT_SERVERNAME_CB
   Local<Boolean> tls_sni = True(env->isolate());
 #else
@@ -3148,6 +3192,8 @@ void SetupProcessObject(Environment* env,
   env->SetMethod(process, "_debugEnd", DebugEnd);
 
   env->SetMethod(process, "hrtime", Hrtime);
+
+  env->SetMethod(process, "cpuUsage", CPUUsage);
 
   env->SetMethod(process, "dlopen", DLOpen);
 
@@ -4354,6 +4400,8 @@ int Start(int argc, char** argv) {
   Init(&argc, const_cast<const char**>(argv), &exec_argc, &exec_argv);
 
 #if HAVE_OPENSSL
+  if (const char* extra = secure_getenv("NODE_EXTRA_CA_CERTS"))
+    crypto::UseExtraCaCerts(extra);
   // V8 on Windows doesn't have a good source of entropy. Seed it from
   // OpenSSL's pool.
   V8::SetEntropySource(crypto::EntropySource);

@@ -21,26 +21,24 @@ os.homedir = function() {
 class ActionStream extends stream.Stream {
   run(data) {
     const _iter = data[Symbol.iterator]();
-    const self = this;
-
-    function doAction() {
+    const doAction = () => {
       const next = _iter.next();
       if (next.done) {
         // Close the repl. Note that it must have a clean prompt to do so.
-        setImmediate(function() {
-          self.emit('keypress', '', { ctrl: true, name: 'd' });
+        setImmediate(() => {
+          this.emit('keypress', '', { ctrl: true, name: 'd' });
         });
         return;
       }
       const action = next.value;
 
       if (typeof action === 'object') {
-        self.emit('keypress', '', action);
+        this.emit('keypress', '', action);
       } else {
-        self.emit('data', action + '\n');
+        this.emit('data', action + '\n');
       }
       setImmediate(doAction);
-    }
+    };
     setImmediate(doAction);
   }
   resume() {}
@@ -70,7 +68,7 @@ const sameHistoryFilePaths = '\nThe old repl history file has the same name ' +
                              path.join(common.tmpDir, '.node_repl_history') +
                              ' and is empty.\nUsing it as is.\n';
 // File paths
-const fixtures = path.join(common.testDir, 'fixtures');
+const fixtures = common.fixturesDir;
 const historyFixturePath = path.join(fixtures, '.node_repl_history');
 const historyPath = path.join(common.tmpDir, '.fixture_copy_repl_history');
 const historyPathFail = path.join(common.tmpDir, '.node_repl\u0000_history');
@@ -176,7 +174,7 @@ const tests = [
     expected: [prompt, replFailedRead, prompt, replDisabled, prompt]
   },
   { // Make sure this is always the last test, since we change os.homedir()
-    before: function mockHomedirFailure() {
+    before: function before() {
       // Mock os.homedir() failure
       os.homedir = function() {
         throw new Error('os.homedir() failure');

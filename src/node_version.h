@@ -2,8 +2,8 @@
 #define SRC_NODE_VERSION_H_
 
 #define NODE_MAJOR_VERSION 4
-#define NODE_MINOR_VERSION 7
-#define NODE_PATCH_VERSION 3
+#define NODE_MINOR_VERSION 8
+#define NODE_PATCH_VERSION 0
 
 #define NODE_VERSION_IS_LTS 1
 #define NODE_VERSION_LTS_CODENAME "Argon"
@@ -47,6 +47,9 @@
       (minor) == NODE_MINOR_VERSION && (patch) <= NODE_PATCH_VERSION))
 
 /**
+ * Node.js will refuse to load modules that weren't compiled against its own
+ * module ABI number, exposed as the process.versions.modules property.
+ *
  * When this version number is changed, node.js will refuse
  * to load older modules.  This should be done whenever
  * an API is broken in the C++ side, including in v8 or

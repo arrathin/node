@@ -1,5 +1,5 @@
 'use strict';
-require('../common');
+const common = require('../common');
 var assert = require('assert');
 var http = require('http');
 var util = require('util');
@@ -15,7 +15,7 @@ FakeAgent.prototype.createConnection = function createConnection() {
   var s = new Duplex();
   var once = false;
 
-  s._read = function read() {
+  s._read = function _read() {
     if (once)
       return this.push(null);
     once = true;
@@ -27,7 +27,7 @@ FakeAgent.prototype.createConnection = function createConnection() {
   };
 
   // Blackhole
-  s._write = function write(data, enc, cb) {
+  s._write = function _write(data, enc, cb) {
     cb();
   };
 
@@ -39,22 +39,18 @@ FakeAgent.prototype.createConnection = function createConnection() {
 };
 
 var received = '';
-var ended = 0;
 
 var req = http.request({
   agent: new FakeAgent()
-}, function(res) {
+}, common.mustCall(function(res) {
   res.on('data', function(chunk) {
     received += chunk;
   });
 
-  res.on('end', function() {
-    ended++;
-  });
-});
+  res.on('end', common.mustCall(function() {}));
+}));
 req.end();
 
 process.on('exit', function() {
   assert.equal(received, 'hello world');
-  assert.equal(ended, 1);
 });

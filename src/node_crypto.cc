@@ -120,6 +120,8 @@ const char* const root_certs[] = {
 #include "node_root_certs.h"  // NOLINT(build/include_order)
 };
 
+std::string extra_root_certs_file;  // NOLINT(runtime/string)
+
 X509_STORE* root_cert_store;
 
 // Just to generate static methods
@@ -163,6 +165,15 @@ template void SSLWrap<TLSWrap>::DestroySSL();
 template int SSLWrap<TLSWrap>::SSLCertCallback(SSL* s, void* arg);
 template void SSLWrap<TLSWrap>::WaitForCertCb(CertCb cb, void* arg);
 
+#ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
+template int SSLWrap<TLSWrap>::SelectALPNCallback(
+    SSL* s,
+    const unsigned char** out,
+    unsigned char* outlen,
+    const unsigned char* in,
+    unsigned int inlen,
+    void* arg);
+#endif  // TLSEXT_TYPE_application_layer_protocol_negotiation
 
 static void crypto_threadid_cb(CRYPTO_THREADID* tid) {
   static_assert(sizeof(uv_thread_t) <= sizeof(void*),
@@ -744,6 +755,38 @@ void SecureContext::AddCRL(const FunctionCallbackInfo<Value>& args) {
 }
 
 
+void UseExtraCaCerts(const std::string& file) {
+  extra_root_certs_file = file;
+}
+
+
+static unsigned long AddCertsFromFile(  // NOLINT(runtime/int)
+    X509_STORE* store,
+    const char* file) {
+  ERR_clear_error();
+  MarkPopErrorOnReturn mark_pop_error_on_return;
+
+  BIO* bio = BIO_new_file(file, "r");
+  if (!bio) {
+    return ERR_get_error();
+  }
+
+  while (X509* x509 =
+      PEM_read_bio_X509(bio, nullptr, CryptoPemCallback, nullptr)) {
+    X509_STORE_add_cert(store, x509);
+    X509_free(x509);
+  }
+  BIO_free_all(bio);
+
+  unsigned long err = ERR_peek_error();  // NOLINT(runtime/int)
+  // Ignore error if its EOF/no start line found.
+  if (ERR_GET_LIB(err) == ERR_LIB_PEM &&
+      ERR_GET_REASON(err) == PEM_R_NO_START_LINE) {
+    return 0;
+  }
+
+  return err;
+}
 
 void SecureContext::AddRootCerts(const FunctionCallbackInfo<Value>& args) {
   SecureContext* sc;
@@ -773,9 +816,23 @@ void SecureContext::AddRootCerts(const FunctionCallbackInfo<Value>& args) {
       BIO_free_all(bp);
       X509_free(x509);
     }
+
+    if (!extra_root_certs_file.empty()) {
+      unsigned long err = AddCertsFromFile(  // NOLINT(runtime/int)
+                                           root_cert_store,
+                                           extra_root_certs_file.c_str());
+      if (err) {
+        fprintf(stderr,
+                "Warning: Ignoring extra certs from `%s`, load failed: %s\n",
+                extra_root_certs_file.c_str(),
+                ERR_error_string(err, nullptr));
+      }
+    }
   }
 
   sc->ca_store_ = root_cert_store;
+  // Increment reference count so global store is not deleted along with CTX.
+  CRYPTO_add(&root_cert_store->references, 1, CRYPTO_LOCK_X509_STORE);
   SSL_CTX_set_cert_store(sc->ctx_, sc->ca_store_);
 }
 
@@ -1222,6 +1279,9 @@ void SSLWrap<Base>::AddMethods(Environment* env, Local<FunctionTemplate> t) {
   env->SetProtoMethod(t, "setNPNProtocols", SetNPNProtocols);
 #endif
 
+  env->SetProtoMethod(t, "getALPNNegotiatedProtocol", GetALPNNegotiatedProto);
+  env->SetProtoMethod(t, "setALPNProtocols", SetALPNProtocols);
+
   t->PrototypeTemplate()->SetAccessor(
       FIXED_ONE_BYTE_STRING(env->isolate(), "_external"),
       SSLGetter,
@@ -1443,9 +1503,14 @@ static Local<Object> X509ToObject(Environment* env, X509* cert) {
                                     String::kNormalString, mem->length));
       (void) BIO_reset(bio);
 
-      BN_ULONG exponent_word = BN_get_word(rsa->e);
-      BIO_printf(bio, "0x%lx", exponent_word);
-
+      uint64_t exponent_word = static_cast<uint64_t>(BN_get_word(rsa->e));
+      uint32_t lo = static_cast<uint32_t>(exponent_word);
+      uint32_t hi = static_cast<uint32_t>(exponent_word >> 32);
+      if (hi == 0) {
+          BIO_printf(bio, "0x%x", lo);
+      } else {
+          BIO_printf(bio, "0x%x%08x", hi, lo);
+      }
       BIO_get_mem_ptr(bio, &mem);
       info->Set(env->exponent_string(),
                 String::NewFromUtf8(env->isolate(), mem->data,
@@ -1948,14 +2013,17 @@ int SSLWrap<Base>::AdvertiseNextProtoCallback(SSL* s,
   HandleScope handle_scope(env->isolate());
   Context::Scope context_scope(env->context());
 
-  if (w->npn_protos_.IsEmpty()) {
+  Local<Value> npn_buffer =
+      w->object()->GetHiddenValue(env->npn_buffer_string());
+
+  if (npn_buffer.IsEmpty()) {
     // No initialization - no NPN protocols
     *data = reinterpret_cast<const unsigned char*>("");
     *len = 0;
   } else {
-    Local<Object> obj = PersistentToLocal(env->isolate(), w->npn_protos_);
-    *data = reinterpret_cast<const unsigned char*>(Buffer::Data(obj));
-    *len = Buffer::Length(obj);
+    CHECK(Buffer::HasInstance(npn_buffer));
+    *data = reinterpret_cast<const unsigned char*>(Buffer::Data(npn_buffer));
+    *len = Buffer::Length(npn_buffer);
   }
 
   return SSL_TLSEXT_ERR_OK;
@@ -1974,25 +2042,27 @@ int SSLWrap<Base>::SelectNextProtoCallback(SSL* s,
   HandleScope handle_scope(env->isolate());
   Context::Scope context_scope(env->context());
 
-  // Release old protocol handler if present
-  w->selected_npn_proto_.Reset();
+  Local<Value> npn_buffer =
+      w->object()->GetHiddenValue(env->npn_buffer_string());
 
-  if (w->npn_protos_.IsEmpty()) {
+  if (npn_buffer.IsEmpty()) {
     // We should at least select one protocol
     // If server is using NPN
     *out = reinterpret_cast<unsigned char*>(const_cast<char*>("http/1.1"));
     *outlen = 8;
 
     // set status: unsupported
-    w->selected_npn_proto_.Reset(env->isolate(), False(env->isolate()));
+    bool r = w->object()->SetHiddenValue(env->selected_npn_buffer_string(),
+                                         False(env->isolate()));
+    CHECK(r);
 
     return SSL_TLSEXT_ERR_OK;
   }
 
-  Local<Object> obj = PersistentToLocal(env->isolate(), w->npn_protos_);
+  CHECK(Buffer::HasInstance(npn_buffer));
   const unsigned char* npn_protos =
-      reinterpret_cast<const unsigned char*>(Buffer::Data(obj));
-  size_t len = Buffer::Length(obj);
+      reinterpret_cast<const unsigned char*>(Buffer::Data(npn_buffer));
+  size_t len = Buffer::Length(npn_buffer);
 
   int status = SSL_select_next_proto(out, outlen, in, inlen, npn_protos, len);
   Local<Value> result;
@@ -2010,8 +2080,9 @@ int SSLWrap<Base>::SelectNextProtoCallback(SSL* s,
       break;
   }
 
-  if (!result.IsEmpty())
-    w->selected_npn_proto_.Reset(env->isolate(), result);
+  bool r = w->object()->SetHiddenValue(env->selected_npn_buffer_string(),
+                                       result);
+  CHECK(r);
 
   return SSL_TLSEXT_ERR_OK;
 }
@@ -2024,9 +2095,12 @@ void SSLWrap<Base>::GetNegotiatedProto(
   ASSIGN_OR_RETURN_UNWRAP(&w, args.Holder());
 
   if (w->is_client()) {
-    if (w->selected_npn_proto_.IsEmpty() == false) {
-      args.GetReturnValue().Set(w->selected_npn_proto_);
-    }
+    Local<Value> selected_npn_buffer =
+        w->object()->GetHiddenValue(w->env()->selected_npn_buffer_string());
+
+    if (selected_npn_buffer.IsEmpty() == false)
+      args.GetReturnValue().Set(selected_npn_buffer);
+
     return;
   }
 
@@ -2047,12 +2121,102 @@ template <class Base>
 void SSLWrap<Base>::SetNPNProtocols(const FunctionCallbackInfo<Value>& args) {
   Base* w;
   ASSIGN_OR_RETURN_UNWRAP(&w, args.Holder());
-  if (args.Length() < 1 || !Buffer::HasInstance(args[0]))
-    return w->env()->ThrowTypeError("Must give a Buffer as first argument");
+  Environment* env = w->ssl_env();
 
-  w->npn_protos_.Reset(args.GetIsolate(), args[0].As<Object>());
+  if (args.Length() < 1 || !Buffer::HasInstance(args[0]))
+    return env->ThrowTypeError("Must give a Buffer as first argument");
+
+  bool r = w->object()->SetHiddenValue(env->npn_buffer_string(), args[0]);
+
+  CHECK(r);
 }
 #endif  // OPENSSL_NPN_NEGOTIATED
+
+#ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
+template <class Base>
+int SSLWrap<Base>::SelectALPNCallback(SSL* s,
+                                      const unsigned char** out,
+                                      unsigned char* outlen,
+                                      const unsigned char* in,
+                                      unsigned int inlen,
+                                      void* arg) {
+  Base* w = static_cast<Base*>(SSL_get_app_data(s));
+  Environment* env = w->env();
+  HandleScope handle_scope(env->isolate());
+  Context::Scope context_scope(env->context());
+
+  Local<Value> alpn_buffer =
+      w->object()->GetHiddenValue(env->alpn_buffer_string());
+  CHECK(Buffer::HasInstance(alpn_buffer));
+  const unsigned char* alpn_protos =
+      reinterpret_cast<const unsigned char*>(Buffer::Data(alpn_buffer));
+  unsigned alpn_protos_len = Buffer::Length(alpn_buffer);
+  int status = SSL_select_next_proto(const_cast<unsigned char**>(out), outlen,
+                                     alpn_protos, alpn_protos_len, in, inlen);
+
+  switch (status) {
+    case OPENSSL_NPN_NO_OVERLAP:
+      // According to 3.2. Protocol Selection of RFC7301,
+      // fatal no_application_protocol alert shall be sent
+      // but current openssl does not support it yet. See
+      // https://rt.openssl.org/Ticket/Display.html?id=3463&user=guest&pass=guest
+      // Instead, we send a warning alert for now.
+      return SSL_TLSEXT_ERR_ALERT_WARNING;
+    case OPENSSL_NPN_NEGOTIATED:
+      return SSL_TLSEXT_ERR_OK;
+    default:
+      return SSL_TLSEXT_ERR_ALERT_FATAL;
+  }
+}
+#endif  // TLSEXT_TYPE_application_layer_protocol_negotiation
+
+
+template <class Base>
+void SSLWrap<Base>::GetALPNNegotiatedProto(
+    const FunctionCallbackInfo<v8::Value>& args) {
+#ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
+  HandleScope scope(args.GetIsolate());
+  Base* w = Unwrap<Base>(args.Holder());
+
+  const unsigned char* alpn_proto;
+  unsigned int alpn_proto_len;
+
+  SSL_get0_alpn_selected(w->ssl_, &alpn_proto, &alpn_proto_len);
+
+  if (!alpn_proto)
+    return args.GetReturnValue().Set(false);
+
+  args.GetReturnValue().Set(
+      OneByteString(args.GetIsolate(), alpn_proto, alpn_proto_len));
+#endif  // TLSEXT_TYPE_application_layer_protocol_negotiation
+}
+
+
+template <class Base>
+void SSLWrap<Base>::SetALPNProtocols(
+    const FunctionCallbackInfo<v8::Value>& args) {
+#ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
+  HandleScope scope(args.GetIsolate());
+  Base* w = Unwrap<Base>(args.Holder());
+  Environment* env = w->env();
+  if (args.Length() < 1 || !Buffer::HasInstance(args[0]))
+    return env->ThrowTypeError("Must give a Buffer as first argument");
+
+  if (w->is_client()) {
+    const unsigned char* alpn_protos =
+        reinterpret_cast<const unsigned char*>(Buffer::Data(args[0]));
+    unsigned alpn_protos_len = Buffer::Length(args[0]);
+    int r = SSL_set_alpn_protos(w->ssl_, alpn_protos, alpn_protos_len);
+    CHECK_EQ(r, 0);
+  } else {
+    bool ret = w->object()->SetHiddenValue(env->alpn_buffer_string(), args[0]);
+
+    CHECK(ret);
+    // Server should select ALPN protocol from list of advertised by client
+    SSL_CTX_set_alpn_select_cb(w->ssl_->ctx, SelectALPNCallback, nullptr);
+  }
+#endif  // TLSEXT_TYPE_application_layer_protocol_negotiation
+}
 
 
 #ifdef NODE__HAVE_TLSEXT_STATUS_CB

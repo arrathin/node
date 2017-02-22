@@ -65,6 +65,7 @@ rules:
   no-mixed-spaces-and-tabs: 2
   no-multiple-empty-lines: [2, {max: 2}]
   no-trailing-spaces: 2
+  operator-linebreak: [2, after, {overrides: {'?': ignore, ':': ignore}}]
   quotes: [2, "single", "avoid-escape"]
   semi: 2
   space-before-blocks: [2, "always"]
@@ -90,6 +91,7 @@ rules:
   align-function-arguments: 2
   align-multiline-assignment: 2
   assert-fail-single-argument: 2
+  assert-throws-arguments: [2, { requireTwo: false }]
   new-with-error: [2, "Error", "RangeError", "TypeError", "SyntaxError", "ReferenceError"]
 
 # Global scoped method and vars

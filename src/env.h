@@ -43,6 +43,7 @@ namespace node {
 // for the sake of convenience.  Strings should be ASCII-only.
 #define PER_ISOLATE_STRING_PROPERTIES(V)                                      \
   V(address_string, "address")                                                \
+  V(alpn_buffer_string, "alpnBuffer")                                         \
   V(args_string, "args")                                                      \
   V(argv_string, "argv")                                                      \
   V(arrow_message_string, "arrowMessage")                                     \
@@ -90,6 +91,7 @@ namespace node {
   V(exponent_string, "exponent")                                              \
   V(exports_string, "exports")                                                \
   V(ext_key_usage_string, "ext_key_usage")                                    \
+  V(external_string, "external")                                              \
   V(external_stream_string, "_externalStream")                                \
   V(family_string, "family")                                                  \
   V(fatal_exception_string, "_fatalException")                                \
@@ -132,6 +134,7 @@ namespace node {
   V(netmask_string, "netmask")                                                \
   V(nice_string, "nice")                                                      \
   V(nlink_string, "nlink")                                                    \
+  V(npn_buffer_string, "npnBuffer")                                           \
   V(nsname_string, "nsname")                                                  \
   V(ocsp_request_string, "OCSPRequest")                                       \
   V(offset_string, "offset")                                                  \
@@ -182,6 +185,7 @@ namespace node {
   V(serial_string, "serial")                                                  \
   V(scavenge_string, "scavenge")                                              \
   V(scopeid_string, "scopeid")                                                \
+  V(selected_npn_buffer_string, "selectedNpnBuffer")                          \
   V(sent_shutdown_string, "sentShutdown")                                     \
   V(serial_number_string, "serialNumber")                                     \
   V(service_string, "service")                                                \
@@ -207,6 +211,7 @@ namespace node {
   V(timestamp_string, "timestamp")                                            \
   V(title_string, "title")                                                    \
   V(tls_npn_string, "tls_npn")                                                \
+  V(tls_alpn_string, "tls_alpn")                                              \
   V(tls_ocsp_string, "tls_ocsp")                                              \
   V(tls_sni_string, "tls_sni")                                                \
   V(tls_string, "tls")                                                        \
@@ -460,6 +465,9 @@ class Environment {
   inline uint32_t* heap_statistics_buffer() const;
   inline void set_heap_statistics_buffer(uint32_t* pointer);
 
+  inline uint32_t* heap_space_statistics_buffer() const;
+  inline void set_heap_space_statistics_buffer(uint32_t* pointer);
+
   inline char* http_parser_buffer() const;
   inline void set_http_parser_buffer(char* buffer);
 
@@ -563,6 +571,7 @@ class Environment {
   int handle_cleanup_waiting_;
 
   uint32_t* heap_statistics_buffer_ = nullptr;
+  uint32_t* heap_space_statistics_buffer_ = nullptr;
 
   char* http_parser_buffer_;
 
