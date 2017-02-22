@@ -108,16 +108,27 @@ Prerequisites:
 * Python 2.6 or 2.7
 * GNU Make 4.1 or newer
 
-In deps/openssl/openssl:
 ```text
-$ ./Configure OS390-Unix64
-$ make depend
-```
-
-Then, in node directory:
-```text
+$ git clone https://github.com/ibmruntimes/v8z -b 3.28-zos-ascii deps/v8z
 $ ./configure --without-snapshot
 $ make
+$ make install
+```
+
+If your Python binary is in a non-standard location or has a
+non-standard name, run the following instead:
+
+```text
+$ export PYTHON=/path/to/python
+$ $PYTHON ./configure --without-snapshot
+$ make
+$ make install
+```
+
+To run the tests:
+
+```text
+$ make test
 ```
 
 ### Unix / Macintosh
