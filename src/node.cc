@@ -1424,6 +1424,7 @@ ssize_t DecodeWrite(Isolate* isolate,
   return StringBytes::Write(isolate, buf, buflen, val, encoding, NULL);
 }
 
+#pragma convert("IBM-1047")
 void AppendExceptionLine(Environment* env,
                          Handle<Value> er,
                          Handle<Message> message) {
@@ -1444,11 +1445,11 @@ void AppendExceptionLine(Environment* env,
   static char arrow[1024];
 
   // Print (filename):(line number): (message).
-  node::Utf8Value filename(message->GetScriptResourceName());
+  node::NativeEncodingValue filename((node::Utf8Value(message->GetScriptResourceName())));
   const char* filename_string = *filename;
   int linenum = message->GetLineNumber();
   // Print line of source code.
-  node::Utf8Value sourceline(message->GetSourceLine());
+  node::NativeEncodingValue sourceline((node::Utf8Value(message->GetSourceLine())));
   const char* sourceline_string = *sourceline;
 
   // Because of how node modules work, all scripts are wrapped with a
@@ -1475,20 +1476,13 @@ void AppendExceptionLine(Environment* env,
   int start = message->GetStartColumn();
   int end = message->GetEndColumn();
 
-#ifdef __MVS__
-  __a2e_s(*filename);
-  __a2e_s(*sourceline);
-#endif
   int off = snprintf(arrow,
                      sizeof(arrow),
-                     "\x6c\xa2\x7a\x6c\x89\x15\x6c\xa2\x15",
+                     "%s:%i\n%s\n",
                      filename_string,
                      linenum,
                      sourceline_string);
   assert(off >= 0);
-#if defined(__MVS__)
-  __e2a_l(arrow, sizeof(arrow));
-#endif
 
   // Print wavy underline (GetUnderline is deprecated).
   for (int i = 0; i < start; i++) {
@@ -1511,7 +1505,7 @@ void AppendExceptionLine(Environment* env,
   arrow[off++] = '\n';
   arrow[off] = '\0';
 
-  Local<String> arrow_str = String::NewFromUtf8(env->isolate(), arrow);
+  Local<String> arrow_str = String::NewFromUtf8(env->isolate(), *node::Utf8Value(arrow));
   Local<Value> msg;
   Local<Value> stack;
 
@@ -1536,11 +1530,9 @@ void AppendExceptionLine(Environment* env,
     return;
   env->set_printed_error(true);
   uv_tty_reset_mode();
-#if defined(__MVS__)
-  __a2e_s(arrow);
-#endif
-  fprintf(stderr, "\x15\x6c\xa2", arrow);
+  fprintf(stderr, "\n%s", arrow);
 }
+#pragma convert(pop)
 
 
 static void ReportException(Environment* env,
