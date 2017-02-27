@@ -27,6 +27,15 @@ var tls = require('tls');
 var fs = require('fs');
 
 assert(typeof gc === 'function', 'Run this test with --expose-gc');
+var SIZE = 26;
+var EXPECTED = 256 * 1024;  // it's more like 512M on x64
+
+if (process.platform === 'os390') {
+  // Scale down by 2^6 because all memory is under 2GB
+  SIZE = SIZE - 6;
+  EXPECTED = EXPECTED / 64;
+}
+
 
 tls.createServer({
   cert: fs.readFileSync(common.fixturesDir + '/test_cert.pem'),
@@ -35,7 +44,7 @@ tls.createServer({
 
 (function() {
   // 2**26 == 64M entries
-  for (var i = 0, junk = [0]; i < 26; ++i) junk = junk.concat(junk);
+  for (var i = 0, junk = [0]; i < SIZE; ++i) junk = junk.concat(junk);
 
   var options = { rejectUnauthorized: false };
   tls.connect(common.PORT, '127.0.0.1', options, function() {
@@ -51,6 +60,6 @@ function done() {
   var after = process.memoryUsage().rss;
   var reclaimed = (before - after) / 1024;
   console.log('%d kB reclaimed', reclaimed);
-  assert(reclaimed > 256 * 1024);  // it's more like 512M on x64
+  assert(reclaimed > EXPECTED);
   process.exit();
 }
