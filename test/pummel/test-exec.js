@@ -75,7 +75,7 @@ var sleeperStart = new Date();
 exec(SLEEP3_COMMAND, { timeout: 50 }, function(err, stdout, stderr) {
   var diff = (new Date()) - sleeperStart;
   console.log('\'sleep 3\' with timeout 50 took %d ms', diff);
-  assert.ok(diff < 500);
+  assert.ok(diff < 1100);
   assert.ok(err);
   assert.ok(err.killed);
   assert.equal(err.signal, 'SIGTERM');
@@ -109,12 +109,18 @@ function killMeTwiceCallback(err, stdout, stderr) {
   assert.ok(diff < 1500);
 }
 
-
-exec('python -c "print 200000*\'C\'"', {maxBuffer: 1000},
-     function(err, stdout, stderr) {
-       assert.ok(err);
-       assert.ok(/maxBuffer/.test(err.message));
-     });
+if (process.platform === 'os390')
+  exec('perl -e \'print \"C\" x 200000\'', {maxBuffer: 1000},
+       function(err, stdout, stderr) {
+         assert.ok(err);
+         assert.ok(/maxBuffer/.test(err.message));
+       });
+else
+  exec('python -c "print 200000*\'C\'"', {maxBuffer: 1000},
+       function(err, stdout, stderr) {
+         assert.ok(err);
+         assert.ok(/maxBuffer/.test(err.message));
+       });
 
 
 process.on('exit', function() {
