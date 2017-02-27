@@ -24,7 +24,11 @@ var common = require('../common');
 var assert = require('assert');
 var spawn = require('child_process').spawn;
 
-var cat = spawn('cat');
+if (process.platform === 'os390')
+  var cat = spawn('cat', ['-u']); // Do not buffer output
+else
+  var cat = spawn('cat');
+
 var called;
 
 assert.ok(process.kill(cat.pid, 0));

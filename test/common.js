@@ -97,6 +97,8 @@ exports.spawnCat = function(options) {
 
   if (process.platform === 'win32') {
     return spawn('more', [], options);
+  } else if (process.platform === 'os390') {
+    return spawn('cat', [], options.push('-u'));
   } else {
     return spawn('cat', [], options);
   }

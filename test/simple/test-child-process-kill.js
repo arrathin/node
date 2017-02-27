@@ -34,7 +34,10 @@ var termSignal;
 var gotStdoutEOF = false;
 var gotStderrEOF = false;
 
-var cat = spawn(is_windows ? 'cmd' : 'cat');
+if (process.platform === 'os390')
+  var cat = spawn('cat', ['-u']);
+else
+  var cat = spawn(is_windows ? 'cmd' : 'cat');
 
 
 cat.stdout.on('end', function() {
