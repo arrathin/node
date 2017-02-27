@@ -49,7 +49,7 @@ function runAb(opts, callback) {
   var command = 'ab ' + opts + ' http://127.0.0.1:' + common.PORT + '/';
   exec(command, function(err, stdout, stderr) {
     if (err) {
-      if (/ab|apr/mi.test(stderr)) {
+      if (/ab|apr|bad hostname/mi.test(stderr)) {
         console.log('problem spawning ab - skipping test.\n' + stderr);
         process.reallyExit(0);
       }
