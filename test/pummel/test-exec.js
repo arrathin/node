@@ -75,7 +75,7 @@ var sleeperStart = new Date();
 exec(SLEEP3_COMMAND, { timeout: 50 }, function(err, stdout, stderr) {
   var diff = (new Date()) - sleeperStart;
   console.log('\'sleep 3\' with timeout 50 took %d ms', diff);
-  assert.ok(diff < 1100);
+  assert.ok(diff < 500);
   assert.ok(err);
   assert.ok(err.killed);
   assert.equal(err.signal, 'SIGTERM');

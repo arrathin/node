@@ -98,7 +98,7 @@ exports.spawnCat = function(options) {
   if (process.platform === 'win32') {
     return spawn('more', [], options);
   } else if (process.platform === 'os390') {
-    return spawn('cat', [], options.push('-u'));
+    return spawn('cat', ['-u'], options);
   } else {
     return spawn('cat', [], options);
   }
@@ -110,6 +110,8 @@ exports.spawnSyncCat = function(options) {
 
   if (process.platform === 'win32') {
     return spawnSync('more', [], options);
+  } else if (process.platform === 'os390') {
+    return spawnSync('cat', ['-u'], options);
   } else {
     return spawnSync('cat', [], options);
   }
