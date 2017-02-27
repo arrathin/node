@@ -28,6 +28,7 @@ var assert = require('assert');
 var spawn = require('child_process').spawn;
 
 var is_windows = process.platform === 'win32';
+var is_zos = process.platform === 'os390';
 
 var exitCode;
 var termSignal;
@@ -45,7 +46,10 @@ cat.stdout.on('end', function() {
 });
 
 cat.stderr.on('data', function(chunk) {
-  assert.ok(false);
+  if (is_zos)
+    assert.ok(chunk.toString().match(/CEE5205S/));
+  else
+    assert.ok(false);
 });
 
 cat.stderr.on('end', function() {
