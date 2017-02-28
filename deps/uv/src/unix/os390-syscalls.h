@@ -26,7 +26,6 @@
 #include "uv.h"
 #include "internal.h"
 #include <dirent.h>
-#include <inttypes.h>
 #include <poll.h>
 #include <pthread.h>
 
@@ -55,24 +54,25 @@ struct epoll_event {
   int fd;
 };
 
-struct epoll_list{
-  struct pollfd items[MAX_ITEMS_PER_EPOLL];
+typedef struct {
+  QUEUE member;
+  struct pollfd* items;
   unsigned long size;
-  uv_mutex_t lock;
-};
+} uv__os390_epoll;
 
 /* epoll api */
-int epoll_create1(int flags);
-int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
-int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
+uv__os390_epoll* epoll_create1(int flags);
+int epoll_ctl(uv__os390_epoll* ep, int op, int fd, struct epoll_event *event);
+int epoll_wait(uv__os390_epoll* ep, struct epoll_event *events, int maxevents, int timeout);
 int epoll_file_close(int fd);
+
 /* utility functions */
-int nanosleep(const struct timespec *req, struct timespec *rem);
+int nanosleep(const struct timespec* req, struct timespec* rem);
 int alphasort(const void *a, const void *b);
-int scandir(const char *maindir, struct dirent ***namelist,
+int scandir(const char* maindir, struct dirent*** namelist,
             int (*filter)(const struct dirent *),
             int (*compar)(const struct dirent **,
             const struct dirent **));
+char *mkdtemp(char* path);
 
 #endif /* UV_OS390_SYSCALL_H_ */
-

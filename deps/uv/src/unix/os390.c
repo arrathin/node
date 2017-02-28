@@ -35,7 +35,7 @@
 #define PSA_PTR           0x00
 #define CSD_OFFSET        0x294
 
-/* 
+/*
     Long-term average CPU service used by this logical partition,
     in millions of service units per hour. If this value is above
     the partition's defined capacity, the partition will be capped.
@@ -58,8 +58,8 @@
 /* Address of the rsm control and enumeration area. */
 #define CVTRCEP_OFFSET    0x490
 
-/* 
-    Number of frames currently available to system. 
+/*
+    Number of frames currently available to system.
     Excluded are frames backing perm storage, frames offline, and bad frames.
 */
 #define RCEPOOL_OFFSET    0x004
@@ -99,7 +99,8 @@ typedef union {
     data_area_ptr_assign_type assign;
   };
   char* deref;
-} data_area_ptr; 
+} data_area_ptr;
+
 
 void uv_loadavg(double avg[3]) {
   /* TODO: implement the following */
@@ -108,22 +109,26 @@ void uv_loadavg(double avg[3]) {
   avg[2] = 0;
 }
 
+
 int uv__platform_loop_init(uv_loop_t* loop) {
-  int fd;
+  uv__os390_epoll* ep;
 
-  fd = epoll_create1(UV__EPOLL_CLOEXEC);
-
-  loop->backend_fd = fd;
-
-  if (fd == -1)
+  ep = epoll_create1(UV__EPOLL_CLOEXEC);
+  loop->ep = ep;
+  if (ep == NULL)
     return -errno;
 
   return 0;
 }
 
+
 void uv__platform_loop_delete(uv_loop_t* loop) {
-  loop->backend_fd = -1;
+  if (loop->ep != NULL) {
+    epoll_queue_close(loop->ep);
+    loop->ep = NULL;
+  }
 }
+
 
 uint64_t uv__hrtime(uv_clocktype_t type) {
   struct timeval time;
@@ -131,7 +136,8 @@ uint64_t uv__hrtime(uv_clocktype_t type) {
   return (uint64_t) time.tv_sec * 1e9 + time.tv_usec * 1e3;
 }
 
-/*  
+
+/*
     Get the exe path using the thread entry information
     in the address space.
 */
@@ -176,8 +182,8 @@ static int getexe(const int pid, char* buf, size_t len) {
   void* Input_address;
   void* Output_address;
   struct Output_path_type* Output_path;
-  int rv; 
-  int rc; 
+  int rv;
+  int rc;
   int rsn;
 
   Input_length = PGTH_LEN;
@@ -213,12 +219,12 @@ static int getexe(const int pid, char* buf, size_t len) {
   }
 
   /* Check highest byte to ensure data availability */
-  assert( ((Output_buf.Output_data.offsetPath >>24) & 0xFF) == 'A');
+  assert(((Output_buf.Output_data.offsetPath >>24) & 0xFF) == 'A');
 
   /* Get the offset from the lowest 3 bytes */
-  Output_path = (char*)(&Output_buf) + 
+  Output_path = (char*)(&Output_buf) +
                 (Output_buf.Output_data.offsetPath & 0x00FFFFFF);
-  
+
   if (Output_path->len >= len) {
     errno = ENOBUFS;
     return -1;
@@ -228,6 +234,7 @@ static int getexe(const int pid, char* buf, size_t len) {
 
   return 0;
 }
+
 
 /*
  * We could use a static buffer for the path manipulations that we need outside
@@ -317,6 +324,7 @@ int uv_exepath(char* buffer, size_t* size) {
   }
 }
 
+
 uint64_t uv_get_free_memory(void) {
   uint64_t freeram;
 
@@ -327,6 +335,7 @@ uint64_t uv_get_free_memory(void) {
   freeram = *((uint64_t*)(rcep.deref + RCEAFC_OFFSET)) * 4;
   return freeram;
 }
+
 
 uint64_t uv_get_total_memory(void) {
   uint64_t totalram;
@@ -350,6 +359,7 @@ int uv_resident_set_memory(size_t* rss) {
   return 0;
 }
 
+
 int uv_uptime(double* uptime) {
   struct utmpx u ;
   struct utmpx *v;
@@ -362,6 +372,7 @@ int uv_uptime(double* uptime) {
   *uptime = difftime64(time64(&t), v->ut_tv.tv_sec);
   return 0;
 }
+
 
 int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
   uv_cpu_info_t* cpu_info;
@@ -407,27 +418,34 @@ int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
   return 0;
 }
 
+
 void uv_free_cpu_info(uv_cpu_info_t* cpu_infos, int count) {
   for (int i = 0; i < count; ++i)
     uv__free(cpu_infos[i].model);
   uv__free(cpu_infos);
 }
 
+
 static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
                                       int* count) {
   uv_interface_address_t* address;
   int sockfd;
-  int size = 16384;
+  int maxsize;
   __net_ifconf6header_t ifc;
-  __net_ifconf6entry_t *ifr, *p, flg;
+  __net_ifconf6entry_t* ifr;
+  __net_ifconf6entry_t* p;
+  __net_ifconf6entry_t flg;
 
+  *count = 0;
+  /* Assume maximum buffer size allowable */
+  maxsize = 16384;
 
   if (0 > (sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)))
     return -errno;
 
   ifc.__nif6h_version = 1;
-  ifc.__nif6h_buflen = size;
-  ifc.__nif6h_buffer = uv__calloc(1, size);;
+  ifc.__nif6h_buflen = maxsize;
+  ifc.__nif6h_buffer = uv__calloc(1, maxsize);;
 
   if (ioctl(sockfd, SIOCGIFCONF6, &ifc) == -1) {
     uv__close(sockfd);
@@ -491,10 +509,11 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
   return 0;
 }
 
+
 int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
   uv_interface_address_t* address;
   int sockfd;
-  int size = 16384;
+  int maxsize;
   struct ifconf ifc;
   struct ifreq flg;
   struct ifreq* ifr;
@@ -508,14 +527,17 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
   /* now get the ipv4 addresses */
   *count = 0;
 
+  /* Assume maximum buffer size allowable */
+  maxsize = 16384;
+
   sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
   if (0 > sockfd)
     return -errno;
 
-  ifc.ifc_req = uv__calloc(1, size);
-  ifc.ifc_len = size;
+  ifc.ifc_req = uv__calloc(1, maxsize);
+  ifc.ifc_len = maxsize;
   if (ioctl(sockfd, SIOCGIFCONF, &ifc) == -1) {
-    SAVE_ERRNO(uv__close(sockfd));
+    uv__close(sockfd);
     return -errno;
   }
 
@@ -546,7 +568,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
   }
 
   /* Alloc the return interface structs */
-  *addresses = uv__malloc((*count + count_v6) * 
+  *addresses = uv__malloc((*count + count_v6) *
                           sizeof(uv_interface_address_t));
 
   if (!(*addresses)) {
@@ -601,6 +623,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
   return 0;
 }
 
+
 void uv_free_interface_addresses(uv_interface_address_t* addresses,
                                  int count) {
   int i;
@@ -608,6 +631,7 @@ void uv_free_interface_addresses(uv_interface_address_t* addresses,
     uv__free(addresses[i].name);
   uv__free(addresses);
 }
+
 
 void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {
   struct epoll_event* events;
@@ -626,9 +650,10 @@ void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {
         events[i].fd = -1;
 
   /* Remove the file descriptor from the epoll. */
-  if (loop->backend_fd >= 0)
-    epoll_ctl(loop->backend_fd, UV__EPOLL_CTL_DEL, fd, &dummy);
+  if (loop->ep != NULL)
+    epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, fd, &dummy);
 }
+
 
 int uv__io_check_fd(uv_loop_t* loop, int fd) {
   struct pollfd p[1];
@@ -650,22 +675,27 @@ int uv__io_check_fd(uv_loop_t* loop, int fd) {
   return 0;
 }
 
+
 void uv__fs_event_close(uv_fs_event_t* handle) {
   UNREACHABLE();
 }
 
+
 int uv_fs_event_init(uv_loop_t* loop, uv_fs_event_t* handle) {
   return -ENOSYS;
 }
+
 
 int uv_fs_event_start(uv_fs_event_t* handle, uv_fs_event_cb cb,
                       const char* filename, unsigned int flags) {
   return -ENOSYS;
 }
 
+
 int uv_fs_event_stop(uv_fs_event_t* handle) {
   return -ENOSYS;
 }
+
 
 void uv__io_poll(uv_loop_t* loop, int timeout) {
   static const int max_safe_timeout = 1789569;
@@ -677,7 +707,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
   uv__io_t* w;
   uint64_t base;
   int count;
-  int nfds=0;
+  int nfds;
   int fd;
   int op;
   int i;
@@ -713,14 +743,14 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
     /* XXX Future optimization: do EPOLL_CTL_MOD lazily if we stop watching
      * events, skip the syscall and squelch the events after epoll_wait().
      */
-    if (epoll_ctl(loop->backend_fd, op, w->fd, &e)) {
+    if (epoll_ctl(loop->ep, op, w->fd, &e)) {
       if (errno != EEXIST)
         abort();
 
       assert(op == UV__EPOLL_CTL_ADD);
 
       /* We've reactivated a file descriptor that's been watched before. */
-      if (epoll_ctl(loop->backend_fd, UV__EPOLL_CTL_MOD, w->fd, &e))
+      if (epoll_ctl(loop->ep, UV__EPOLL_CTL_MOD, w->fd, &e))
         abort();
     }
 
@@ -733,11 +763,12 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
   real_timeout = timeout;
   int nevents = 0;
 
+  nfds = 0;
   for (;;) {
     if (sizeof(int32_t) == sizeof(long) && timeout >= max_safe_timeout)
       timeout = max_safe_timeout;
 
-    nfds = epoll_wait(loop->backend_fd, events,
+    nfds = epoll_wait(loop->ep, events,
                       ARRAY_SIZE(events), timeout);
 
     /* Update loop->time unconditionally. It's tempting to skip the update when
@@ -793,7 +824,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
          * Ignore all errors because we may be racing with another thread
          * when the file descriptor is closed.
          */
-        epoll_ctl(loop->backend_fd, UV__EPOLL_CTL_DEL, fd, pe);
+        epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, fd, pe);
         continue;
       }
 
@@ -842,4 +873,5 @@ update_timeout:
 }
 
 void uv__set_process_title(const char* title) {
+  /* do nothing */
 }

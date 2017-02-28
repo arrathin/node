@@ -21,9 +21,8 @@
 
 
 #include "os390-syscalls.h"
-#include "internal.h"
+#include <stdio.h>
 #include <errno.h>
-#include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <search.h>
@@ -34,7 +33,7 @@
 #pragma linkage(BPX1CTW, OS)
 
 static int number_of_epolls;
-static struct epoll_list* global_epoll_list[MAX_EPOLL_INSTANCES];
+static QUEUE global_epoll_queue;
 static uv_mutex_t global_epoll_lock;
 static uv_once_t once = UV_ONCE_INIT;
 
@@ -44,16 +43,19 @@ int alphasort(const void *a, const void *b) {
                   (*(const struct dirent **)b)->d_name );
 }
 
-int scandir(const char *maindir, struct dirent ***namelist,
-            int (*filter)(const struct dirent *),
-            int (*compar)(const struct dirent **,
+int scandir(const char* maindir, struct dirent*** namelist,
+            int (*filter)(const struct dirent*),
+            int (*compar)(const struct dirent**,
             const struct dirent **)) {
-  struct dirent **nl = NULL;
-  struct dirent *dirent;
-  unsigned count = 0;
-  size_t allocated = 0;
-  DIR *mdir;
+  struct dirent** nl;
+  struct dirent* dirent;
+  unsigned count;
+  size_t allocated;
+  DIR* mdir;
 
+  nl = NULL;
+  count = 0;
+  allocated = 0;
   mdir = opendir(maindir);
   if (!mdir)
     return -1;
@@ -63,7 +65,7 @@ int scandir(const char *maindir, struct dirent ***namelist,
     if (!dirent)
       break;
     if (!filter || filter(dirent)) {
-      struct dirent *copy;
+      struct dirent* copy;
       copy = uv__malloc(sizeof(*copy));
       if (!copy) {
         while (count) {
@@ -76,13 +78,14 @@ int scandir(const char *maindir, struct dirent ***namelist,
         return -1;
       }
       memcpy(copy, dirent, sizeof(*copy));
-      nl = realloc(nl, sizeof(*copy) * (count+1));
+
+      nl = uv__realloc(nl, sizeof(*copy) * (count + 1));
       nl[count++] = copy;
     }
   }
 
   qsort(nl, count, sizeof(struct dirent *),
-       (int (*)(const void *, const void *))compar);
+       (int (*)(const void *, const void *)) compar);
 
   closedir(mdir);
 
@@ -90,124 +93,104 @@ int scandir(const char *maindir, struct dirent ***namelist,
   return count;
 }
 
-static int isfdequal(const void* first, const void* second) {
-  const struct pollfd* a = first;
-  const struct pollfd* b = second;
-  return a->fd == b->fd ? 0 : 1;
+
+static unsigned int next_power_of_two(unsigned int val) {
+  val -= 1;
+  val |= val >> 1;
+  val |= val >> 2;
+  val |= val >> 4;
+  val |= val >> 8;
+  val |= val >> 16;
+  val += 1;
+  return val;
 }
 
-static struct pollfd* findpfd(int epfd, int fd, int events) {
-  struct epoll_list *lst;
-  struct pollfd pfd;
-  struct pollfd* found;
 
-  pfd.fd = fd;
-  pfd.events = events;
-  lst = global_epoll_list[epfd];
-  if (events == 0)
-    return lfind(&pfd, &lst->items[0], &lst->size,
-                  sizeof(pfd), isfdequal);
-  else
-    return lsearch(&pfd, &lst->items[0], &lst->size,
-                  sizeof(pfd), isfdequal);
+static void maybe_resize(uv__os390_epoll* lst, unsigned int len) {
+  unsigned int newsize;
+  unsigned int i;
+  struct pollfd* newlst;
+
+  if (len <= lst->size)
+    return;
+
+  newsize = next_power_of_two(len);
+  newlst = uv__realloc(lst->items, newsize * sizeof(lst->items[0]));
+
+  if (newlst == NULL)
+    abort();
+  for (i = lst->size; i < newsize; ++i)
+    newlst[i].fd = -1;
+
+  lst->items = newlst;
+  lst->size = newsize;
 }
+
 
 static void epoll_init() {
-  uv_mutex_init(&global_epoll_lock);
+  QUEUE_INIT(&global_epoll_queue);
+  if (uv_mutex_init(&global_epoll_lock))
+    abort();
 }
-  
-int epoll_create1(int flags) {
-  struct epoll_list* list;
-  int index;
+
+
+uv__os390_epoll* epoll_create1(int flags) {
+  uv__os390_epoll* lst;
 
   uv_once(&once, epoll_init);
   uv_mutex_lock(&global_epoll_lock);
-  list = uv__malloc(sizeof(*list));
-  index = number_of_epolls++;
-  global_epoll_list[index] = list;
+  lst = uv__malloc(sizeof(*lst));
+  if (lst == -1)
+    return NULL;
+  QUEUE_INSERT_TAIL(&global_epoll_queue, &lst->member);
   uv_mutex_unlock(&global_epoll_lock);
 
   /* initialize list */
-  memset(list, 0, sizeof(*list));
-  if (uv_mutex_init(&list->lock)) {
-    errno = ENOLCK;
-    return -1;
-  }
-
-  list->size = 0;
-  return index; 
+  lst->size = 0;
+  lst->items = NULL;
+  return lst;
 }
 
-int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
-  struct epoll_list *lst;
 
-  uv_mutex_lock(&global_epoll_lock);
-  lst = global_epoll_list[epfd];
-  uv_mutex_lock(&lst->lock);
-  uv_mutex_unlock(&global_epoll_lock);
-
+int epoll_ctl(uv__os390_epoll* lst,
+              int op,
+              int fd,
+              struct epoll_event *event) {
   if(op == EPOLL_CTL_DEL) {
-    struct pollfd* found;
-
-    found = findpfd(epfd, fd, 0); 
-    if (found != NULL)
-      memcpy(found,
-             found+1,
-             (&lst->items[lst->size--] - found - 1) * sizeof(*found));
-    uv_mutex_unlock(&lst->lock);
-
-    if (found == NULL)
-      return ENOENT;
-
-  }
-  else if(op == EPOLL_CTL_ADD) {
-    struct pollfd* found;
-    size_t before;
-    size_t after;
-
-    if (lst->size == MAX_ITEMS_PER_EPOLL - 1) {
-      uv_mutex_unlock(&lst->lock);
-      return ENOMEM;
-    }
-
-    before = lst->size; 
-    found = findpfd(epfd, fd, event->events);
-    after = lst->size; 
-    uv_mutex_unlock(&lst->lock);
-
-    if (found != NULL && before == after) {
-      errno = EEXIST;
-      return -1;
-    }
-
-  }
-  else if(op == EPOLL_CTL_MOD) {
-    struct pollfd* found;
-
-    found = findpfd(epfd, fd, 0);
-    if (found != NULL)
-      found->events = event->events;
-    
-    uv_mutex_unlock(&lst->lock);
-    if (found == NULL) {
+    if (fd >= lst->size || lst->items[fd].fd == -1) {
       errno = ENOENT;
       return -1;
     }
-  }
-  else {
+    lst->items[fd].fd = -1;
+  } else if(op == EPOLL_CTL_ADD) {
+    maybe_resize(lst, fd + 1);
+    if (lst->items[fd].fd != -1) {
+      errno = EEXIST;
+      return -1;
+    }
+    lst->items[fd].fd = fd;
+    lst->items[fd].events = event->events;
+  } else if(op == EPOLL_CTL_MOD) {
+    if (fd >= lst->size || lst->items[fd].fd == -1) {
+      errno = ENOENT;
+      return -1;
+    }
+    lst->items[fd].events = event->events;
+  } else
     abort();
-  }
+
   return 0;
 }
 
-int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout) {
-  struct epoll_list *lst;
+
+int epoll_wait(uv__os390_epoll* lst, struct epoll_event* events,
+               int maxevents, int timeout) {
   size_t size;
   struct pollfd* pfds;
   int pollret;
+  int reventcount;
 
   uv_mutex_lock(&global_epoll_lock);
-  lst = global_epoll_list[epfd];
   uv_mutex_unlock(&global_epoll_lock);
   size = lst->size;
   pfds = lst->items;
@@ -215,51 +198,57 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
   if(pollret == -1)
     return pollret;
 
-  int reventcount=0;
-  int realsize = lst->size;
-  for (int i = 0; i < realsize && i < maxevents; ++i)                     
-  {
-    struct epoll_event ev = { 0, 0 };
+  reventcount = 0;
+  for (int i = 0; i < lst->size && i < maxevents; ++i) {
+    struct epoll_event ev;
+
+    ev.events = 0;
     ev.fd = pfds[i].fd;
     if(!pfds[i].revents)
       continue;
 
     if(pfds[i].revents & POLLRDNORM)
-      ev.events = ev.events | UV__POLLIN;
+      ev.events = ev.events | POLLIN;
 
     if(pfds[i].revents & POLLWRNORM)
-      ev.events = ev.events | UV__POLLOUT;
+      ev.events = ev.events | POLLOUT;
 
     if(pfds[i].revents & POLLHUP)
-      ev.events = ev.events | UV__POLLHUP;
+      ev.events = ev.events | POLLHUP;
 
     pfds[i].revents = 0;
-    events[reventcount++] = ev; 
+    events[reventcount++] = ev;
   }
 
   return reventcount;
 }
 
-int epoll_file_close(int fd) {
-  uv_mutex_lock(&global_epoll_lock);
-  for( int i = 0; i < number_of_epolls; ++i )
-  {
-    struct epoll_list *lst;
-    struct pollfd* found;
 
-    lst = global_epoll_list[i];
-    uv_mutex_lock(&lst->lock);
-    found = findpfd(i, fd, 0);
-    if (found != NULL)
-      memcpy(found,
-             found+1,
-             (&lst->items[lst->size--] - found - 1) * sizeof(*found));
-    uv_mutex_unlock(&lst->lock);
+int epoll_file_close(int fd) {
+  QUEUE* q;
+
+  uv_once(&once, epoll_init);
+  uv_mutex_lock(&global_epoll_lock);
+  QUEUE_FOREACH(q, &global_epoll_queue) {
+    uv__os390_epoll* lst;
+
+    lst = QUEUE_DATA(q, uv__os390_epoll, member);
+    if (fd < lst->size && lst->items != NULL && lst->items[fd].fd != -1)
+      lst->items[fd].fd = -1;
   }
 
   uv_mutex_unlock(&global_epoll_lock);
   return 0;
 }
+
+void epoll_queue_close(uv__os390_epoll* lst) {
+  uv_mutex_lock(&global_epoll_lock);
+  QUEUE_REMOVE(&lst->member);
+  uv_mutex_unlock(&global_epoll_lock);
+  uv__free(lst->items);
+  lst->items = NULL;
+}
+
 
 int nanosleep(const struct timespec* req, struct timespec* rem) {
   unsigned nano;
@@ -274,7 +263,7 @@ int nanosleep(const struct timespec* req, struct timespec* rem) {
   nano = (int)req->tv_nsec;
   seconds = req->tv_sec;
   events = CW_CONDVAR;
-  
+
 #if defined(_LP64)
   BPX4CTW(&seconds, &nano, &events, &secrem, &nanorem, &rv, &rc, &rsn);
 #else
@@ -289,4 +278,64 @@ int nanosleep(const struct timespec* req, struct timespec* rem) {
   }
 
   return 0;
+}
+
+
+char* mkdtemp(char* path) {
+  static const char* tempchars =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  static const size_t num_chars = 62;
+  static const size_t num_x = 6;
+  char *ep, *cp;
+  unsigned int tries, i;
+  size_t len;
+  uint64_t v;
+  int fd;
+  int retval;
+  int saved_errno;
+
+  len = strlen(path);
+  ep = path + len;
+  if (len < num_x || strncmp(ep - num_x, "XXXXXX", num_x)) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  fd = open("/dev/urandom", O_RDONLY);
+  if (fd == -1)
+    return NULL;
+
+  tries = TMP_MAX;
+  retval = -1;
+  do {
+    if (read(fd, &v, sizeof(v)) != sizeof(v))
+      break;
+
+    cp = ep - num_x;
+    for (i = 0; i < num_x; i++) {
+      *cp++ = tempchars[v % num_chars];
+      v /= num_chars;
+    }
+
+    if (mkdir(path, S_IRWXU) == 0) {
+      retval = 0;
+      break;
+    }
+    else if (errno != EEXIST)
+      break;
+  } while (--tries);
+
+  saved_errno = errno;
+  uv__close(fd);
+  if (tries == 0) {
+    errno = EEXIST;
+    return NULL;
+  }
+
+  if (retval == -1) {
+    errno = saved_errno;
+    return NULL;
+  }
+
+  return path;
 }
