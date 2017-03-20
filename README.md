@@ -108,17 +108,16 @@ Prerequisites:
 * Python 2.6 or 2.7
 * GNU Make 4.1 or newer
 
+Clone V8:
+
 ```text
 $ git clone https://github.com/ibmruntimes/v8z -b 3.28-zos-ascii deps/v8z
-$ ./configure --without-snapshot
-$ make
-$ make install
 ```
 
-If your Python binary is in a non-standard location or has a
-non-standard name, run the following instead:
-
 ```text
+$ export CC=xlc
+$ export CXX=xlC
+$ export _C89_CCMODE=1
 $ export PYTHON=/path/to/python
 $ $PYTHON ./configure --without-snapshot
 $ make
