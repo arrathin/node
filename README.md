@@ -118,6 +118,8 @@ $ git clone https://github.com/ibmruntimes/v8z -b 3.28-zos-ascii deps/v8z
 $ export CC=xlc
 $ export CXX=xlC
 $ export _C89_CCMODE=1
+$ export _CC_CCMODE=1
+$ export _CXX_CCMODE=1
 $ export PYTHON=/path/to/python
 $ $PYTHON ./configure --without-snapshot
 $ make
