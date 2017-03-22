@@ -2,13 +2,12 @@
 
 ## What is a test?
 
-A test must be a node script that exercises a specific functionality provided
-by node and checks that it behaves as expected. It should exit with code `0` on success,
-otherwise it will fail. A test will fail if:
+Most tests in Node.js core are JavaScript programs that exercise a functionality
+provided by Node.js and check that it behaves as expected. Tests should exit
+with code `0` on success. A test will fail if:
 
 - It exits by setting `process.exitCode` to a non-zero number.
-  - This is most often done by having an assertion throw an uncaught
-    Error.
+  - This is usually done by having an assertion throw an uncaught Error.
   - Occasionally, using `process.exit(code)` may be appropriate.
 - It never exits. In this case, the test runner will terminate the test because
   it sets a maximum time limit.
@@ -73,6 +72,9 @@ These modules are required for the test to run. Except for special cases, these
 modules should only include core modules.
 The `assert` module is used by most of the tests to check that the assumptions
 for the test are met.
+Note that require statements are sorted, in
+[ASCII](http://man7.org/linux/man-pages/man7/ascii.7.html) order (digits, upper
+case, `_`, lower case).
 
 **Lines 6-17**
 
@@ -186,3 +188,70 @@ require('../common');
 const assert = require('assert');
 const freelist = require('internal/freelist');
 ```
+
+### Assertions
+
+When writing assertions, prefer the strict versions:
+
+* `assert.strictEqual()` over `assert.equal()`
+* `assert.deepStrictEqual()` over `assert.deepEqual()`
+
+When using `assert.throws()`, if possible, provide the full error message:
+
+```js
+assert.throws(
+  () => {
+    throw new Error('Wrong value');
+  },
+  /^Error: Wrong value$/ // Instead of something like /Wrong value/
+);
+```
+
+### ES.Next features
+
+For performance considerations, we only use a selected subset of ES.Next
+features in JavaScript code in the `lib` directory. However, when writing
+tests, it is encouraged to use ES.Next features that have already landed
+in the ECMAScript specification. For example:
+
+* `let` and `const` over `var`
+* Template literals over string concatenation
+* Arrow functions when appropriate
+
+## Naming Test Files
+
+Test files are named using kebab casing. The first component of the name is
+`test`. The second is the module or subsystem being tested. The third is usually
+the method or event name being tested. Subsequent components of the name add
+more information about what is being tested.
+
+For example, a test for the `beforeExit` event on the `process` object might be
+named `test-process-before-exit.js`. If the test specifically checked that arrow
+functions worked correctly with the `beforeExit` event, then it might be named
+`test-process-before-exit-arrow-functions.js`.
+
+## Imported Tests
+
+### Web Platform Tests
+
+Some of the tests for the WHATWG URL implementation (named
+`test-whatwg-url-*.js`) are imported from the
+[Web Platform Tests Project](https://github.com/w3c/web-platform-tests/tree/master/url).
+These imported tests will be wrapped like this:
+
+```js
+/* eslint-disable */
+/* WPT Refs:
+   https://github.com/w3c/web-platform-tests/blob/8791bed/url/urlsearchparams-stringifier.html
+   License: http://www.w3.org/Consortium/Legal/2008/04-testsuite-copyright.html
+*/
+
+// Test code
+
+/* eslint-enable */
+```
+
+If you want to improve tests that have been imported this way, please send
+a PR to the upstream project first. When your proposed change is merged in
+the upstream project, send another PR here to update Node.js accordingly.
+Be sure to update the hash in the URL following `WPT Refs:`.

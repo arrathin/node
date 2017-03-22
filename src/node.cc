@@ -2277,8 +2277,6 @@ struct node_module* get_linked_module(const char* name) {
   return mp;
 }
 
-typedef void (UV_DYNAMIC* extInit)(Local<Object> exports);
-
 // DLOpen is process.dlopen(module, filename).
 // Used to load 'module.node' dynamically shared objects.
 //
@@ -3957,6 +3955,7 @@ inline void PlatformInit() {
 
   CHECK_EQ(err, 0);
 
+#ifndef NODE_SHARED_MODE
   // Restore signal dispositions, the parent process may have changed them.
   struct sigaction act;
   memset(&act, 0, sizeof(act));
@@ -3970,6 +3969,7 @@ inline void PlatformInit() {
     act.sa_handler = (nr == SIGPIPE) ? SIG_IGN : SIG_DFL;
     CHECK_EQ(0, sigaction(nr, &act, nullptr));
   }
+#endif  // !NODE_SHARED_MODE
 
   RegisterSignalHandler(SIGINT, SignalExit, true);
   RegisterSignalHandler(SIGTERM, SignalExit, true);

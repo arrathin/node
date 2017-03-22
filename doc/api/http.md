@@ -100,11 +100,13 @@ added: v0.3.4
 
 * `options` {Object} Set of configurable options to set on the agent.
   Can have the following fields:
-  * `keepAlive` {Boolean} Keep sockets around in a pool to be used by
-    other requests in the future. Default = `false`
-  * `keepAliveMsecs` {Integer} When using HTTP KeepAlive, how often
-    to send TCP KeepAlive packets over sockets being kept alive.
-    Default = `1000`.  Only relevant if `keepAlive` is set to `true`.
+  * `keepAlive` {Boolean} Keep sockets around even when there are no
+    outstanding requests, so they can be used for future requests without
+    having to reestablish a TCP connection. Default = `false`
+  * `keepAliveMsecs` {Integer} When using the `keepAlive` option, specifies
+    the [initial delay](net.html#net_socket_setkeepalive_enable_initialdelay)
+    for TCP Keep-Alive packets. Ignored when the
+    `keepAlive` option is `false` or `undefined`. Default = `1000`.
   * `maxSockets` {Number} Maximum number of sockets to allow per
     host.  Default = `Infinity`.
   * `maxFreeSockets` {Number} Maximum number of sockets to leave open
@@ -409,6 +411,14 @@ added: v0.3.8
 
 Marks the request as aborting. Calling this will cause remaining data
 in the response to be dropped and the socket to be destroyed.
+
+### request.aborted
+<!-- YAML
+added: v0.11.14
+-->
+
+If a request has been aborted, this value is the time when the request was
+aborted, in milliseconds since 1 January 1970 00:00:00 UTC.
 
 ### request.end([data][, encoding][, callback])
 <!-- YAML
@@ -1419,7 +1429,7 @@ There are a few special headers that should be noted.
 * Sending a 'Connection: keep-alive' will notify Node.js that the connection to
   the server should be persisted until the next request.
 
-* Sending a 'Content-length' header will disable the default chunked encoding.
+* Sending a 'Content-Length' header will disable the default chunked encoding.
 
 * Sending an 'Expect' header will immediately send the request headers.
   Usually, when sending 'Expect: 100-continue', you should both set a timeout

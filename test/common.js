@@ -9,7 +9,7 @@ const stream = require('stream');
 const util = require('util');
 
 const testRoot = process.env.NODE_TEST_DIR ?
-                   path.resolve(process.env.NODE_TEST_DIR) : __dirname;
+                   fs.realpathSync(process.env.NODE_TEST_DIR) : __dirname;
 
 exports.testDir = __dirname;
 exports.fixturesDir = path.join(exports.testDir, 'fixtures');
@@ -360,8 +360,7 @@ process.on('exit', function() {
   if (!exports.globalCheck) return;
   var leaked = leakedGlobals();
   if (leaked.length > 0) {
-    console.error('Unknown globals: %s', leaked);
-    assert.ok(false, 'Unknown global found');
+    exports.fail(`Unexpected global(s) found: ${leaked.join(', ')}`);
   }
 });
 

@@ -60,13 +60,18 @@ endif
 # to check for changes.
 .PHONY: $(NODE_EXE) $(NODE_G_EXE)
 
+# The -r/-L check stops it recreating the link if it is already in place,
+# otherwise $(NODE_EXE) being a .PHONY target means it is always re-run.
+# Without the check there is a race condition between the link being deleted
+# and recreated which can break the addons build when running test-ci
+# See comments on the build-addons target for some more info
 $(NODE_EXE): config.gypi out/Makefile
 	$(MAKE) -C out BUILDTYPE=Release V=$(V)
-	ln -fs out/Release/$(NODE_EXE) $@
+	if [ ! -r $@ -o ! -L $@ ]; then ln -fs out/Release/$(NODE_EXE) $@; fi
 
 $(NODE_G_EXE): config.gypi out/Makefile
 	$(MAKE) -C out BUILDTYPE=Debug V=$(V)
-	ln -fs out/Debug/$(NODE_EXE) $@
+	if [ ! -r $@ -o ! -L $@ ]; then ln -fs out/Debug/$(NODE_EXE) $@; fi
 
 out/Makefile: common.gypi deps/uv/uv.gyp deps/http_parser/http_parser.gyp deps/zlib/zlib.gyp deps/v8/build/toolchain.gypi deps/v8/build/features.gypi deps/v8/tools/gyp/v8.gyp node.gyp config.gypi
 	$(PYTHON) tools/gyp_node.py -f make
@@ -151,7 +156,7 @@ test/addons/.buildstamp: config.gypi \
 #	Cannot use $(wildcard test/addons/*/) here, it's evaluated before
 #	embedded addons have been generated from the documentation.
 	@for dirname in test/addons/*/; do \
-		echo "\nBuilding addon $$PWD/$$dirname" ; \
+		printf "\nBuilding addon $$PWD/$$dirname\n" ; \
 		env MAKEFLAGS="-j1" $(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp \
 		        --loglevel=$(LOGLEVEL) rebuild \
 			--python="$(PYTHON)" \
@@ -194,12 +199,22 @@ test-ci-js:
 	$(PYTHON) tools/test.py -p tap --logfile test.tap \
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
 		$(TEST_CI_ARGS) $(CI_JS_SUITES)
+	# Clean up any leftover processes
+	PS_OUT=`ps awwx | grep Release/node | grep -v grep | awk '{print $$1}'`; \
+	if [ "$${PS_OUT}" ]; then \
+		echo $${PS_OUT} | $(XARGS) kill; exit 1; \
+	fi
 
 test-ci: LOGLEVEL := info
 test-ci: | build-addons
 	out/Release/cctest --gtest_output=tap:cctest.tap
 	$(PYTHON) tools/test.py -p tap --logfile test.tap --mode=release --flaky-tests=$(FLAKY_TESTS) \
 		$(TEST_CI_ARGS) $(CI_NATIVE_SUITES) $(CI_JS_SUITES)
+	# Clean up any leftover processes
+	PS_OUT=`ps awwx | grep Release/node | grep -v grep | awk '{print $$1}'`; \
+	if [ "$${PS_OUT}" ]; then \
+		echo $${PS_OUT} | $(XARGS) kill; exit 1; \
+	fi
 
 test-release: test-build
 	$(PYTHON) tools/test.py --mode=release
@@ -265,6 +280,11 @@ test-v8-benchmarks: v8
 test-v8-all: test-v8 test-v8-intl test-v8-benchmarks
 # runs all v8 tests
 
+# Google Analytics ID used for tracking API docs page views, empty
+# DOCS_ANALYTICS means no tracking scripts will be included in the
+# generated .html files
+DOCS_ANALYTICS ?=
+
 apidoc_sources = $(wildcard doc/api/*.md)
 apidocs_html = $(apidoc_dirs) $(apiassets) $(addprefix out/,$(apidoc_sources:.md=.html))
 apidocs_json = $(apidoc_dirs) $(apiassets) $(addprefix out/,$(apidoc_sources:.md=.json))
@@ -298,7 +318,8 @@ out/doc/api/%.json: doc/api/%.md
 	[ -x $(NODE) ] && $(NODE) $(gen-json) || node $(gen-json)
 
 # check if ./node is actually set, else use user pre-installed binary
-gen-html = tools/doc/generate.js --node-version=$(FULLVERSION) --format=html --template=doc/template.html $< > $@
+gen-html = tools/doc/generate.js --node-version=$(FULLVERSION) --format=html \
+			--template=doc/template.html --analytics=$(DOCS_ANALYTICS) $< > $@
 out/doc/api/%.html: doc/api/%.md
 	@[ -e tools/doc/node_modules/js-yaml/package.json ] || \
 		[ -e tools/eslint/node_modules/js-yaml/package.json ] || \
@@ -458,7 +479,7 @@ PKGDIR=out/dist-osx
 release-only:
 	@if [ "$(DISTTYPE)" != "nightly" ] && [ "$(DISTTYPE)" != "next-nightly" ] && \
 		`grep -q REPLACEME doc/api/*.md`; then \
-		echo 'Please update Added: tags in the documentation first.' ; \
+		echo 'Please update REPLACEME in Added: tags in doc/api/*.md (See doc/releases.md)' ; \
 		exit 1 ; \
 	fi
 	@if [ "$(shell git status --porcelain | egrep -v '^\?\? ')" = "" ]; then \
@@ -543,7 +564,7 @@ ifeq ($(XZ), 0)
 	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/node-$(FULLVERSION).tar.xz.done"
 endif
 
-doc-upload: tar
+doc-upload: doc
 	ssh $(STAGINGSERVER) "mkdir -p nodejs/$(DISTTYPEDIR)/$(FULLVERSION)"
 	chmod -R ug=rw-x+X,o=r+X out/doc/
 	scp -pr out/doc/ $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/docs/
