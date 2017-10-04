@@ -168,7 +168,7 @@ class FileSystemLoader(BaseLoader):
         pieces = split_template_path(template)
         for searchpath in self.searchpath:
             filename = path.join(searchpath, *pieces)
-            f = open_if_exists(filename)
+            f = open_if_exists(filename, 'rt')
             if f is None:
                 continue
             try:
