@@ -302,7 +302,8 @@ def parse_arguments():
                         includes.append(curr)
                 multiline = MULTIPLE_HEADERS.match(multiline.group(2))
 
-    convert_to_ascii(args, unicode_encode, skip_print_strings, includes)
+    if not os.path.isfile(args[1]) and os.path.isfile(args[0]):
+        convert_to_ascii(args, unicode_encode, skip_print_strings, includes)
 
     # resets the global blacklist contained in read_files.py for header files
     read_files.reset_blacklist()

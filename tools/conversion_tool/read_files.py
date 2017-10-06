@@ -30,10 +30,12 @@ def recursive_headers(filepath, filename, include_paths):
 	# headers aren't being translated again
 	if not header_exists(filepath):
 		if not os.path.isfile(filepath):
-			return 1
+		        return 1
 
-		blacklist.append(filepath)
-		ebcdic2ascii.open_files([filepath, target], False, False, include_paths)
+                if not os.path.isfile(target):
+                        blacklist.append(filepath)
+                        ebcdic2ascii.open_files([filepath, target], False, False, include_paths)
+
 
 	# return the location to the target header path so that it can be
 	# written into the translated source file
