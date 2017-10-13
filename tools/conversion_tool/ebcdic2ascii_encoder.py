@@ -106,7 +106,7 @@ def EncodeInEBCDIC(literal):
 def EncodeInASCII(literal):
    convert = "";
    for byte in literal:
-      ascii_lit  = str(hex(EBCDIC_TO_ASCII[ord(byte)]))
+      ascii_lit  = str(hex(ord(byte)))
       convert = convert + '\\x' + ascii_lit[2:4]
    return convert
 
@@ -120,15 +120,15 @@ def ConvertMacroArgs(token):
 
 def ConvertTokens(tokens):
    if not HEX_RE.search(tokens):
-      return EncodeInEBCDIC(tokens)
+      return EncodeInASCII(tokens)
    else:
       return tokens
 
 def EncodeEscapeSeq(literal):
-   return EncodeInEBCDIC(ESCAPE_LIT[literal.group(0)])
+   return EncodeInASCII(ESCAPE_LIT[literal.group(0)])
 
 def EncodeChars(literal):
-   return EncodeInEBCDIC(literal.group(0))
+   return EncodeInASCII(literal.group(0))
 
 def EncodePrintF(literal):
    return EncodeInEBCDIC(literal.group(0))
