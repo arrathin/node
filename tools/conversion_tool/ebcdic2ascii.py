@@ -195,7 +195,7 @@ def convert_to_ascii(filenames, unicode_encode, skip_print_strings, \
 
     # main loop which identifies and encodes literals with hex escape sequences
     for line in Source:
-
+       
         # logic for line continuations; appends the lines
         if prev_line is not None:
             line = prev_line + line
@@ -223,6 +223,9 @@ def convert_to_ascii(filenames, unicode_encode, skip_print_strings, \
 
         # if it isn't to be skipped
         if not skip_line and not include_line:
+            #convert all the escape sequences first
+            line = re.sub(ESCAPE_RE, EncodeEscapeSeq, line);
+            
             tokens_of_interest = re.split(SPLIT_RE, line)
             tokens_of_interest = filter(None, tokens_of_interest)
 
