@@ -2,9 +2,9 @@
 const common = require('../common');
 const assert = require('assert');
 const zlib = require('zlib');
-const path = require('path');
-const fs = require('fs');
 const stream = require('stream');
+const fs = require('fs');
+const fixtures = require('../common/fixtures');
 
 let zlibPairs = [
   [zlib.Deflate, zlib.Inflate],
@@ -48,7 +48,7 @@ if (process.env.FAST) {
 
 const tests = {};
 testFiles.forEach(common.mustCall((file) => {
-  tests[file] = fs.readFileSync(path.resolve(common.fixturesDir, file));
+  tests[file] = fixtures.readSync(file);
 }, testFiles.length));
 
 
@@ -145,7 +145,8 @@ assert.doesNotThrow(() => {
   // value of the matching deflate’s windowBits. However, inflate raw with
   // windowBits = 8 should be able to handle compressed data from a source
   // that does not know about the silent 8-to-9 upgrade of windowBits
-  // that older versions of zlib/Node perform.
+  // that most versions of zlib/Node perform, and which *still* results in
+  // a valid 8-bit-window zlib stream.
   node.pipe(zlib.createDeflateRaw({ windowBits: 9 }))
       .pipe(zlib.createInflateRaw({ windowBits: 8 }))
       .on('data', (chunk) => reinflated.push(chunk))

@@ -14,6 +14,8 @@
 
 #include <openssl/ssl.h>
 
+#include <string>
+
 namespace node {
 
 // Forward-declarations
@@ -129,8 +131,7 @@ class TLSWrap : public AsyncWrap,
 
   void DoRead(ssize_t nread, const uv_buf_t* buf, uv_handle_type pending);
 
-  // If |msg| is not nullptr, caller is responsible for calling `delete[] *msg`.
-  v8::Local<v8::Value> GetSSLError(int status, int* err, const char** msg);
+  v8::Local<v8::Value> GetSSLError(int status, int* err, std::string* msg);
 
   static void OnClientHelloParseEnd(void* arg);
   static void Wrap(const v8::FunctionCallbackInfo<v8::Value>& args);
@@ -161,7 +162,7 @@ class TLSWrap : public AsyncWrap,
   bool started_;
   bool established_;
   bool shutdown_;
-  const char* error_;
+  std::string error_;
   int cycle_depth_;
 
   // If true - delivered EOF to the js-land, either after `close_notify`, or

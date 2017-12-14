@@ -1,8 +1,8 @@
 'use strict';
 const common = require('../common');
+const fixtures = require('../common/fixtures');
 const fs = require('fs');
 const net = require('net');
-const path = require('path');
 const assert = require('assert');
 
 // Test if ENOTSOCK is fired when trying to connect to a file which is not
@@ -13,7 +13,7 @@ let emptyTxt;
 if (common.isWindows) {
   // on Win, common.PIPE will be a named pipe, so we use an existing empty
   // file instead
-  emptyTxt = path.join(common.fixturesDir, 'empty.txt');
+  emptyTxt = fixtures.path('empty.txt');
 } else {
   common.refreshTmpDir();
   // Keep the file name very short so tht we don't exceed the 108 char limit
@@ -35,7 +35,7 @@ if (common.isWindows) {
 }
 
 const notSocketClient = net.createConnection(emptyTxt, function() {
-  common.fail('connection callback should not run');
+  assert.fail('connection callback should not run');
 });
 
 notSocketClient.on('error', common.mustCall(function(err) {
@@ -46,7 +46,7 @@ notSocketClient.on('error', common.mustCall(function(err) {
 
 // Trying to connect to not-existing socket should result in ENOENT error
 const noEntSocketClient = net.createConnection('no-ent-file', function() {
-  common.fail('connection to non-existent socket, callback should not run');
+  assert.fail('connection to non-existent socket, callback should not run');
 });
 
 noEntSocketClient.on('error', common.mustCall(function(err) {
@@ -63,7 +63,7 @@ if (!common.isWindows && process.getuid() !== 0) {
     fs.chmodSync(common.PIPE, 0);
 
     const accessClient = net.createConnection(common.PIPE, function() {
-      common.fail('connection should get EACCES, callback should not run');
+      assert.fail('connection should get EACCES, callback should not run');
     });
 
     accessClient.on('error', common.mustCall(function(err) {

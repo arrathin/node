@@ -1,10 +1,10 @@
 'use strict';
 const common = require('../common');
 const assert = require('assert');
-const path = require('path');
 const child_process = require('child_process');
+const fixtures = require('../common/fixtures');
 
-const wrong_script = path.join(common.fixturesDir, 'cert.pem');
+const wrong_script = fixtures.path('cert.pem');
 
 const p = child_process.spawn(process.execPath, [
   '-e',
@@ -12,7 +12,9 @@ const p = child_process.spawn(process.execPath, [
   wrong_script
 ]);
 
-p.stdout.on('data', common.mustNotCall());
+p.stdout.on('data', function(data) {
+  assert.fail(`Unexpected stdout data: ${data}`);
+});
 
 let output = '';
 

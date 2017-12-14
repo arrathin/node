@@ -4,12 +4,14 @@ const common = require('../common');
 if (!common.hasCrypto)
   common.skip('missing crypto');
 
-const fs = require('fs');
+const assert = require('assert');
 const https = require('https');
 
+const fixtures = require('../common/fixtures');
+
 const options = {
-  key: fs.readFileSync(`${common.fixturesDir}/keys/agent1-key.pem`),
-  cert: fs.readFileSync(`${common.fixturesDir}/keys/agent1-cert.pem`)
+  key: fixtures.readKey('agent1-key.pem'),
+  cert: fixtures.readKey('agent1-cert.pem')
 };
 
 const invalidLocalAddress = '1.2.3.4';
@@ -32,7 +34,7 @@ server.listen(0, '127.0.0.1', common.mustCall(function() {
     method: 'GET',
     localAddress: invalidLocalAddress
   }, function(res) {
-    common.fail('unexpectedly got response from server');
+    assert.fail('unexpectedly got response from server');
   }).on('error', common.mustCall(function(e) {
     console.log(`client got error: ${e.message}`);
     server.close();

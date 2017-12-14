@@ -1985,10 +1985,6 @@ static int do_body(X509 **xret, EVP_PKEY *pkey, X509 *x509,
     /* Lets add the extensions, if there are any */
     if (ext_sect) {
         X509V3_CTX ctx;
-        if (ci->version == NULL)
-            if ((ci->version = ASN1_INTEGER_new()) == NULL)
-                goto err;
-        ASN1_INTEGER_set(ci->version, 2); /* version 3 certificate */
 
         /*
          * Free the current entries if any, there should not be any I believe
@@ -2049,6 +2045,15 @@ static int do_body(X509 **xret, EVP_PKEY *pkey, X509 *x509,
         BIO_printf(bio_err, "\x45\x52\x52\x4f\x52\x3a\x20\x61\x64\x64\x69\x6e\x67\x20\x65\x78\x74\x65\x6e\x73\x69\x6f\x6e\x73\x20\x66\x72\x6f\x6d\x20\x72\x65\x71\x75\x65\x73\x74\xa");
         ERR_print_errors(bio_err);
         goto err;
+    }
+
+    {
+        STACK_OF(X509_EXTENSION) *exts = ci->extensions;
+
+        if (exts != NULL && sk_X509_EXTENSION_num(exts) > 0)
+            /* Make it an X509 v3 certificate. */
+            if (!X509_set_version(ret, 2))
+                goto err;
     }
 
     /* Set the right value for the noemailDN option */

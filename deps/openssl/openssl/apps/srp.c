@@ -123,13 +123,14 @@ static int get_index(CA_DB *db, char *id, char type)
     int i;
     if (id == NULL)
         return -1;
-    if (type == DB_SRP_INDEX)
+    if (type == DB_SRP_INDEX) {
         for (i = 0; i < sk_OPENSSL_PSTRING_num(db->db->data); i++) {
             pp = sk_OPENSSL_PSTRING_value(db->db->data, i);
             if (pp[DB_srptype][0] == DB_SRP_INDEX
                 && !strcmp(id, pp[DB_srpid]))
                 return i;
-    } else
+        }
+    } else {
         for (i = 0; i < sk_OPENSSL_PSTRING_num(db->db->data); i++) {
             pp = sk_OPENSSL_PSTRING_value(db->db->data, i);
 
@@ -137,6 +138,7 @@ static int get_index(CA_DB *db, char *id, char type)
                 && !strcmp(id, pp[DB_srpid]))
                 return i;
         }
+    }
 
     return -1;
 }
@@ -177,8 +179,8 @@ static int update_index(CA_DB *db, BIO *bio, char **row)
     char **irow;
     int i;
 
-    if ((irow =
-         (char **)OPENSSL_malloc(sizeof(char *) * (DB_NUMBER + 1))) == NULL) {
+    irow = (char **)OPENSSL_malloc(sizeof(char *) * (DB_NUMBER + 1));
+    if (irow == NULL) {
         BIO_printf(bio_err, "\x4d\x65\x6d\x6f\x72\x79\x20\x61\x6c\x6c\x6f\x63\x61\x74\x69\x6f\x6e\x20\x66\x61\x69\x6c\x75\x72\x65\xa");
         return 0;
     }
@@ -205,30 +207,32 @@ static char *srp_verify_user(const char *user, const char *srp_verifier,
                              char *srp_usersalt, const char *g, const char *N,
                              const char *passin, BIO *bio, int verbose)
 {
-    char password[1024];
+    char password[1025];
     PW_CB_DATA cb_tmp;
     char *verifier = NULL;
     char *gNid = NULL;
+    int len;
 
     cb_tmp.prompt_info = user;
     cb_tmp.password = passin;
 
-    if (password_callback(password, 1024, 0, &cb_tmp) > 0) {
+    len = password_callback(password, sizeof(password)-1, 0, &cb_tmp);
+    if (len > 0) {
+        password[len] = 0;
         VERBOSE BIO_printf(bio,
                            "\x56\x61\x6c\x69\x64\x61\x74\x69\x6e\x67\xa\x20\x20\x20\x75\x73\x65\x72\x3d\x22\x25\x73\x22\xa\x20\x73\x72\x70\x5f\x76\x65\x72\x69\x66\x69\x65\x72\x3d\x22\x25\x73\x22\xa\x20\x73\x72\x70\x5f\x75\x73\x65\x72\x73\x61\x6c\x74\x3d\x22\x25\x73\x22\xa\x20\x67\x3d\x22\x25\x73\x22\xa\x20\x4e\x3d\x22\x25\x73\x22\xa",
                            user, srp_verifier, srp_usersalt, g, N);
-        BIO_printf(bio, "\x50\x61\x73\x73\x20\x25\x73\xa", password);
+        VVERBOSE BIO_printf(bio, "\x50\x61\x73\x73\x20\x25\x73\x0a", password);
 
-        if (!
-            (gNid =
-             SRP_create_verifier(user, password, &srp_usersalt, &verifier, N,
-                                 g))) {
+        if (!(gNid = SRP_create_verifier(user, password, &srp_usersalt,
+                                         &verifier, N, g))) {
             BIO_printf(bio, "\x49\x6e\x74\x65\x72\x6e\x61\x6c\x20\x65\x72\x72\x6f\x72\x20\x76\x61\x6c\x69\x64\x61\x74\x69\x6e\x67\x20\x53\x52\x50\x20\x76\x65\x72\x69\x66\x69\x65\x72\xa");
         } else {
             if (strcmp(verifier, srp_verifier))
                 gNid = NULL;
             OPENSSL_free(verifier);
         }
+        OPENSSL_cleanse(password, len);
     }
     return gNid;
 }
@@ -237,24 +241,27 @@ static char *srp_create_user(char *user, char **srp_verifier,
                              char **srp_usersalt, char *g, char *N,
                              char *passout, BIO *bio, int verbose)
 {
-    char password[1024];
+    char password[1025];
     PW_CB_DATA cb_tmp;
     char *gNid = NULL;
     char *salt = NULL;
+    int len;
     cb_tmp.prompt_info = user;
     cb_tmp.password = passout;
 
-    if (password_callback(password, 1024, 1, &cb_tmp) > 0) {
+    len = password_callback(password, sizeof(password)-1, 1, &cb_tmp);
+    if (len > 0) {
+        password[len] = 0;
         VERBOSE BIO_printf(bio,
                            "\x43\x72\x65\x61\x74\x69\x6e\x67\xa\x20\x75\x73\x65\x72\x3d\x22\x25\x73\x22\xa\x20\x67\x3d\x22\x25\x73\x22\xa\x20\x4e\x3d\x22\x25\x73\x22\xa",
                            user, g, N);
-        if (!
-            (gNid =
-             SRP_create_verifier(user, password, &salt, srp_verifier, N,
-                                 g))) {
+        if (!(gNid = SRP_create_verifier(user, password, &salt,
+                                         srp_verifier, N, g))) {
             BIO_printf(bio, "\x49\x6e\x74\x65\x72\x6e\x61\x6c\x20\x65\x72\x72\x6f\x72\x20\x63\x72\x65\x61\x74\x69\x6e\x67\x20\x53\x52\x50\x20\x76\x65\x72\x69\x66\x69\x65\x72\xa");
-        } else
+        } else {
             *srp_usersalt = salt;
+        }
+        OPENSSL_cleanse(password, len);
         VVERBOSE BIO_printf(bio, "\x67\x4e\x69\x64\x3d\x25\x73\x20\x73\x61\x6c\x74\x20\x3d\x22\x25\x73\x22\xa\x20\x76\x65\x72\x69\x66\x69\x65\x72\x20\x3d\x22\x25\x73\x22\xa",
                             gNid, salt, *srp_verifier);
 
@@ -314,9 +321,9 @@ int MAIN(int argc, char **argv)
     argc--;
     argv++;
     while (argc >= 1 && badops == 0) {
-        if (strcmp(*argv, "\x2d\x76\x65\x72\x62\x6f\x73\x65") == 0)
+        if (strcmp(*argv, "\x2d\x76\x65\x72\x62\x6f\x73\x65") == 0) {
             verbose++;
-        else if (strcmp(*argv, "\x2d\x63\x6f\x6e\x66\x69\x67") == 0) {
+        } else if (strcmp(*argv, "\x2d\x63\x6f\x6e\x66\x69\x67") == 0) {
             if (--argc < 1)
                 goto bad;
             configfile = *(++argv);
@@ -328,15 +335,15 @@ int MAIN(int argc, char **argv)
             if (--argc < 1)
                 goto bad;
             dbfile = *(++argv);
-        } else if (strcmp(*argv, "\x2d\x61\x64\x64") == 0)
+        } else if (strcmp(*argv, "\x2d\x61\x64\x64") == 0) {
             add_user = 1;
-        else if (strcmp(*argv, "\x2d\x64\x65\x6c\x65\x74\x65") == 0)
+        } else if (strcmp(*argv, "\x2d\x64\x65\x6c\x65\x74\x65") == 0) {
             delete_user = 1;
-        else if (strcmp(*argv, "\x2d\x6d\x6f\x64\x69\x66\x79") == 0)
+        } else if (strcmp(*argv, "\x2d\x6d\x6f\x64\x69\x66\x79") == 0) {
             modify_user = 1;
-        else if (strcmp(*argv, "\x2d\x6c\x69\x73\x74") == 0)
+        } else if (strcmp(*argv, "\x2d\x6c\x69\x73\x74") == 0) {
             list_user = 1;
-        else if (strcmp(*argv, "\x2d\x67\x6e") == 0) {
+        } else if (strcmp(*argv, "\x2d\x67\x6e") == 0) {
             if (--argc < 1)
                 goto bad;
             gN = *(++argv);
@@ -366,8 +373,9 @@ int MAIN(int argc, char **argv)
             BIO_printf(bio_err, "\x75\x6e\x6b\x6e\x6f\x77\x6e\x20\x6f\x70\x74\x69\x6f\x6e\x20\x25\x73\xa", *argv);
             badops = 1;
             break;
-        } else
+        } else {
             break;
+        }
 
         argc--;
         argv++;
@@ -388,7 +396,7 @@ int MAIN(int argc, char **argv)
                    "\x4e\x65\x65\x64\x20\x61\x74\x20\x6c\x65\x61\x73\x74\x20\x6f\x6e\x65\x20\x75\x73\x65\x72\x20\x66\x6f\x72\x20\x6f\x70\x74\x69\x6f\x6e\x73\x20\x2d\x61\x64\x64\x2c\x20\x2d\x64\x65\x6c\x65\x74\x65\x2c\x20\x2d\x6d\x6f\x64\x69\x66\x79\x2e\x20\xa");
         badops = 1;
     }
-    if ((passin || passout) && argc != 1) {
+    if ((passargin || passargout) && argc != 1) {
         BIO_printf(bio_err,
                    "\x2d\x70\x61\x73\x73\x69\x6e\x2c\x20\x2d\x70\x61\x73\x73\x6f\x75\x74\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x73\x20\x6f\x6e\x6c\x79\x20\x76\x61\x6c\x69\x64\x20\x77\x69\x74\x68\x20\x6f\x6e\x65\x20\x75\x73\x65\x72\x2e\xa");
         badops = 1;
@@ -706,9 +714,9 @@ int MAIN(int argc, char **argv)
                 doupdatedb = 1;
             }
         }
-        if (--argc > 0)
+        if (--argc > 0) {
             user = *(argv++);
-        else {
+        } else {
             user = NULL;
             list_user = 0;
         }

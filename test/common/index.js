@@ -8,13 +8,15 @@ const { exec, execSync, spawn, spawnSync } = require('child_process');
 const stream = require('stream');
 const util = require('util');
 const Timer = process.binding('timer_wrap').Timer;
+const { fixturesDir } = require('./fixtures');
 
 const testRoot = process.env.NODE_TEST_DIR ?
   fs.realpathSync(process.env.NODE_TEST_DIR) : path.resolve(__dirname, '..');
 
 const noop = () => {};
 
-exports.fixturesDir = path.join(__dirname, '..', 'fixtures');
+exports.fixturesDir = fixturesDir;
+
 exports.tmpDirName = 'tmp';
 // PORT should match the definition in test/testpy/__init__.py.
 exports.PORT = +process.env.NODE_COMMON_PORT || 12346;
@@ -31,7 +33,7 @@ exports.isLinux = process.platform === 'linux';
 exports.isOSX = process.platform === 'darwin';
 exports.isZos = process.platform === 'os390';
 
-exports.enoughTestMem = os.totalmem() > 0x40000000; /* 1 Gb */
+exports.enoughTestMem = os.totalmem() > 0x70000000; /* 1.75 Gb */
 
 const cpus = os.cpus();
 exports.enoughTestCpu = Array.isArray(cpus) &&
@@ -281,7 +283,7 @@ exports.spawnSyncPwd = function(options) {
 };
 
 exports.platformTimeout = function(ms) {
-  if (process.config.target_defaults.default_configuration === 'Debug')
+  if (process.features.debug)
     ms = 2 * ms;
 
   if (exports.isAix || exports.isZos)
@@ -369,6 +371,11 @@ if (global.Symbol) {
   knownGlobals.push(Symbol);
 }
 
+if (process.env.NODE_TEST_KNOWN_GLOBALS) {
+  const knownFromEnv = process.env.NODE_TEST_KNOWN_GLOBALS.split(',');
+  allowGlobals(...knownFromEnv);
+}
+
 function allowGlobals(...whitelist) {
   knownGlobals = knownGlobals.concat(whitelist);
 }
@@ -392,7 +399,7 @@ process.on('exit', function() {
   if (!exports.globalCheck) return;
   const leaked = leakedGlobals();
   if (leaked.length > 0) {
-    fail(`Unexpected global(s) found: ${leaked.join(', ')}`);
+    assert.fail(`Unexpected global(s) found: ${leaked.join(', ')}`);
   }
 });
 
@@ -480,14 +487,9 @@ exports.fileExists = function(pathname) {
   }
 };
 
-function fail(msg) {
-  assert.fail(null, null, msg);
-}
-exports.fail = fail;
-
 exports.mustNotCall = function(msg) {
   return function mustNotCall() {
-    fail(msg || 'function should not have been called');
+    assert.fail(msg || 'function should not have been called');
   };
 };
 
@@ -590,4 +592,11 @@ exports.expectWarning = function(name, expected) {
 exports.crashOnUnhandledRejection = function() {
   process.on('unhandledRejection',
              (err) => process.nextTick(() => { throw err; }));
+};
+
+exports.skipIfInspectorDisabled = function skipIfInspectorDisabled() {
+  if (!exports.hasCrypto) {
+    exports.skip('missing ssl support so inspector is disabled');
+    process.exit(0);
+  }
 };

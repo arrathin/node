@@ -149,17 +149,16 @@ uv__os390_epoll* epoll_create1(int flags) {
     char body;
   } msg;
 
-  uv_once(&once, epoll_init);
-  uv_mutex_lock(&global_epoll_lock);
   lst = uv__malloc(sizeof(*lst));
-  if (lst == -1)
-    return NULL;
-  QUEUE_INSERT_TAIL(&global_epoll_queue, &lst->member);
-  uv_mutex_unlock(&global_epoll_lock);
-
-  /* initialize list */
-  lst->size = 0;
-  lst->items = NULL;
+  if (lst != NULL) {
+    /* initialize list */
+    lst->size = 0;
+    lst->items = NULL;
+    uv_once(&once, epoll_init);
+    uv_mutex_lock(&global_epoll_lock);
+    QUEUE_INSERT_TAIL(&global_epoll_queue, &lst->member);
+    uv_mutex_unlock(&global_epoll_lock);
+  }
 
   /* initialize message queue */
   lst->msg_queue = msgget(IPC_PRIVATE, 0622 | IPC_CREAT);
@@ -191,8 +190,11 @@ int epoll_ctl(uv__os390_epoll* lst,
               int op,
               int fd,
               struct epoll_event *event) {
-  if (op == EPOLL_CTL_DEL) {
+  uv_mutex_lock(&global_epoll_lock);
+
+  if(op == EPOLL_CTL_DEL) {
     if (fd >= lst->size || lst->items[fd].fd == -1) {
+      uv_mutex_unlock(&global_epoll_lock);
       errno = ENOENT;
       return -1;
     }
@@ -205,6 +207,7 @@ int epoll_ctl(uv__os390_epoll* lst,
      */
     maybe_resize(lst, fd + 2);
     if (lst->items[fd].fd != -1) {
+      uv_mutex_unlock(&global_epoll_lock);
       errno = EEXIST;
       return -1;
     }
@@ -212,6 +215,7 @@ int epoll_ctl(uv__os390_epoll* lst,
     lst->items[fd].events = event->events;
   } else if (op == EPOLL_CTL_MOD) {
     if (fd >= lst->size || lst->items[fd].fd == -1) {
+      uv_mutex_unlock(&global_epoll_lock);
       errno = ENOENT;
       return -1;
     }
@@ -219,6 +223,7 @@ int epoll_ctl(uv__os390_epoll* lst,
   } else
     abort();
 
+  uv_mutex_unlock(&global_epoll_lock);
   return 0;
 }
 
@@ -238,10 +243,11 @@ int epoll_wait(uv__os390_epoll* lst, struct epoll_event* events,
 
   pollret = _NFDS(pollret) + _NMSGS(pollret);
   reventcount = 0;
-  for (int i = 0; i < lst->size && i < maxevents; ++i) {
+  for (int i = 0; 
+       i < lst->size && i < maxevents && reventcount < pollret; ++i) {
     struct epoll_event ev;
 
-    if (pfds[i].fd == -1 || !pfds[i].revents)
+    if (pfds[i].fd == -1 || pfds[i].revents == 0)
       continue;
 
     ev.fd = pfds[i].fd;
@@ -408,7 +414,7 @@ ssize_t os390_readlink(const char* path, char* buf, size_t len) {
    * which needs interpretation.
    */
   tmpbuf[rlen] = '\0';
-  delimiter = strchr(tmpbuf + 2, '/'); 
+  delimiter = strchr(tmpbuf + 2, '/');
   if (delimiter == NULL)
     /* No slash at the end */
     delimiter = strchr(tmpbuf + 2, '\0');

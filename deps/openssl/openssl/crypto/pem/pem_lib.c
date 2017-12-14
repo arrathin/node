@@ -536,7 +536,8 @@ int PEM_get_EVP_CIPHER_INFO(char *header, EVP_CIPHER_INFO *cipher)
               ((c >= '\x30') && (c <= '\x39'))))
             break;
 #else
-        if (!(isupper(c) || (c == '\x2d') || isdigit(c)))
+        if (!(isupper((unsigned char)c) || (c == '\x2d')
+            || isdigit((unsigned char)c)))
             break;
 #endif
         header++;

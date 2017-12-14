@@ -6,6 +6,7 @@ count=0
 
 CLEAN=0
 TEST=0
+LINK=0
 
 if [ "$1" != "--dev" ]
 then
@@ -40,6 +41,7 @@ then
     deleted[1]=$(echo $first | sed -E 's/.+ (-MF [A-Z0-9a-z/\._-]+) .+/\1/')
 else
     new=$@
+    LINK=1
 fi
 
 #iterate over each .c, .cc, .cpp file that's been given and call the convereter
@@ -49,7 +51,7 @@ compiled=0
 for var in $new
 do
     fileend=$(echo $var | sed -E 's/.+(\.[a-zA-Z0-9]+)/\1/')
-    if [ $fileend = ".cc" ] || [ $fileend = ".cpp" ] || [ $fileend = ".c" ] || [ $fileend = ".cxx" ]
+    if [[ "$@" != *-qnoconvlit* ]] && ([ $fileend = ".cc" ] || [ $fileend = ".cpp" ] || [ $fileend = ".c" ] || [ $fileend = ".cxx" ])
     then
         if [ $compiled = 0 ]
         then
@@ -81,11 +83,21 @@ do
 done
 
 # compile using the temp file that has been converted into ascii
-if [ $CFLAG = 1 ]
+if [ $LINK = 1 ]
 then
-    $COMPILER ${COMPILE[*]} ${deleted[*]} 2>&1 | cat
+    c89 ${COMPILE[*]} ${deleted[*]} >/dev/null 2>/dev/null
+    RETVAL=$?
+    if [ $RETVAL != 0 ]
+    then
+      c89 ${COMPILE[*]} ${deleted[*]} 2>&1 | cat
+    fi
+elif [ $CFLAG = 1 ]
+then
+    $COMPILER ${COMPILE[*]} ${deleted[*]}
+    RETVAL=$?
 else
-    $COMPILER++ ${COMPILE[*]} ${deleted[*]} 2>&1 | cat
+    $COMPILER++ ${COMPILE[*]} ${deleted[*]}
+    RETVAL=$?
 fi
 
 # get rid of all files created
@@ -93,3 +105,5 @@ if [ $CLEAN -eq 1 ]
 then
     $(dirname $0)/cleanup.sh ../
 fi
+
+exit $RETVAL

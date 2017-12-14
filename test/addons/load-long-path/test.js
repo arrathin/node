@@ -1,6 +1,6 @@
 'use strict';
 const common = require('../../common');
-if (common.isWOW64 || common.isZos) {
+if (common.isWOW64 || common.isZos)
   common.skip('doesn\'t work on this platform');
 
 const fs = require('fs');

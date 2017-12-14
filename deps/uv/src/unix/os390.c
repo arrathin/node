@@ -25,8 +25,11 @@
 #include <utmpx.h>
 #include <unistd.h>
 #include <sys/ps.h>
+#include <builtins.h>
+#ifdef __MVS__
 #include <termios.h>
 #include <sys/msg.h>
+#endif
 #if defined(__clang__)
 #include "csrsic.h"
 #else
@@ -118,7 +121,7 @@ void uv_loadavg(double avg[3]) {
 int uv__platform_loop_init(uv_loop_t* loop) {
   uv__os390_epoll* ep;
 
-  ep = epoll_create1(UV__EPOLL_CLOEXEC);
+  ep = epoll_create1(0);
   loop->ep = ep;
   if (ep == NULL)
     return -errno;
@@ -387,7 +390,6 @@ int uv_uptime(double* uptime) {
 
 int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
   uv_cpu_info_t* cpu_info;
-  int result;
   int idx;
   siv1v2 info;
   data_area_ptr cvt = {0};
@@ -870,9 +872,11 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
     SAVE_ERRNO(uv__update_time(loop));
     if (nfds == 0) {
       assert(timeout != -1);
-      timeout = real_timeout - timeout;
-      if (timeout > 0)
+
+      if (timeout > 0) {
+        timeout = real_timeout - timeout;
         continue;
+      }
 
       return;
     }
@@ -971,4 +975,10 @@ update_timeout:
 
 void uv__set_process_title(const char* title) {
   /* do nothing */
+}
+
+int uv__io_fork(uv_loop_t* loop) {
+  uv__platform_loop_delete(loop);
+
+  return uv__platform_loop_init(loop);
 }

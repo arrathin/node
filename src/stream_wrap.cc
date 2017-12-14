@@ -1,5 +1,4 @@
 #include "stream_wrap.h"
-#include "stream_base.h"
 #include "stream_base-inl.h"
 
 #include "env-inl.h"
@@ -8,11 +7,9 @@
 #include "node_buffer.h"
 #include "node_counters.h"
 #include "pipe_wrap.h"
-#include "req-wrap.h"
 #include "req-wrap-inl.h"
 #include "tcp_wrap.h"
 #include "udp_wrap.h"
-#include "util.h"
 #include "util-inl.h"
 
 #include <stdlib.h>  // abort()
@@ -161,14 +158,8 @@ void StreamWrap::OnAlloc(uv_handle_t* handle,
 
 
 void StreamWrap::OnAllocImpl(size_t size, uv_buf_t* buf, void* ctx) {
-  buf->base = static_cast<char*>(node::Malloc(size));
+  buf->base = node::Malloc(size);
   buf->len = size;
-
-  if (buf->base == nullptr && size > 0) {
-    FatalError(
-        "\x6e\x6f\x64\x65\x3a\x3a\x53\x74\x72\x65\x61\x6d\x57\x72\x61\x70\x3a\x3a\x44\x6f\x41\x6c\x6c\x6f\x63\x28\x73\x69\x7a\x65\x5f\x74\x2c\x20\x75\x76\x5f\x62\x75\x66\x5f\x74\x2a\x2c\x20\x76\x6f\x69\x64\x2a\x29",
-        "\x4f\x75\x74\x20\x4f\x66\x20\x4d\x65\x6d\x6f\x72\x79");
-  }
 }
 
 
@@ -221,8 +212,8 @@ void StreamWrap::OnReadImpl(ssize_t nread,
   if (wrap->IsTTY())
     __e2a_l(buf->base, nread);
 #endif
-  char* base = static_cast<char*>(node::Realloc(buf->base, nread));
   CHECK_LE(static_cast<size_t>(nread), buf->len);
+  char* base = node::Realloc(buf->base, nread);
 
   if (pending == UV_TCP) {
     pending_obj = AcceptHandle<TCPWrap, uv_tcp_t>(env, wrap);

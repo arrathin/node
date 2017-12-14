@@ -12,10 +12,10 @@ exec python "$0" "$@"
 del _
 
 import sys
+from distutils.spawn import find_executable as which
 if sys.version_info[0] != 2 or sys.version_info[1] not in (6, 7):
   sys.stderr.write('Please use either Python 2.6 or 2.7')
 
-  from distutils.spawn import find_executable as which
   python2 = which('python2') or which('python2.6') or which('python2.7')
 
   if python2:
@@ -350,7 +350,7 @@ parser.add_option('--with-dtrace',
 parser.add_option('--with-lttng',
     action='store_true',
     dest='with_lttng',
-    help='build with Lttng (Only available to Linux)')
+    help='build with Lttng (Only supported on Linux)')
 
 parser.add_option('--with-etw',
     action='store_true',
@@ -443,6 +443,11 @@ parser.add_option('--without-ssl',
     action='store_true',
     dest='without_ssl',
     help='build without SSL (disables crypto, https, inspector, etc.)')
+
+parser.add_option('--without-node-options',
+    action='store_true',
+    dest='without_node_options',
+    help='build without NODE_OPTIONS support')
 
 parser.add_option('--xcode',
     action='store_true',
@@ -979,6 +984,9 @@ def configure_openssl(o):
   o['variables']['openssl_no_asm'] = 1 if options.openssl_no_asm else 0
   if options.use_openssl_ca_store:
     o['defines'] += ['NODE_OPENSSL_CERT_STORE']
+  o['variables']['node_without_node_options'] = b(options.without_node_options)
+  if options.without_node_options:
+      o['defines'] += ['NODE_WITHOUT_NODE_OPTIONS']
   if options.openssl_fips:
     o['variables']['openssl_fips'] = options.openssl_fips
     fips_dir = os.path.join(root_dir, 'deps', 'openssl', 'fips')
@@ -1314,6 +1322,40 @@ def configure_inspector(o):
                        options.without_ssl)
   o['variables']['v8_inspector'] = b(not disable_inspector)
 
+
+def make_bin_override():
+  if sys.platform == 'win32':
+    raise Exception('make_bin_override should not be called on win32.')
+  # If the system python is not the python we are running (which should be
+  # python 2), then create a directory with a symlink called `python` to our
+  # sys.executable. This directory will be prefixed to the PATH, so that
+  # other tools that shell out to `python` will use the appropriate python
+
+  which_python = which('python')
+  if (which_python and
+      os.path.realpath(which_python) == os.path.realpath(sys.executable)):
+    return
+
+  bin_override = os.path.abspath('out/tools/bin')
+  try:
+    os.makedirs(bin_override)
+  except OSError as e:
+    if e.errno != errno.EEXIST: raise e
+
+  python_link = os.path.join(bin_override, 'python')
+  try:
+    os.unlink(python_link)
+  except OSError as e:
+    if e.errno != errno.ENOENT: raise e
+  os.symlink(sys.executable, python_link)
+
+  # We need to set the environment right now so that when gyp (in run_gyp)
+  # shells out, it finds the right python (specifically at
+  # https://github.com/nodejs/node/blob/d82e107/deps/v8/gypfiles/toolchain.gypi#L43)
+  os.environ['PATH'] = bin_override + ':' + os.environ['PATH']
+
+  return bin_override
+
 output = {
   'variables': {},
   'include_dirs': [],
@@ -1389,6 +1431,11 @@ if options.prefix:
   config['PREFIX'] = options.prefix
 
 config = '\n'.join(map('='.join, config.iteritems())) + '\n'
+
+# On Windows there's no reason to search for a different python binary.
+bin_override = None if sys.platform == 'win32' else make_bin_override()
+if bin_override:
+  config = 'export PATH:=' + bin_override + ':$(PATH)\n' + config
 
 write('config.mk', do_not_edit + config)
 

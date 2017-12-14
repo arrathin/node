@@ -1,8 +1,6 @@
 #include "node.h"
 #include "node_i18n.h"
-#include "env.h"
 #include "env-inl.h"
-#include "util.h"
 #include "util-inl.h"
 
 
@@ -12,6 +10,7 @@ using v8::Context;
 using v8::Local;
 using v8::Object;
 using v8::ReadOnly;
+using v8::String;
 using v8::Value;
 
 // The config binding is used to provide an internal view of compile or runtime
@@ -47,6 +46,16 @@ void InitConfig(Local<Object> target,
 
   if (config_expose_internals)
     READONLY_BOOLEAN_PROPERTY("\x65\x78\x70\x6f\x73\x65\x49\x6e\x74\x65\x72\x6e\x61\x6c\x73");
+
+  if (!config_warning_file.empty()) {
+    Local<String> name = OneByteString(env->isolate(), "\x77\x61\x72\x6e\x69\x6e\x67\x46\x69\x6c\x65");
+    Local<String> value = String::NewFromUtf8(env->isolate(),
+                                              config_warning_file.data(),
+                                              v8::NewStringType::kNormal,
+                                              config_warning_file.size())
+                                                .ToLocalChecked();
+    target->DefineOwnProperty(env->context(), name, value).FromJust();
+  }
 }  // InitConfig
 
 }  // namespace node

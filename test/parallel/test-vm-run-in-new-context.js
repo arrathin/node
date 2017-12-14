@@ -12,7 +12,7 @@ common.globalCheck = false;
 
 // Run a string
 const result = vm.runInNewContext('\'passed\';');
-assert.strictEqual('passed', result);
+assert.strictEqual(result, 'passed');
 
 // Thrown error
 assert.throws(() => {
@@ -21,7 +21,7 @@ assert.throws(() => {
 
 global.hello = 5;
 vm.runInNewContext('hello = 2');
-assert.strictEqual(5, global.hello);
+assert.strictEqual(global.hello, 5);
 
 
 // Pass values in and out
@@ -33,9 +33,9 @@ global.obj = { foo: 0, baz: 3 };
 /* eslint-disable no-unused-vars */
 const baz = vm.runInNewContext(global.code, global.obj);
 /* eslint-enable no-unused-vars */
-assert.strictEqual(1, global.obj.foo);
-assert.strictEqual(2, global.obj.bar);
-assert.strictEqual(2, global.foo);
+assert.strictEqual(global.obj.foo, 1);
+assert.strictEqual(global.obj.bar, 2);
+assert.strictEqual(global.foo, 2);
 
 // Call a function by reference
 function changeFoo() { global.foo = 100; }
@@ -52,3 +52,23 @@ const fn = vm.runInNewContext('(function() { obj.p = {}; })', { obj: {} });
 global.gc();
 fn();
 // Should not crash
+
+{
+  // Verify that providing a custom filename as a string argument works.
+  const code = 'throw new Error("foo");';
+  const file = 'test_file.vm';
+
+  assert.throws(() => {
+    vm.runInNewContext(code, {}, file);
+  }, (err) => {
+    const lines = err.stack.split('\n');
+
+    assert.strictEqual(lines[0].trim(), `${file}:1`);
+    assert.strictEqual(lines[1].trim(), code);
+    // Skip lines[2] and lines[3]. They're just a ^ and blank line.
+    assert.strictEqual(lines[4].trim(), 'Error: foo');
+    assert.strictEqual(lines[5].trim(), `at ${file}:1:7`);
+    // The rest of the stack is uninteresting.
+    return true;
+  });
+}

@@ -408,7 +408,7 @@ _dopr(char **sbuffer,
                 if (cflags == DP_C_SHORT) {
                     short int *num;
                     num = va_arg(args, short int *);
-                    *num = currlen;
+                    *num = (short int)currlen;
                 } else if (cflags == DP_C_LONG) { /* XXX */
                     long int *num;
                     num = va_arg(args, long int *);
@@ -525,7 +525,7 @@ fmtint(char **sbuffer,
     if (!(flags & DP_F_UNSIGNED)) {
         if (value < 0) {
             signvalue = '\x2d';
-            uvalue = -(unsigned LLONG)value;
+            uvalue = 0 - (unsigned LLONG)value;
         } else if (flags & DP_F_PLUS)
             signvalue = '\x2b';
         else if (flags & DP_F_SPACE)

@@ -168,7 +168,10 @@ test/addons/.buildstamp: config.gypi \
 	test/addons/.docbuildstamp
 #	Cannot use $(wildcard test/addons/*/) here, it's evaluated before
 #	embedded addons have been generated from the documentation.
+#	Ignore folders without binding.gyp (#14843)
 	@for dirname in test/addons/*/; do \
+		if [ ! -f "$$PWD/$${dirname}binding.gyp" ]; then \
+			continue; fi ; \
 		printf "\nBuilding addon $$PWD/$$dirname\n" ; \
 		env MAKEFLAGS="-j1" $(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp \
 		        --loglevel=$(LOGLEVEL) rebuild \
@@ -677,7 +680,8 @@ endif
 
 $(BINARYTAR): release-only
 	$(RM) -r $(BINARYNAME)
-	$(RM) -r out/deps out/Release
+	#TODO: Uncomment this once the compiler is fixed for icu
+	#$(RM) -r out/deps out/Release
 	$(PYTHON) ./configure \
 		--prefix=/ \
 		--dest-cpu=$(DESTCPU) \
@@ -777,23 +781,27 @@ bench-idle:
 	sleep 1
 	$(NODE) benchmark/idle_clients.js &
 
-jslint:
+lint-js:
 	@echo "Running JS linter..."
 	$(NODE) tools/eslint/bin/eslint.js --cache --rulesdir=tools/eslint-rules --ext=.js,.md \
 	  benchmark doc lib test tools
 
-jslint-ci:
+jslint: lint-js
+
+lint-js-ci:
 	@echo "Running JS linter..."
-	$(NODE) tools/jslint.js $(PARALLEL_ARGS) -f tap -o test-eslint.tap \
+	$(NODE) tools/lint-js.js $(PARALLEL_ARGS) -f tap -o test-eslint.tap \
 		benchmark doc lib test tools
 
-CPPLINT_EXCLUDE ?=
-CPPLINT_EXCLUDE += src/node_root_certs.h
-CPPLINT_EXCLUDE += src/queue.h
-CPPLINT_EXCLUDE += src/tree.h
-CPPLINT_EXCLUDE += $(wildcard test/addons/??_*/*.cc test/addons/??_*/*.h)
+jslint-ci: lint-js-ci
 
-CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard \
+LINT_CPP_EXCLUDE ?=
+LINT_CPP_EXCLUDE += src/node_root_certs.h
+LINT_CPP_EXCLUDE += src/queue.h
+LINT_CPP_EXCLUDE += src/tree.h
+LINT_CPP_EXCLUDE += $(wildcard test/addons/??_*/*.cc test/addons/??_*/*.h)
+
+LINT_CPP_FILES = $(filter-out $(LINT_CPP_EXCLUDE), $(wildcard \
 	src/*.c \
 	src/*.cc \
 	src/*.h \
@@ -805,19 +813,21 @@ CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard \
 	tools/icu/*.h \
 	))
 
-cpplint:
+lint-cpp:
 	@echo "Running C++ linter..."
-	@$(PYTHON) tools/cpplint.py $(CPPLINT_FILES)
+	@$(PYTHON) tools/cpplint.py $(LINT_CPP_FILES)
 	@$(PYTHON) tools/check-imports.py
 
-ifneq ("","$(wildcard tools/eslint/bin/eslint.js)")
+cpplint: lint-cpp
+
+ifneq ("","$(wildcard tools/eslint/)")
 lint:
 	@EXIT_STATUS=0 ; \
-	$(MAKE) jslint || EXIT_STATUS=$$? ; \
-	$(MAKE) cpplint || EXIT_STATUS=$$? ; \
+	$(MAKE) lint-js || EXIT_STATUS=$$? ; \
+	$(MAKE) lint-cpp || EXIT_STATUS=$$? ; \
 	exit $$EXIT_STATUS
 CONFLICT_RE=^>>>>>>> [0-9A-Fa-f]+|^<<<<<<< [A-Za-z]+
-lint-ci: jslint-ci cpplint
+lint-ci: lint-js-ci lint-cpp
 	@if ! ( grep -IEqrs "$(CONFLICT_RE)" benchmark deps doc lib src test tools ) \
 		&& ! ( find . -maxdepth 1 -type f | xargs grep -IEqs "$(CONFLICT_RE)" ); then \
 		exit 0 ; \
@@ -831,18 +841,17 @@ lint:
 	@echo "Linting is not available through the source tarball."
 	@echo "Use the git repo instead:" \
 		"$ git clone https://github.com/nodejs/node.git"
-	exit 1
 
 lint-ci: lint
 endif
 
-.PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean \
+.PHONY: lint lint-cpp lint-js bench clean docopen docclean doc dist distclean \
 	check uninstall install install-includes install-bin all staticlib \
 	dynamiclib test test-all test-addons test-addons-clean build-addons \
         website-upload pkg blog blogclean tar binary release-only \
         bench-http-simple bench-idle bench-all bench bench-misc bench-array \
         bench-buffer bench-net bench-http bench-fs bench-tls cctest run-ci \
         test-v8 test-v8-intl test-v8-benchmarks test-v8-all v8 lint-ci \
-        bench-ci jslint-ci doc-only $(TARBALL)-headers test-ci test-ci-native \
+        bench-ci lint-js-ci doc-only $(TARBALL)-headers test-ci test-ci-native \
         test-ci-js build-ci test-hash-seed clear-stalled
 

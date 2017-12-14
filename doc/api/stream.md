@@ -316,7 +316,7 @@ reader.pipe(writer);
 added: v0.9.4
 -->
 
-* `src` {[Readable][] Stream} The source stream that
+* `src` {stream.Readable} The source stream that
   [unpiped][`stream.unpipe()`] this writable
 
 The `'unpipe'` event is emitted when the [`stream.unpipe()`][] method is called
@@ -1407,6 +1407,47 @@ class MyWritable extends Writable {
 }
 ```
 
+#### Decoding buffers in a Writable Stream
+
+Decoding buffers is a common task, for instance, when using transformers whose
+input is a string. This is not a trivial process when using multi-byte
+characters encoding, such as UTF-8. The following example shows how to decode
+multi-byte strings using `StringDecoder` and [Writable][].
+
+```js
+const { Writable } = require('stream');
+const { StringDecoder } = require('string_decoder');
+
+class StringWritable extends Writable {
+  constructor(options) {
+    super(options);
+    const state = this._writableState;
+    this._decoder = new StringDecoder(state.defaultEncoding);
+    this.data = '';
+  }
+  _write(chunk, encoding, callback) {
+    if (encoding === 'buffer') {
+      chunk = this._decoder.write(chunk);
+    }
+    this.data += chunk;
+    callback();
+  }
+  _final(callback) {
+    this.data += this._decoder.end();
+    callback();
+  }
+}
+
+const euro = [[0xE2, 0x82], [0xAC]].map(Buffer.from);
+const w = new StringWritable();
+
+w.write('currency: ');
+w.write(euro[0]);
+w.end(euro[1]);
+
+console.log(w.data); // currency: €
+```
+
 ### Implementing a Readable Stream
 
 The `stream.Readable` class is extended to implement a [Readable][] stream.
@@ -1504,7 +1545,7 @@ user programs.
 * `chunk` {Buffer|null|string} Chunk of data to push into the read queue
 * `encoding` {string} Encoding of String chunks.  Must be a valid
   Buffer encoding, such as `'utf8'` or `'ascii'`
-* Returns {boolean} `true` if additional chunks of data may continued to be
+* Returns: {boolean} `true` if additional chunks of data may continued to be
   pushed; `false` otherwise.
 
 When `chunk` is a `Buffer` or `string`, the `chunk` of data will be added to the
@@ -2064,8 +2105,8 @@ contain multi-byte characters.
 [`writable.uncork()`]: #stream_writable_uncork
 [API for Stream Consumers]: #stream_api_for_stream_consumers
 [API for Stream Implementers]: #stream_api_for_stream_implementers
-[child process stdin]: child_process.html#child_process_child_stdin
-[child process stdout and stderr]: child_process.html#child_process_child_stdout
+[child process stdin]: child_process.html#child_process_subprocess_stdin
+[child process stdout and stderr]: child_process.html#child_process_subprocess_stdout
 [Compatibility]: #stream_compatibility_with_older_node_js_versions
 [crypto]: crypto.html
 [Duplex]: #stream_class_stream_duplex
@@ -2080,7 +2121,7 @@ contain multi-byte characters.
 [http-incoming-message]: http.html#http_class_http_incomingmessage
 [Readable]: #stream_class_stream_readable
 [zlib]: zlib.html
-[hwm-gotcha]: #stream_highWaterMark_discrepency_after_calling_readable_setencoding
+[hwm-gotcha]: #stream_highwatermark_discrepency_after_calling_readable_setencoding
 [Readable]: #stream_class_stream_readable
 [stream-_flush]: #stream_transform_flush_callback
 [stream-_read]: #stream_readable_read_size_1

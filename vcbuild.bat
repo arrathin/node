@@ -26,8 +26,8 @@ set package=
 set msi=
 set upload=
 set licensertf=
-set jslint=
-set cpplint=
+set lint_js=
+set lint_cpp=
 set buildnodeweak=
 set noetw=
 set noetw_msi_arg=
@@ -58,8 +58,8 @@ if /i "%1"=="nosnapshot"    set nosnapshot=1&goto arg-ok
 if /i "%1"=="noetw"         set noetw=1&goto arg-ok
 if /i "%1"=="noperfctr"     set noperfctr=1&goto arg-ok
 if /i "%1"=="licensertf"    set licensertf=1&goto arg-ok
-if /i "%1"=="test"          set test_args=%test_args% doctool known_issues message parallel sequential addons -J&set cpplint=1&set jslint=1&set build_addons=1&goto arg-ok
-if /i "%1"=="test-ci"       set test_args=%test_args% %test_ci_args% -p tap --logfile test.tap doctool inspector known_issues message sequential parallel addons&set cctest_args=%cctest_args% --gtest_output=tap:cctest.tap&set build_addons=1&goto arg-ok
+if /i "%1"=="test"          set test_args=%test_args% abort doctool known_issues message parallel sequential addons -J&set lint_cpp=1&set lint_js=1&set build_addons=1&goto arg-ok
+if /i "%1"=="test-ci"       set test_args=%test_args% %test_ci_args% -p tap --logfile test.tap abort doctool inspector known_issues message sequential parallel addons&set cctest_args=%cctest_args% --gtest_output=tap:cctest.tap&set build_addons=1&goto arg-ok
 if /i "%1"=="test-addons"   set test_args=%test_args% addons&set build_addons=1&goto arg-ok
 if /i "%1"=="test-simple"   set test_args=%test_args% sequential parallel -J&goto arg-ok
 if /i "%1"=="test-message"  set test_args=%test_args% message&goto arg-ok
@@ -68,13 +68,16 @@ if /i "%1"=="test-inspector" set test_args=%test_args% inspector&goto arg-ok
 if /i "%1"=="test-tick-processor" set test_args=%test_args% tick-processor&goto arg-ok
 if /i "%1"=="test-internet" set test_args=%test_args% internet&goto arg-ok
 if /i "%1"=="test-pummel"   set test_args=%test_args% pummel&goto arg-ok
-if /i "%1"=="test-all"      set test_args=%test_args% sequential parallel message gc inspector internet pummel&set buildnodeweak=1&set cpplint=1&set jslint=1&goto arg-ok
+if /i "%1"=="test-all"      set test_args=%test_args% sequential parallel message gc inspector internet pummel&set buildnodeweak=1&set lint_cpp=1&set lint_js=1&goto arg-ok
 if /i "%1"=="test-known-issues" set test_args=%test_args% known_issues&goto arg-ok
-if /i "%1"=="jslint"        set jslint=1&goto arg-ok
-if /i "%1"=="jslint-ci"     set jslint_ci=1&goto arg-ok
-if /i "%1"=="cpplint"       set cpplint=1&goto arg-ok
-if /i "%1"=="lint"          set cpplint=1&set jslint=1&goto arg-ok
-if /i "%1"=="lint-ci"       set cpplint=1&set jslint_ci=1&goto arg-ok
+if /i "%1"=="lint-js"       set lint_js=1&goto arg-ok
+if /i "%1"=="jslint"        set lint_js=1&goto arg-ok
+if /i "%1"=="lint-js-ci"    set lint_js_ci=1&goto arg-ok
+if /i "%1"=="jslint-ci"     set lint_js_ci=1&goto arg-ok
+if /i "%1"=="lint-cpp"      set lint_cpp=1&goto arg-ok
+if /i "%1"=="cpplint"       set lint_cpp=1&goto arg-ok
+if /i "%1"=="lint"          set lint_cpp=1&set lint_js=1&goto arg-ok
+if /i "%1"=="lint-ci"       set lint_cpp=1&set lint_js_ci=1&goto arg-ok
 if /i "%1"=="package"       set package=1&goto arg-ok
 if /i "%1"=="msi"           set msi=1&set licensertf=1&set download_arg="--download=all"&set i18n_arg=small-icu&goto arg-ok
 if /i "%1"=="build-release" set build_release=1&goto arg-ok
@@ -87,7 +90,8 @@ if /i "%1"=="download-all"  set download_arg="--download=all"&goto arg-ok
 if /i "%1"=="ignore-flaky"  set test_args=%test_args% --flaky-tests=dontcare&goto arg-ok
 if /i "%1"=="enable-vtune"  set enable_vtune_arg=1&goto arg-ok
 if /i "%1"=="dll"           set dll=1&goto arg-ok
-if /i "%1"=="static"           set enable_static=1&goto arg-ok
+if /i "%1"=="static"        set enable_static=1&goto arg-ok
+if /i "%1"=="no-NODE-OPTIONS"  set no_NODE_OPTIONS=1&goto arg-ok
 
 echo Error: invalid command line option `%1`.
 exit /b 1
@@ -120,6 +124,7 @@ if defined download_arg set configure_flags=%configure_flags% %download_arg%
 if defined enable_vtune_arg set configure_flags=%configure_flags% --enable-vtune-profiling
 if defined dll set configure_flags=%configure_flags% --shared
 if defined enable_static set configure_flags=%configure_flags% --enable-static
+if defined no_NODE_OPTIONS set configure_flags=%configure_flags% --without-node-options
 
 if "%i18n_arg%"=="full-icu" set configure_flags=%configure_flags% --with-intl=full-icu
 if "%i18n_arg%"=="small-icu" set configure_flags=%configure_flags% --with-intl=small-icu
@@ -338,23 +343,23 @@ endlocal
 goto run-tests
 
 :run-tests
-if "%test_args%"=="" goto cpplint
+if "%test_args%"=="" goto lint-cpp
 if "%config%"=="Debug" set test_args=--mode=debug %test_args%
 if "%config%"=="Release" set test_args=--mode=release %test_args%
 echo running 'cctest %cctest_args%'
 "%config%\cctest" %cctest_args%
 call :run-python tools\test.py %test_args%
-goto cpplint
+goto lint-cpp
 
-:cpplint
-if not defined cpplint goto jslint
-call :run-cpplint src\*.c src\*.cc src\*.h test\addons\*.cc test\addons\*.h test\cctest\*.cc test\cctest\*.h tools\icu\*.cc tools\icu\*.h
+:lint-cpp
+if not defined lint_cpp goto lint-js
+call :run-lint-cpp src\*.c src\*.cc src\*.h test\addons\*.cc test\addons\*.h test\cctest\*.cc test\cctest\*.h tools\icu\*.cc tools\icu\*.h
 call :run-python tools/check-imports.py
-goto jslint
+goto lint-js
 
-:run-cpplint
+:run-lint-cpp
 if "%*"=="" goto exit
-echo running cpplint '%*'
+echo running lint-cpp '%*'
 set cppfilelist=
 setlocal enabledelayedexpansion
 for /f "tokens=*" %%G in ('dir /b /s /a %*') do (
@@ -378,8 +383,10 @@ if %errorlevel% equ 0 goto exit
 echo %1 | findstr /c:"src\tree.h"
 if %errorlevel% equ 0 goto exit
 
-@rem skip subfolders under /src
-echo %1 | findstr /r /c:"src\\.*\\.*"
+echo %1 | findstr /r /c:"src\\tracing\\trace_event.h"
+if %errorlevel% equ 0 goto exit
+
+echo %1 | findstr /r /c:"src\\tracing\\trace_event_common.h"
 if %errorlevel% equ 0 goto exit
 
 echo %1 | findstr /r /c:"test\\addons\\[0-9].*_.*\.h"
@@ -391,30 +398,30 @@ if %errorlevel% equ 0 goto exit
 set "localcppfilelist=%localcppfilelist% %1"
 goto exit
 
-:jslint
-if defined jslint_ci goto jslint-ci
-if not defined jslint goto exit
-if not exist tools\eslint\bin\eslint.js goto no-lint
-echo running jslint
+:lint-js
+if defined lint_js_ci goto lint-js-ci
+if not defined lint_js goto exit
+if not exist tools\eslint goto no-lint
+echo running lint-js
 %config%\node tools\eslint\bin\eslint.js --cache --rule "linebreak-style: 0" --rulesdir=tools\eslint-rules --ext=.js,.md benchmark doc lib test tools
 goto exit
 
-:jslint-ci
-echo running jslint-ci
-%config%\node tools\jslint.js -J -f tap -o test-eslint.tap benchmark doc lib test tools
+:lint-js-ci
+echo running lint-js-ci
+%config%\node tools\lint-js.js -J -f tap -o test-eslint.tap benchmark doc lib test tools
 goto exit
 
 :no-lint
 echo Linting is not available through the source tarball.
 echo Use the git repo instead: $ git clone https://github.com/nodejs/node.git
-exit /b 1
+goto exit
 
 :create-msvs-files-failed
 echo Failed to create vc project files.
 goto exit
 
 :help
-echo vcbuild.bat [debug/release] [msi] [test-all/test-uv/test-inspector/test-internet/test-pummel/test-simple/test-message] [clean] [noprojgen] [small-icu/full-icu/without-intl] [nobuild] [nosign] [x86/x64] [vc2015] [download-all] [enable-vtune] [lint/lint-ci]
+echo vcbuild.bat [debug/release] [msi] [test-all/test-uv/test-inspector/test-internet/test-pummel/test-simple/test-message] [clean] [noprojgen] [small-icu/full-icu/without-intl] [nobuild] [nosign] [x86/x64] [vc2015] [download-all] [enable-vtune] [lint/lint-ci] [no-NODE-OPTIONS]
 echo Examples:
 echo   vcbuild.bat                : builds release build
 echo   vcbuild.bat debug          : builds debug build

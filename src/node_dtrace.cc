@@ -3,7 +3,6 @@
 #ifdef HAVE_DTRACE
 #include "node_provider.h"
 #elif HAVE_ETW
-#include "node_win32_etw_provider.h"
 #include "node_win32_etw_provider-inl.h"
 #else
 #define NODE_HTTP_SERVER_REQUEST(arg0, arg1)
@@ -22,7 +21,6 @@
 #define NODE_GC_DONE(arg0, arg1, arg2)
 #endif
 
-#include "env.h"
 #include "env-inl.h"
 
 #include "util.h"
@@ -41,76 +39,76 @@ using v8::Object;
 using v8::String;
 using v8::Value;
 
-#define SLURP_STRING(obj, member, valp) \
-  if (!(obj)->IsObject()) { \
-    return env->ThrowError( \
-        "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x6f\x62\x6a\x65\x63\x74\x20\x66\x6f\x72\x20\x75\x38" USTR(#obj) "\x20\x74\x6f\x20\x63\x6f\x6e\x74\x61\x69\x6e\x20\x73\x74\x72\x69\x6e\x67\x20\x6d\x65\x6d\x62\x65\x72\x20" USTR(#member)); \
-  } \
-  node::Utf8Value _##member(env->isolate(), \
-      obj->Get(OneByteString(env->isolate(), USTR(#member)))); \
-  if ((*(const char **)valp = *_##member) == nullptr) \
+#define SLURP_STRING(obj, member, valp)                                    \
+  if (!(obj)->IsObject()) {                                                \
+    return env->ThrowError(                                                \
+        "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x6f\x62\x6a\x65\x63\x74\x20\x66\x6f\x72" USTR(#obj) "\x20\x74\x6f\x20\x63\x6f\x6e\x74\x61\x69\x6e\x20\x73\x74\x72\x69\x6e\x67\x20\x6d\x65\x6d\x62\x65\x72" USTR(#member) ); \
+  }                                                                        \
+  node::Utf8Value _##member(env->isolate(),                                \
+      obj->Get(OneByteString(env->isolate(), #member)));                   \
+  if ((*(const char **)valp = *_##member) == nullptr)                      \
     *(const char **)valp = "\x3c\x75\x6e\x6b\x6e\x6f\x77\x6e\x3e";
 
-#define SLURP_INT(obj, member, valp) \
-  if (!(obj)->IsObject()) { \
-    return env->ThrowError( \
-      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x6f\x62\x6a\x65\x63\x74\x20\x66\x6f\x72\x20\x75\x38" USTR(#obj) "\x20\x74\x6f\x20\x63\x6f\x6e\x74\x61\x69\x6e\x20\x69\x6e\x74\x65\x67\x65\x72\x20\x6d\x65\x6d\x62\x65\x72\x20" USTR(#member)); \
-  } \
-  *valp = obj->Get(OneByteString(env->isolate(), USTR(#member))) \
+#define SLURP_INT(obj, member, valp)                                       \
+  if (!(obj)->IsObject()) {                                                \
+    return env->ThrowError(                                                \
+      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x6f\x62\x6a\x65\x63\x74\x20\x66\x6f\x72" USTR(#obj) "\x20\x74\x6f\x20\x63\x6f\x6e\x74\x61\x69\x6e\x20\x69\x6e\x74\x65\x67\x65\x72\x20\x6d\x65\x6d\x62\x65\x72" USTR(#member) );  \
+  }                                                                        \
+  *valp = obj->Get(OneByteString(env->isolate(), #member))                 \
       ->Int32Value();
 
-#define SLURP_OBJECT(obj, member, valp) \
-  if (!(obj)->IsObject()) { \
-    return env->ThrowError( \
-      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x6f\x62\x6a\x65\x63\x74\x20\x66\x6f\x72\x20\x75\x38" USTR(#obj) "\x20\x74\x6f\x20\x63\x6f\x6e\x74\x61\x69\x6e\x20\x6f\x62\x6a\x65\x63\x74\x20\x6d\x65\x6d\x62\x65\x72\x20" USTR(#member)); \
-  } \
-  *valp = Local<Object>::Cast(obj->Get(OneByteString(env->isolate(), USTR(#member))));
+#define SLURP_OBJECT(obj, member, valp)                                    \
+  if (!(obj)->IsObject()) {                                                \
+    return env->ThrowError(                                                \
+      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x6f\x62\x6a\x65\x63\x74\x20\x66\x6f\x72" USTR(#obj) "\x20\x74\x6f\x20\x63\x6f\x6e\x74\x61\x69\x6e\x20\x6f\x62\x6a\x65\x63\x74\x20\x6d\x65\x6d\x62\x65\x72\x20" USTR(#member) );   \
+  }                                                                        \
+  *valp = Local<Object>::Cast(obj->Get(OneByteString(env->isolate(), #member)));
 
-#define SLURP_CONNECTION(arg, conn) \
-  if (!(arg)->IsObject()) { \
-    return env->ThrowError( \
-      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x75\x38" USTR(#arg) "\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74"); \
-  } \
-  node_dtrace_connection_t conn; \
-  Local<Object> _##conn = Local<Object>::Cast(arg); \
-  Local<Value> _handle = \
-      (_##conn)->Get(FIXED_ONE_BYTE_STRING(env->isolate(), "\x5f\x68\x61\x6e\x64\x6c\x65")); \
-  if (_handle->IsObject()) { \
-    SLURP_INT(_handle.As<Object>(), fd, &conn.fd); \
-  } else { \
-    conn.fd = -1; \
-  } \
-  SLURP_STRING(_##conn, remoteAddress, &conn.remote); \
-  SLURP_INT(_##conn, remotePort, &conn.port); \
+#define SLURP_CONNECTION(arg, conn)                                        \
+  if (!(arg)->IsObject()) {                                                \
+    return env->ThrowError(                                                \
+      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20" USTR(#arg) "\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74");             \
+  }                                                                        \
+  node_dtrace_connection_t conn;                                           \
+  Local<Object> _##conn = Local<Object>::Cast(arg);                        \
+  Local<Value> _handle =                                                   \
+      (_##conn)->Get(FIXED_ONE_BYTE_STRING(env->isolate(), "\x5f\x68\x61\x6e\x64\x6c\x65"));    \
+  if (_handle->IsObject()) {                                               \
+    SLURP_INT(_handle.As<Object>(), fd, &conn.fd);                         \
+  } else {                                                                 \
+    conn.fd = -1;                                                          \
+  }                                                                        \
+  SLURP_STRING(_##conn, remoteAddress, &conn.remote);                      \
+  SLURP_INT(_##conn, remotePort, &conn.port);                              \
   SLURP_INT(_##conn, bufferSize, &conn.buffered);
 
-#define SLURP_CONNECTION_HTTP_CLIENT(arg, conn) \
-  if (!(arg)->IsObject()) { \
-    return env->ThrowError( \
-      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x75\x38" USTR(#arg) "\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74"); \
-  } \
-  node_dtrace_connection_t conn; \
-  Local<Object> _##conn = Local<Object>::Cast(arg); \
-  SLURP_INT(_##conn, fd, &conn.fd); \
-  SLURP_STRING(_##conn, host, &conn.remote); \
-  SLURP_INT(_##conn, port, &conn.port); \
+#define SLURP_CONNECTION_HTTP_CLIENT(arg, conn)                            \
+  if (!(arg)->IsObject()) {                                                \
+    return env->ThrowError(                                                \
+      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20" USTR(#arg) "\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74");             \
+  }                                                                        \
+  node_dtrace_connection_t conn;                                           \
+  Local<Object> _##conn = Local<Object>::Cast(arg);                        \
+  SLURP_INT(_##conn, fd, &conn.fd);                                        \
+  SLURP_STRING(_##conn, host, &conn.remote);                               \
+  SLURP_INT(_##conn, port, &conn.port);                                    \
   SLURP_INT(_##conn, bufferSize, &conn.buffered);
 
-#define SLURP_CONNECTION_HTTP_CLIENT_RESPONSE(arg0, arg1, conn) \
-  if (!(arg0)->IsObject()) { \
-    return env->ThrowError( \
-      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x75\x38" USTR(#arg0) "\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74"); \
-  } \
-  if (!(arg1)->IsObject()) { \
-    return env->ThrowError( \
-      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x75\x38" USTR(#arg1) "\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74"); \
-  } \
-  node_dtrace_connection_t conn; \
-  Local<Object> _##conn = Local<Object>::Cast(arg0); \
-  SLURP_INT(_##conn, fd, &conn.fd); \
-  SLURP_INT(_##conn, bufferSize, &conn.buffered); \
-  _##conn = Local<Object>::Cast(arg1); \
-  SLURP_STRING(_##conn, host, &conn.remote); \
+#define SLURP_CONNECTION_HTTP_CLIENT_RESPONSE(arg0, arg1, conn)            \
+  if (!(arg0)->IsObject()) {                                               \
+    return env->ThrowError(                                                \
+      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20" USTR(#arg) "\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74");             \
+  }                                                                        \
+  if (!(arg1)->IsObject()) {                                               \
+    return env->ThrowError(                                                \
+      "\x65\x78\x70\x65\x63\x74\x65\x64\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20" USTR(#arg) "\x20\x74\x6f\x20\x62\x65\x20\x61\x20\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74");             \
+  }                                                                        \
+  node_dtrace_connection_t conn;                                           \
+  Local<Object> _##conn = Local<Object>::Cast(arg0);                       \
+  SLURP_INT(_##conn, fd, &conn.fd);                                        \
+  SLURP_INT(_##conn, bufferSize, &conn.buffered);                          \
+  _##conn = Local<Object>::Cast(arg1);                                     \
+  SLURP_STRING(_##conn, host, &conn.remote);                               \
   SLURP_INT(_##conn, port, &conn.port);
 
 

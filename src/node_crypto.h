@@ -4,15 +4,13 @@
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
 #include "node.h"
-#include "node_crypto_clienthello.h"  // ClientHelloParser
+// ClientHelloParser
 #include "node_crypto_clienthello-inl.h"
 
 #include "node_buffer.h"
 
 #include "env.h"
-#include "async-wrap.h"
 #include "async-wrap-inl.h"
-#include "base-object.h"
 #include "base-object-inl.h"
 
 #include "v8.h"
@@ -569,7 +567,9 @@ class Sign : public SignBase {
                   int key_pem_len,
                   const char* passphrase,
                   unsigned char** sig,
-                  unsigned int *sig_len);
+                  unsigned int *sig_len,
+                  int padding,
+                  int saltlen);
 
  protected:
   static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
@@ -592,6 +592,8 @@ class Verify : public SignBase {
                     int key_pem_len,
                     const char* sig,
                     int siglen,
+                    int padding,
+                    int saltlen,
                     bool* verify_result);
 
  protected:

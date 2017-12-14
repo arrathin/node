@@ -33,12 +33,10 @@
 #endif
 
 #include "ares.h"
-#include "async-wrap.h"
 #include "async-wrap-inl.h"
 #include "env.h"
 #include "env-inl.h"
 #include "handle_wrap.h"
-#include "req-wrap.h"
 #include "req-wrap-inl.h"
 #include "string_bytes.h"
 #include "util.h"
@@ -156,8 +154,7 @@ static bool throw_deprecation = false;
 static bool trace_sync_io = false;
 static bool track_heap_objects = false;
 static const char* eval_string = nullptr;
-static unsigned int preload_module_count = 0;
-static const char** preload_modules = nullptr;
+static std::vector<std::string> preload_modules;
 #if HAVE_INSPECTOR
 static bool use_inspector = false;
 #else
@@ -213,11 +210,16 @@ bool trace_warnings = false;
 // that is used by lib/module.js
 bool config_preserve_symlinks = false;
 
+bool v8_initialized = false;
+
 // Set in node.cc by ParseArgs when --expose-internals or --expose_internals is
 // used.
 // Used in node_config.cc to set a constant on process.binding('config')
 // that is used by lib/internal/bootstrap_node.js
 bool config_expose_internals = false;
+
+// Set in node.cc by ParseArgs when --redirect-warnings= is used.
+std::string config_warning_file;  // NOLINT(runtime/string)
 
 // process-relative uptime base, initialized at start-up
 static double prog_start_time;
@@ -1186,9 +1188,9 @@ void* ArrayBufferAllocator::Allocate(size_t size) {
   if (env_ == nullptr ||
       !env_->array_buffer_allocator_info()->no_zero_fill() ||
       zero_fill_all_buffers)
-    return node::Calloc(size, 1);
+    return node::UncheckedCalloc(size);
   env_->array_buffer_allocator_info()->reset_fill_flag();
-  return node::Malloc(size);
+  return node::UncheckedMalloc(size);
 }
 
 static bool DomainHasErrorHandler(const Environment* env,
@@ -1717,6 +1719,7 @@ void AppendExceptionLine(Environment* env,
   }
 
   // Print (filename):(line number): (message).
+  ScriptOrigin origin = message->GetScriptOrigin();
   node::NativeEncodingValue filename(env->isolate(), message->GetScriptResourceName());
   const char* filename_string = *filename;
   int linenum = message->GetLineNumber();
@@ -1745,8 +1748,16 @@ void AppendExceptionLine(Environment* env,
   // sourceline to 78 characters, and we end up not providing very much
   // useful debugging info to the user if we remove 62 characters.
 
+  int script_start =
+      (linenum - origin.ResourceLineOffset()->Value()) == 1 ?
+          origin.ResourceColumnOffset()->Value() : 0;
   int start = message->GetStartColumn(env->context()).FromMaybe(0);
   int end = message->GetEndColumn(env->context()).FromMaybe(0);
+  if (start >= script_start) {
+    CHECK_GE(end, start);
+    start -= script_start;
+    end -= script_start;
+  }
 
   char arrow[1024];
   int max_off = sizeof(arrow) - 2;
@@ -3578,21 +3589,18 @@ void SetupProcessObject(Environment* env,
   }
 
   // -r, --require
-  if (preload_module_count) {
-    CHECK(preload_modules);
+  if (!preload_modules.empty()) {
     Local<Array> array = Array::New(env->isolate());
-    for (unsigned int i = 0; i < preload_module_count; ++i) {
+    for (unsigned int i = 0; i < preload_modules.size(); ++i) {
       Local<String> module = String::NewFromUtf8(env->isolate(),
-                                                 preload_modules[i]);
+                                                 preload_modules[i].c_str());
       array->Set(i, module);
     }
     READONLY_PROPERTY(process,
                       "\x5f\x70\x72\x65\x6c\x6f\x61\x64\x5f\x6d\x6f\x64\x75\x6c\x65\x73",
                       array);
 
-    delete[] preload_modules;
-    preload_modules = nullptr;
-    preload_module_count = 0;
+    preload_modules.clear();
   }
 
   // --no-deprecation
@@ -3879,7 +3887,16 @@ static bool ParseDebugOpt(const char* arg) {
   } else if (!strncmp(arg, "\x2d\x2d\x69\x6e\x73\x70\x65\x63\x74\x3d", sizeof("\x2d\x2d\x69\x6e\x73\x70\x65\x63\x74\x3d") - 1)) {
     use_debug_agent = true;
     use_inspector = true;
-    port = arg + sizeof("\x2d\x2d\x69\x6e\x73\x70\x65\x63\x74\x3d") - 1;
+    port = arg + sizeof("--inspect=") - 1;
+  } else if (!strcmp(arg, "\x2d\x2d\x69\x6e\x73\x70\x65\x63\x74\x2d\x62\x72\x6b")) {
+    use_debug_agent = true;
+    use_inspector = true;
+    debug_wait_connect = true;
+  } else if (!strncmp(arg, "\x2d\x2d\x69\x6e\x73\x70\x65\x63\x74\x2d\x62\x72\x6b\x3d", sizeof("--inspect-brk=") - 1)) {
+    use_debug_agent = true;
+    use_inspector = true;
+    debug_wait_connect = true;
+    port = arg + sizeof("--inspect-brk=") - 1;
 #else
   } else if (!strncmp(arg, "\x2d\x2d\x69\x6e\x73\x70\x65\x63\x74", sizeof("\x2d\x2d\x69\x6e\x73\x70\x65\x63\x74") - 1)) {
     PrintErrorString(
@@ -3961,6 +3978,8 @@ static void PrintHelp() {
          u8"function is used\n"
          u8"  --no-warnings         silence all process warnings\n"
          u8"  --trace-warnings      show stack traces on process warnings\n"
+         u8"  --redirect-warnings=path\n"
+         u8"                        write warnings to path instead of stderr\n"
          u8"  --trace-sync-io       show stack trace when use of sync IO\n"
          u8"                        is detected after the first tick\n"
          u8"  --track-heap-objects  track heap object allocations for heap "
@@ -4017,14 +4036,20 @@ static void PrintHelp() {
 #endif
 #endif
          u8"NODE_NO_WARNINGS           set to 1 to silence process warnings\n"
+#if !defined(NODE_WITHOUT_NODE_OPTIONS)
+         u8"NODE_OPTIONS            set CLI options in the environment\n"
+#endif
 #ifdef _WIN32
          "NODE_PATH               ';'-separated list of directories\n"
 #else
          u8"NODE_PATH               ':'-separated list of directories\n"
 #endif
          u8"                        prefixed to the module search path\n"
+         u8"NODE_PENDING_DEPRECATION     set to 1 to emit pending deprecation\n"
+         u8"                             warnings\n"
          u8"NODE_REPL_HISTORY       path to the persistent REPL history file\n"
          u8"OPENSSL_CONF            load OpenSSL configuration from file\n"
+         u8"NODE_REDIRECT_WARNINGS  write warnings to path instead of stderr\n"
          u8"\n"
          u8"Documentation can be found at https://nodejs.org/\n"
 #ifdef NODE_TAG
@@ -4034,6 +4059,80 @@ static void PrintHelp() {
 #else
          );
 #endif
+}
+
+
+static bool ArgIsAllowed(const char* arg, const char* allowed) {
+  for (; *arg && *allowed; arg++, allowed++) {
+    // Like normal strcmp(), except that a '_' in `allowed` matches either a '-'
+    // or '_' in `arg`.
+    if (*allowed == '_') {
+      if (!(*arg == '_' || *arg == '-'))
+        return false;
+    } else {
+      if (*arg != *allowed)
+        return false;
+    }
+  }
+
+  // "--some-arg=val" is allowed for "--some-arg"
+  if (*arg == '=')
+    return true;
+
+  // Both must be null, or one string is just a prefix of the other, not a
+  // match.
+  return !*arg && !*allowed;
+}
+
+
+static void CheckIfAllowedInEnv(const char* exe, bool is_env,
+                                const char* arg) {
+  if (!is_env)
+    return;
+
+  // Find the arg prefix when its --some_arg=val
+  const char* eq = strchr(arg, '\x3d');
+  size_t arglen = eq ? eq - arg : strlen(arg);
+
+  static const char* whitelist[] = {
+    // Node options, sorted in `node --help` order for ease of comparison.
+    u8"--require", u8"-r",
+    u8"--debug",
+    u8"--debug-brk",
+    u8"--debug-port",
+    u8"--no-deprecation",
+    u8"--trace-deprecation",
+    u8"--throw-deprecation",
+    u8"--pending-deprecation",
+    u8"--no-warnings",
+    u8"--napi-modules",
+    u8"--trace-warnings",
+    u8"--redirect-warnings",
+    u8"--trace-sync-io",
+    u8"--track-heap-objects",
+    u8"--zero-fill-buffers",
+    u8"--v8-pool-size",
+    u8"--tls-cipher-list",
+    u8"--use-bundled-ca",
+    u8"--use-openssl-ca",
+    u8"--enable-fips",
+    u8"--force-fips",
+    u8"--openssl-config",
+    u8"--icu-data-dir",
+
+    // V8 options (define with '_', which allows '-' or '_')
+    u8"--abort-on-uncaught-exception",
+    u8"--max_old_space_size",
+  };
+
+  for (unsigned i = 0; i < arraysize(whitelist); i++) {
+    const char* allowed = whitelist[i];
+    if (ArgIsAllowed(arg, allowed))
+      return;
+  }
+
+  PrintErrorString(u8"%s: %s is not allowed in NODE_OPTIONS\n", exe, arg);
+  exit(9);
 }
 
 
@@ -4053,18 +4152,17 @@ static void ParseArgs(int* argc,
                       int* exec_argc,
                       const char*** exec_argv,
                       int* v8_argc,
-                      const char*** v8_argv) {
+                      const char*** v8_argv,
+                      bool is_env) {
   const unsigned int nargs = static_cast<unsigned int>(*argc);
   const char** new_exec_argv = new const char*[nargs];
   const char** new_v8_argv = new const char*[nargs];
   const char** new_argv = new const char*[nargs];
-  const char** local_preload_modules = new const char*[nargs];
 
   for (unsigned int i = 0; i < nargs; ++i) {
     new_exec_argv[i] = nullptr;
     new_v8_argv[i] = nullptr;
     new_argv[i] = nullptr;
-    local_preload_modules[i] = nullptr;
   }
 
   // exec_argv starts with the first option, the other two start with argv[0].
@@ -4079,6 +4177,8 @@ static void ParseArgs(int* argc,
   while (index < nargs && argv[index][0] == '\x2d' && !short_circuit) {
     const char* const arg = argv[index];
     unsigned int args_consumed = 1;
+
+    CheckIfAllowedInEnv(argv[0], is_env, arg);
 
     if (ParseDebugOpt(arg)) {
       // Done, consumed by ParseDebugOpt().
@@ -4122,7 +4222,7 @@ static void ParseArgs(int* argc,
         exit(9);
       }
       args_consumed += 1;
-      local_preload_modules[preload_module_count++] = module;
+      preload_modules.push_back(module);
     } else if (strcmp(arg, "\x2d\x2d\x63\x68\x65\x63\x6b") == 0 || strcmp(arg, "\x2d\x63") == 0) {
       syntax_check_only = true;
     } else if (strcmp(arg, "\x2d\x2d\x69\x6e\x74\x65\x72\x61\x63\x74\x69\x76\x65") == 0 || strcmp(arg, "\x2d\x69") == 0) {
@@ -4133,6 +4233,8 @@ static void ParseArgs(int* argc,
       no_process_warnings = true;
     } else if (strcmp(arg, "\x2d\x2d\x74\x72\x61\x63\x65\x2d\x77\x61\x72\x6e\x69\x6e\x67\x73") == 0) {
       trace_warnings = true;
+    } else if (strncmp(arg, "\x2d\x2d\x72\x65\x64\x69\x72\x65\x63\x74\x2d\x77\x61\x72\x6e\x69\x6e\x67\x73\x3d", 20) == 0) {
+      config_warning_file = arg + 20;
     } else if (strcmp(arg, "\x2d\x2d\x74\x72\x61\x63\x65\x2d\x64\x65\x70\x72\x65\x63\x61\x74\x69\x6f\x6e") == 0) {
       trace_deprecation = true;
     } else if (strcmp(arg, "\x2d\x2d\x74\x72\x61\x63\x65\x2d\x73\x79\x6e\x63\x2d\x69\x6f") == 0) {
@@ -4198,6 +4300,13 @@ static void ParseArgs(int* argc,
 
   // Copy remaining arguments.
   const unsigned int args_left = nargs - index;
+
+  if (is_env && args_left) {
+    PrintErrorString(u8"%s: %s is not supported in NODE_OPTIONS\n",
+            argv[0], argv[index]);
+    exit(9);
+  }
+
   memcpy(new_argv + new_argc, argv + index, args_left * sizeof(*argv));
   new_argc += args_left;
 
@@ -4210,16 +4319,6 @@ static void ParseArgs(int* argc,
   memcpy(argv, new_argv, new_argc * sizeof(*argv));
   delete[] new_argv;
   *argc = static_cast<int>(new_argc);
-
-  // Copy the preload_modules from the local array to an appropriately sized
-  // global array.
-  if (preload_module_count > 0) {
-    CHECK(!preload_modules);
-    preload_modules = new const char*[preload_module_count];
-    memcpy(preload_modules, local_preload_modules,
-           preload_module_count * sizeof(*preload_modules));
-  }
-  delete[] local_preload_modules;
 }
 
 
@@ -4680,6 +4779,54 @@ inline void PlatformInit() {
 }
 
 
+void ProcessArgv(int* argc,
+                 const char** argv,
+                 int* exec_argc,
+                 const char*** exec_argv,
+                 bool is_env = false) {
+  // Parse a few arguments which are specific to Node.
+  int v8_argc;
+  const char** v8_argv;
+  ParseArgs(argc, argv, exec_argc, exec_argv, &v8_argc, &v8_argv, is_env);
+
+  // TODO(bnoordhuis) Intercept --prof arguments and start the CPU profiler
+  // manually?  That would give us a little more control over its runtime
+  // behavior but it could also interfere with the user's intentions in ways
+  // we fail to anticipate.  Dillema.
+  for (int i = 1; i < v8_argc; ++i) {
+    if (strncmp(v8_argv[i], "--prof", sizeof("--prof") - 1) == 0) {
+      v8_is_profiling = true;
+      break;
+    }
+  }
+
+#ifdef __POSIX__
+  // Block SIGPROF signals when sleeping in epoll_wait/kevent/etc.  Avoids the
+  // performance penalty of frequent EINTR wakeups when the profiler is running.
+  // Only do this for v8.log profiling, as it breaks v8::CpuProfiler users.
+  if (v8_is_profiling) {
+    uv_loop_configure(uv_default_loop(), UV_LOOP_BLOCK_SIGNAL, SIGPROF);
+  }
+#endif
+
+  // The const_cast doesn't violate conceptual const-ness.  V8 doesn't modify
+  // the argv array or the elements it points to.
+  if (v8_argc > 1)
+    V8::SetFlagsFromCommandLine(&v8_argc, const_cast<char**>(v8_argv), true);
+
+  // Anything that's still in v8_argv is not a V8 or a node option.
+  for (int i = 1; i < v8_argc; i++) {
+    PrintErrorString(u8"%s: bad option: %s\n", argv[0], v8_argv[i]);
+  }
+  delete[] v8_argv;
+  v8_argv = nullptr;
+
+  if (v8_argc > 1) {
+    exit(9);
+  }
+}
+
+
 void Init(int* argc,
           const char** argv,
           int* exec_argc,
@@ -4707,30 +4854,41 @@ void Init(int* argc,
   if (openssl_config.empty())
     SafeGetenv("OPENSSL_CONF", &openssl_config);
 
-  // Parse a few arguments which are specific to Node.
-  int v8_argc;
-  const char** v8_argv;
-  ParseArgs(argc, argv, exec_argc, exec_argv, &v8_argc, &v8_argv);
+  if (config_warning_file.empty())
+    SafeGetenv("NODE_REDIRECT_WARNINGS", &config_warning_file);
 
-  // TODO(bnoordhuis) Intercept --prof arguments and start the CPU profiler
-  // manually?  That would give us a little more control over its runtime
-  // behavior but it could also interfere with the user's intentions in ways
-  // we fail to anticipate.  Dillema.
-  for (int i = 1; i < v8_argc; ++i) {
-    if (strncmp(v8_argv[i], "\x2d\x2d\x70\x72\x6f\x66", sizeof("\x2d\x2d\x70\x72\x6f\x66") - 1) == 0) {
-      v8_is_profiling = true;
-      break;
+#if !defined(NODE_WITHOUT_NODE_OPTIONS)
+  std::string node_options;
+  if (SafeGetenv("NODE_OPTIONS", &node_options)) {
+    // Smallest tokens are 2-chars (a not space and a space), plus 2 extra
+    // pointers, for the prepended executable name, and appended NULL pointer.
+    size_t max_len = 2 + (node_options.length() + 1) / 2;
+    const char** argv_from_env = new const char*[max_len];
+    int argc_from_env = 0;
+    // [0] is expected to be the program name, fill it in from the real argv.
+    argv_from_env[argc_from_env++] = argv[0];
+
+    char* cstr = strdup(node_options.c_str());
+#ifdef __MVS__
+    __e2a_s(cstr);
+#endif
+    char* initptr = cstr;
+    char* token;
+    while ((token = strtok(initptr, "\x20"))) {  // NOLINT(runtime/threadsafe_fn)
+      initptr = nullptr;
+      argv_from_env[argc_from_env++] = token;
     }
-  }
-
-#ifdef __POSIX__
-  // Block SIGPROF signals when sleeping in epoll_wait/kevent/etc.  Avoids the
-  // performance penalty of frequent EINTR wakeups when the profiler is running.
-  // Only do this for v8.log profiling, as it breaks v8::CpuProfiler users.
-  if (v8_is_profiling) {
-    uv_loop_configure(uv_default_loop(), UV_LOOP_BLOCK_SIGNAL, SIGPROF);
+    argv_from_env[argc_from_env] = nullptr;
+    int exec_argc_;
+    const char** exec_argv_ = nullptr;
+    ProcessArgv(&argc_from_env, argv_from_env, &exec_argc_, &exec_argv_, true);
+    delete[] exec_argv_;
+    delete[] argv_from_env;
+    free(cstr);
   }
 #endif
+
+  ProcessArgv(argc, argv, exec_argc, exec_argv);
 
 #if defined(NODE_HAVE_I18N_SUPPORT)
   // If the parameter isn't given, use the env variable.
@@ -4749,21 +4907,6 @@ void Init(int* argc,
                      "\x28\x63\x68\x65\x63\x6b\x20\x4e\x4f\x44\x45\x5f\x49\x43\x55\x5f\x44\x41\x54\x41\x20\x6f\x72\x20\x2d\x2d\x69\x63\x75\x2d\x64\x61\x74\x61\x2d\x64\x69\x72\x20\x70\x61\x72\x61\x6d\x65\x74\x65\x72\x73\x29\x0a");
   }
 #endif
-  // The const_cast doesn't violate conceptual const-ness.  V8 doesn't modify
-  // the argv array or the elements it points to.
-  if (v8_argc > 1)
-    V8::SetFlagsFromCommandLine(&v8_argc, const_cast<char**>(v8_argv), true);
-
-  // Anything that's still in v8_argv is not a V8 or a node option.
-  for (int i = 1; i < v8_argc; i++) {
-    PrintErrorString(u8"%s: bad option: %s\n", argv[0], v8_argv[i]);
-  }
-  delete[] v8_argv;
-  v8_argv = nullptr;
-
-  if (v8_argc > 1) {
-    exit(9);
-  }
 
   // Unconditionally force typed arrays to allocate outside the v8 heap. This
   // is to prevent memory pointers from being moved around that are returned by
@@ -5111,6 +5254,7 @@ int Start(int argc, char** argv) {
 
   v8_platform.Initialize(v8_thread_pool_size);
   V8::Initialize();
+  v8_initialized = true;
 
   int exit_code = 1;
   {
@@ -5124,6 +5268,7 @@ int Start(int argc, char** argv) {
     StartNodeInstance(&instance_data);
     exit_code = instance_data.exit_code();
   }
+  v8_initialized = false;
   V8::Dispose();
 
   v8_platform.Dispose();

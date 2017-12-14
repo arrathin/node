@@ -642,10 +642,11 @@ static int serverinfo_cli_parse_cb(SSL *s, unsigned int ext_type,
     unsigned char ext_buf[4 + 65536];
 
     /* Reconstruct the type/len fields prior to extension data */
-    ext_buf[0] = ext_type >> 8;
-    ext_buf[1] = ext_type & 0xFF;
-    ext_buf[2] = inlen >> 8;
-    ext_buf[3] = inlen & 0xFF;
+    inlen &= 0xffff; /* for formal memcpy correctness */
+    ext_buf[0] = (unsigned char)(ext_type >> 8);
+    ext_buf[1] = (unsigned char)(ext_type);
+    ext_buf[2] = (unsigned char)(inlen >> 8);
+    ext_buf[3] = (unsigned char)(inlen);
     memcpy(ext_buf + 4, in, inlen);
 
     BIO_snprintf(pem_name, sizeof(pem_name), "\x53\x45\x52\x56\x45\x52\x49\x4e\x46\x4f\x20\x46\x4f\x52\x20\x45\x58\x54\x45\x4e\x53\x49\x4f\x4e\x20\x25\x64",
@@ -1683,6 +1684,8 @@ int MAIN(int argc, char **argv)
             if (strstr(mbuf, "\x2f\x73\x74\x72\x65\x61\x6d\x3a\x66\x65\x61\x74\x75\x72\x65\x73\x3e"))
                 goto shut;
             seen = BIO_read(sbio, mbuf, BUFSIZZ);
+            if (seen <= 0)
+                goto shut;
             mbuf[seen] = 0;
         }
         BIO_printf(sbio,

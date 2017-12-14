@@ -4,6 +4,9 @@ const assert = require('assert');
 const dgram = require('dgram');
 const socket = dgram.createSocket('udp4');
 
+if (common.isZos)
+  common.skip('zOS does not support setting ttl for IPv4');
+
 socket.bind(0);
 socket.on('listening', common.mustCall(() => {
   const result = socket.setTTL(16);

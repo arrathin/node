@@ -1205,7 +1205,7 @@ static int ssl_cipher_process_rulestr(const char *rule_str,
                    ((ch >= '\x30') && (ch <= '\x39')) ||
                    ((ch >= '\x61') && (ch <= '\x7a')) || (ch == '\x2d') || (ch == '\x2e'))
 #else
-            while (isalnum(ch) || (ch == '\x2d') || (ch == '\x2e'))
+            while (isalnum((unsigned char)ch) || (ch == '\x2d') || (ch == '\x2e'))
 #endif
             {
                 ch = *(++l);

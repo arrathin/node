@@ -1,5 +1,4 @@
 #include "node_constants.h"
-#include "env.h"
 #include "env-inl.h"
 
 #include "uv.h"
@@ -972,6 +971,18 @@ void DefineOpenSSLConstants(Local<Object> target) {
 
 #ifdef RSA_PKCS1_PSS_PADDING
     NODE_DEFINE_CONSTANT(target, RSA_PKCS1_PSS_PADDING);
+#endif
+
+#ifdef RSA_PSS_SALTLEN_DIGEST
+    NODE_DEFINE_CONSTANT(target, RSA_PSS_SALTLEN_DIGEST);
+#endif
+
+#ifdef RSA_PSS_SALTLEN_MAX_SIGN
+    NODE_DEFINE_CONSTANT(target, RSA_PSS_SALTLEN_MAX_SIGN);
+#endif
+
+#ifdef RSA_PSS_SALTLEN_AUTO
+    NODE_DEFINE_CONSTANT(target, RSA_PSS_SALTLEN_AUTO);
 #endif
 
 #if HAVE_OPENSSL

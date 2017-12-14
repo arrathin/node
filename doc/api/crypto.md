@@ -842,24 +842,45 @@ of two ways:
 - Using the [`sign.update()`][] and [`sign.sign()`][] methods to produce the
   signature.
 
-The [`crypto.createSign()`][] method is used to create `Sign` instances. `Sign`
-objects are not to be created directly using the `new` keyword.
+The [`crypto.createSign()`][] method is used to create `Sign` instances. The
+argument is the string name of the hash function to use. `Sign` objects are not
+to be created directly using the `new` keyword.
 
 Example: Using `Sign` objects as streams:
 
 ```js
 const crypto = require('crypto');
-const sign = crypto.createSign('RSA-SHA256');
+const sign = crypto.createSign('SHA256');
 
 sign.write('some data to sign');
 sign.end();
 
 const privateKey = getPrivateKeySomehow();
 console.log(sign.sign(privateKey, 'hex'));
-// Prints: the calculated signature
+// Prints: the calculated signature using the specified private key and
+// SHA-256. For RSA keys, the algorithm is RSASSA-PKCS1-v1_5 (see padding
+// parameter below for RSASSA-PSS). For EC keys, the algorithm is ECDSA.
 ```
 
 Example: Using the [`sign.update()`][] and [`sign.sign()`][] methods:
+
+```js
+const crypto = require('crypto');
+const sign = crypto.createSign('SHA256');
+
+sign.update('some data to sign');
+
+const privateKey = getPrivateKeySomehow();
+console.log(sign.sign(privateKey, 'hex'));
+// Prints: the calculated signature
+```
+
+In some cases, a `Sign` instance can also be created by passing in a signature
+algorithm name, such as 'RSA-SHA256'. This will use the corresponding digest
+algorithm. This does not work for all signature algorithms, such as
+'ecdsa-with-SHA256'. Use digest names instead.
+
+Example: signing using legacy signature algorithm name
 
 ```js
 const crypto = require('crypto');
@@ -872,32 +893,13 @@ console.log(sign.sign(privateKey, 'hex'));
 // Prints: the calculated signature
 ```
 
-A `Sign` instance can also be created by just passing in the digest
-algorithm name, in which case OpenSSL will infer the full signature algorithm
-from the type of the PEM-formatted private key, including algorithms that
-do not have directly exposed name constants, e.g. 'ecdsa-with-SHA256'.
-
-Example: signing using ECDSA with SHA256
-
-```js
-const crypto = require('crypto');
-const sign = crypto.createSign('sha256');
-
-sign.update('some data to sign');
-
-const privateKey =
-`-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIF+jnWY1D5kbVYDNvxxo/Y+ku2uJPDwS0r/VuPZQrjjVoAoGCCqGSM49
-AwEHoUQDQgAEurOxfSxmqIRYzJVagdZfMMSjRNNhB8i3mXyIMq704m2m52FdfKZ2
-pQhByd5eyj3lgZ7m7jbchtdgyOF8Io/1ng==
------END EC PRIVATE KEY-----`;
-
-console.log(sign.sign(privateKey).toString('hex'));
-```
-
 ### sign.sign(private_key[, output_format])
 <!-- YAML
 added: v0.1.92
+changes:
+  - version: v6.12.0
+    pr-url: https://github.com/nodejs/node/pull/11705
+    description: Support for RSASSA-PSS and additional options was added.
 -->
 
 Calculates the signature on all the data passed through using either
@@ -905,10 +907,21 @@ Calculates the signature on all the data passed through using either
 
 The `private_key` argument can be an object or a string. If `private_key` is a
 string, it is treated as a raw key with no passphrase. If `private_key` is an
-object, it is interpreted as a hash containing two properties:
+object, it must contain one or more of the following properties:
 
-* `key`: {string} - PEM encoded private key
+* `key`: {string} - PEM encoded private key (required)
 * `passphrase`: {string} - passphrase for the private key
+* `padding`: {integer} - Optional padding value for RSA, one of the following:
+  * `crypto.constants.RSA_PKCS1_PADDING` (default)
+  * `crypto.constants.RSA_PKCS1_PSS_PADDING`
+
+  Note that `RSA_PKCS1_PSS_PADDING` will use MGF1 with the same hash function
+  used to sign the message as specified in section 3.1 of [RFC 4055][].
+* `saltLength`: {integer} - salt length for when padding is
+  `RSA_PKCS1_PSS_PADDING`. The special value
+  `crypto.constants.RSA_PSS_SALTLEN_DIGEST` sets the salt length to the digest
+  size, `crypto.constants.RSA_PSS_SALTLEN_MAX_SIGN` (default) sets it to the
+  maximum permissible value.
 
 The `output_format` can specify one of `'latin1'`, `'hex'` or `'base64'`. If
 `output_format` is provided a string is returned; otherwise a [`Buffer`][] is
@@ -950,7 +963,7 @@ Example: Using `Verify` objects as streams:
 
 ```js
 const crypto = require('crypto');
-const verify = crypto.createVerify('RSA-SHA256');
+const verify = crypto.createVerify('SHA256');
 
 verify.write('some data to sign');
 verify.end();
@@ -965,7 +978,7 @@ Example: Using the [`verify.update()`][] and [`verify.verify()`][] methods:
 
 ```js
 const crypto = require('crypto');
-const verify = crypto.createVerify('RSA-SHA256');
+const verify = crypto.createVerify('SHA256');
 
 verify.update('some data to sign');
 
@@ -991,11 +1004,33 @@ This can be called many times with new data as it is streamed.
 ### verifier.verify(object, signature[, signature_format])
 <!-- YAML
 added: v0.1.92
+changes:
+  - version: v6.12.0
+    pr-url: https://github.com/nodejs/node/pull/11705
+    description: Support for RSASSA-PSS and additional options was added.
 -->
+- `object` {string | Object}
+- `signature` {string | Buffer | Uint8Array}
+- `signature_format` {string}
 
 Verifies the provided data using the given `object` and `signature`.
-The `object` argument is a string containing a PEM encoded object, which can be
-one an RSA public key, a DSA public key, or an X.509 certificate.
+The `object` argument can be either a string containing a PEM encoded object,
+which can be an RSA public key, a DSA public key, or an X.509 certificate,
+or an object with one or more of the following properties:
+
+* `key`: {string} - PEM encoded public key (required)
+* `padding`: {integer} - Optional padding value for RSA, one of the following:
+  * `crypto.constants.RSA_PKCS1_PADDING` (default)
+  * `crypto.constants.RSA_PKCS1_PSS_PADDING`
+
+  Note that `RSA_PKCS1_PSS_PADDING` will use MGF1 with the same hash function
+  used to verify the message as specified in section 3.1 of [RFC 4055][].
+* `saltLength`: {integer} - salt length for when padding is
+  `RSA_PKCS1_PSS_PADDING`. The special value
+  `crypto.constants.RSA_PSS_SALTLEN_DIGEST` sets the salt length to the digest
+  size, `crypto.constants.RSA_PSS_SALTLEN_AUTO` (default) causes it to be
+  determined automatically.
+
 The `signature` argument is the previously calculated signature for the data, in
 the `signature_format` which can be `'latin1'`, `'hex'` or `'base64'`.
 If a `signature_format` is specified, the `signature` is expected to be a
@@ -1067,7 +1102,11 @@ rapidly.
 In line with OpenSSL's recommendation to use pbkdf2 instead of
 [`EVP_BytesToKey`][] it is recommended that developers derive a key and IV on
 their own using [`crypto.pbkdf2()`][] and to use [`crypto.createCipheriv()`][]
-to create the `Cipher` object.
+to create the `Cipher` object. Users should not use ciphers with counter mode
+(e.g. CTR, GCM or CCM) in `crypto.createCipher()`. A warning is emitted when
+they are used in order to avoid the risk of IV reuse that causes
+vulnerabilities. For the case when IV is reused in GCM, see [Nonce-Disrespecting
+Adversaries][] for details.
 
 ### crypto.createCipheriv(algorithm, key, iv)
 
@@ -1430,6 +1469,7 @@ All paddings are defined in `crypto.constants`.
 added: v6.6.0
 -->
 
+This function is based on a constant-time algorithm.
 Returns true if `a` is equal to `b`, without leaking timing information that
 would allow an attacker to guess one of the values. This is suitable for
 comparing HMAC digests or secret values like authentication cookies or
@@ -1903,6 +1943,21 @@ the `crypto`, `tls`, and `https` modules and are generally specific to OpenSSL.
     <td></td>
   </tr>
   <tr>
+    <td><code>RSA_PSS_SALTLEN_DIGEST</code></td>
+    <td>Sets the salt length for `RSA_PKCS1_PSS_PADDING` to the digest size
+        when signing or verifying.</td>
+  </tr>
+  <tr>
+    <td><code>RSA_PSS_SALTLEN_MAX_SIGN</code></td>
+    <td>Sets the salt length for `RSA_PKCS1_PSS_PADDING` to the maximum
+        permissible value when signing data.</td>
+  </tr>
+  <tr>
+    <td><code>RSA_PSS_SALTLEN_AUTO</code></td>
+    <td>Causes the salt length for `RSA_PKCS1_PSS_PADDING` to be determined
+        automatically when verifying a signature.</td>
+  </tr>
+  <tr>
     <td><code>POINT_CONVERSION_COMPRESSED</code></td>
     <td></td>
   </tr>
@@ -1971,12 +2026,14 @@ the `crypto`, `tls`, and `https` modules and are generally specific to OpenSSL.
 [HTML5's `keygen` element]: http://www.w3.org/TR/html5/forms.html#the-keygen-element
 [initialization vector]: https://en.wikipedia.org/wiki/Initialization_vector
 [NIST SP 800-131A]: http://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-131Ar1.pdf
-[NIST SP 800-132]: http://csrc.nist.gov/publications/nistpubs/800-132/nist-sp800-132.pdf
+[NIST SP 800-132]: http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-132.pdf
 [OpenSSL cipher list format]: https://www.openssl.org/docs/man1.0.2/apps/ciphers.html#CIPHER-LIST-FORMAT
+[Nonce-Disrespecting Adversaries]: https://github.com/nonce-disrespect/nonce-disrespect
 [OpenSSL's SPKAC implementation]: https://www.openssl.org/docs/man1.0.2/apps/spkac.html
 [publicly trusted list of CAs]: https://mxr.mozilla.org/mozilla/source/security/nss/lib/ckfw/builtins/certdata.txt
 [RFC 2412]: https://www.rfc-editor.org/rfc/rfc2412.txt
 [RFC 3526]: https://www.rfc-editor.org/rfc/rfc3526.txt
+[RFC 4055]: https://www.rfc-editor.org/rfc/rfc4055.txt
 [stream]: stream.html
 [stream-writable-write]: stream.html#stream_writable_write_chunk_encoding_callback
 [Crypto Constants]: #crypto_crypto_constants_1

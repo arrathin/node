@@ -430,7 +430,7 @@ It is important to take note of the following:
    called asynchronously and therefore unable to correct the underlying problem.
 
 *Note*: Windows does not support sending signals, but Node.js offers some
-emulation with [`process.kill()`][], and [`ChildProcess.kill()`][]. Sending
+emulation with [`process.kill()`][], and [`subprocess.kill()`][]. Sending
 signal `0` can be used to test for the existence of a process. Sending `SIGINT`,
 `SIGTERM`, and `SIGKILL` cause the unconditional termination of the target
 process.
@@ -1196,7 +1196,13 @@ Will generate:
 
 `heapTotal` and `heapUsed` refer to V8's memory usage.
 `external` refers to the memory usage of C++ objects bound to JavaScript
-objects managed by V8.
+objects managed by V8. `rss`, Resident Set Size, is the amount of space
+occupied in the main memory device (that is a subset of the total allocated
+memory) for the process, which includes the _heap_, _code segment_ and _stack_.
+
+The _heap_ is where objects, strings and closures are stored. Variables are
+stored in the _stack_ and the actual JavaScript code resides in the
+_code segment_.
 
 ## process.nextTick(callback[, ...args])
 <!-- YAML
@@ -1587,11 +1593,11 @@ important ways:
    respectively.
 2. They cannot be closed ([`end()`][] will throw).
 3. They will never emit the [`'finish'`][] event.
-4. Writes may be synchronous depending on the what the stream is connected to
-   and whether the system is Windows or Unix:
-   - Files: *synchronous* on Windows and Linux
-   - TTYs (Terminals): *asynchronous* on Windows, *synchronous* on Unix
-   - Pipes (and sockets): *synchronous* on Windows, *asynchronous* on Unix
+4. Writes may be synchronous depending on what the stream is connected to
+   and whether the system is Windows or POSIX:
+   - Files: *synchronous* on Windows and POSIX
+   - TTYs (Terminals): *asynchronous* on Windows, *synchronous* on POSIX
+   - Pipes (and sockets): *synchronous* on Windows, *asynchronous* on POSIX
 
 These behaviors are partly for historical reasons, as changing them would
 create backwards incompatibility, but they are also expected by some users.
@@ -1769,7 +1775,7 @@ cases:
   or unavailable.
 * `>128` **Signal Exits** - If Node.js receives a fatal signal such as
   `SIGKILL` or `SIGHUP`, then its exit code will be `128` plus the
-  value of the signal code.  This is a standard Unix practice, since
+  value of the signal code.  This is a standard POSIX practice, since
   exit codes are defined to be 7-bit integers, and signal exits set
   the high-order bit, and then contain the value of the signal code.
 
@@ -1779,9 +1785,9 @@ cases:
 [`'message'`]: child_process.html#child_process_event_message
 [`'rejectionHandled'`]: #process_event_rejectionhandled
 [`'uncaughtException'`]: #process_event_uncaughtexception
-[`ChildProcess.disconnect()`]: child_process.html#child_process_child_disconnect
-[`ChildProcess.kill()`]: child_process.html#child_process_child_kill_signal
-[`ChildProcess.send()`]: child_process.html#child_process_child_send_message_sendhandle_options_callback
+[`ChildProcess.disconnect()`]: child_process.html#child_process_subprocess_disconnect
+[`subprocess.kill()`]: child_process.html#child_process_subprocess_kill_signal
+[`ChildProcess.send()`]: child_process.html#child_process_subprocess_send_message_sendhandle_options_callback
 [`ChildProcess`]: child_process.html#child_process_class_childprocess
 [`end()`]: stream.html#stream_writable_end_chunk_encoding_callback
 [`Error`]: errors.html#errors_class_error

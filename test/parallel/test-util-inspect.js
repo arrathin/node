@@ -1,5 +1,5 @@
 'use strict';
-const common = require('../common');
+require('../common');
 const assert = require('assert');
 const util = require('util');
 const vm = require('vm');
@@ -208,7 +208,7 @@ for (const showHidden of [true, false]) {
     );
   if (out !== '{ [hidden]: 2, visible: 1 }' &&
       out !== '{ visible: 1, [hidden]: 2 }') {
-    common.fail(`unexpected value for out ${out}`);
+    assert.fail(`unexpected value for out ${out}`);
   }
 }
 
@@ -220,7 +220,7 @@ for (const showHidden of [true, false]) {
                                            hidden: {value: 'secret'}}), true);
   if (out !== "{ [hidden]: 'secret', name: 'Tim' }" &&
       out !== "{ name: 'Tim', [hidden]: 'secret' }") {
-    common.fail(`unexpected value for out ${out}`);
+    assert.fail(`unexpected value for out ${out}`);
   }
 }
 
@@ -829,6 +829,12 @@ checkAlignment(new Map(big_array.map(function(y) { return [y, null]; })));
 {
   const x = Object.create(null);
   assert.strictEqual(util.inspect(x), '{}');
+}
+
+{
+  const x = [];
+  x[''] = 1;
+  assert.strictEqual(util.inspect(x), '[ \'\': 1 ]');
 }
 
 // The following maxArrayLength tests were introduced after v6.0.0 was released.

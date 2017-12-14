@@ -182,7 +182,7 @@ added: v0.1.93
 
 * `fd` {integer} Integer file descriptor used by the ReadStream.
 
-Emitted when the ReadStream's file is opened.
+Emitted when the `ReadStream`'s underlying file descriptor has been closed.
 
 ### readStream.bytesRead
 <!-- YAML
@@ -296,7 +296,7 @@ added: v0.1.93
 
 * `fd` {integer} Integer file descriptor used by the WriteStream.
 
-Emitted when the WriteStream's file is opened.
+Emitted when the `WriteStream`'s underlying file descriptor has been closed.
 
 ### writeStream.bytesWritten
 <!-- YAML
@@ -324,6 +324,7 @@ added: v0.11.15
 * `path` {string|Buffer}
 * `mode` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Tests a user's permissions for the file or directory specified by `path`.
 The `mode` argument is an optional integer that specifies the accessibility
@@ -460,6 +461,7 @@ added: v0.6.7
   * `mode` {integer} default = `0o666`
   * `flag` {string} default = `'a'`
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronously append data to a file, creating the file if it does not yet exist.
 `data` can be a string or a buffer.
@@ -506,6 +508,7 @@ added: v0.1.30
 * `path` {string|Buffer}
 * `mode` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous chmod(2). No arguments other than a possible exception are given
 to the completion callback.
@@ -529,6 +532,7 @@ added: v0.1.97
 * `uid` {integer}
 * `gid` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous chown(2). No arguments other than a possible exception are given
 to the completion callback.
@@ -551,6 +555,7 @@ added: v0.0.2
 
 * `fd` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous close(2).  No arguments other than a possible exception are given
 to the completion callback.
@@ -688,6 +693,7 @@ deprecated: v1.0.0
 
 * `path` {string|Buffer}
 * `callback` {Function}
+  * `exists` {Boolean}
 
 Test whether or not the given path exists by checking with the file system.
 Then call the `callback` argument with either true or false.  Example:
@@ -806,6 +812,7 @@ added: v0.4.7
 * `fd` {integer}
 * `mode` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous fchmod(2). No arguments other than a possible exception
 are given to the completion callback.
@@ -829,6 +836,7 @@ added: v0.4.7
 * `uid` {integer}
 * `gid` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous fchown(2). No arguments other than a possible exception are given
 to the completion callback.
@@ -851,6 +859,7 @@ added: v0.1.96
 
 * `fd` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous fdatasync(2). No arguments other than a possible exception are
 given to the completion callback.
@@ -871,6 +880,8 @@ added: v0.1.95
 
 * `fd` {integer}
 * `callback` {Function}
+  * `err` {Error}
+  * `stats` {fs.Stats}
 
 Asynchronous fstat(2). The callback gets two arguments `(err, stats)` where
 `stats` is an [`fs.Stats`][] object. `fstat()` is identical to [`stat()`][],
@@ -892,6 +903,7 @@ added: v0.1.96
 
 * `fd` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous fsync(2). No arguments other than a possible exception are given
 to the completion callback.
@@ -913,6 +925,7 @@ added: v0.8.6
 * `fd` {integer}
 * `len` {integer} default = `0`
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous ftruncate(2). No arguments other than a possible exception are
 given to the completion callback.
@@ -941,7 +954,7 @@ If the file previously was shorter than `len` bytes, it is extended, and the
 extended part is filled with null bytes ('\0'). For example,
 
 ```js
-console.log(fs.readFileSync('temp.txt', 'utf-8'));
+console.log(fs.readFileSync('temp.txt', 'utf8'));
 // Prints: Node.js
 
 // get the file descriptor of the file to be truncated
@@ -977,6 +990,7 @@ added: v0.4.2
 * `atime` {integer}
 * `mtime` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Change the file timestamps of a file referenced by the supplied file
 descriptor.
@@ -1003,6 +1017,7 @@ deprecated: v0.4.7
 * `path` {string|Buffer}
 * `mode` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous lchmod(2). No arguments other than a possible exception
 are given to the completion callback.
@@ -1028,6 +1043,7 @@ deprecated: v0.4.7
 * `uid` {integer}
 * `gid` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous lchown(2). No arguments other than a possible exception are given
 to the completion callback.
@@ -1051,6 +1067,7 @@ added: v0.1.31
 * `existingPath` {string|Buffer}
 * `newPath` {string|Buffer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous link(2). No arguments other than a possible exception are given to
 the completion callback.
@@ -1072,6 +1089,8 @@ added: v0.1.30
 
 * `path` {string|Buffer}
 * `callback` {Function}
+  * `err` {Error}
+  * `stats` {fs.Stats}
 
 Asynchronous lstat(2). The callback gets two arguments `(err, stats)` where
 `stats` is a [`fs.Stats`][] object. `lstat()` is identical to `stat()`,
@@ -1095,6 +1114,7 @@ added: v0.1.8
 * `path` {string|Buffer}
 * `mode` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous mkdir(2). No arguments other than a possible exception are given
 to the completion callback. `mode` defaults to `0o777`.
@@ -1118,6 +1138,8 @@ added: v5.10.0
 * `options` {string|Object}
   * `encoding` {string} default = `'utf8'`
 * `callback` {Function}
+  * `err` {Error}
+  * `folder` {string}
 
 Creates a unique temporary directory.
 
@@ -1133,10 +1155,10 @@ object with an `encoding` property specifying the character encoding to use.
 Example:
 
 ```js
-fs.mkdtemp('/tmp/foo-', (err, folder) => {
+fs.mkdtemp(path.join(os.tmpdir(), 'foo-'), (err, folder) => {
   if (err) throw err;
   console.log(folder);
-  // Prints: /tmp/foo-itXde2
+  // Prints: /tmp/foo-itXde2 or C:\Users\...\AppData\Local\Temp\foo-itXde2
 });
 ```
 
@@ -1148,7 +1170,7 @@ the `prefix` *must* end with a trailing platform-specific path separator
 
 ```js
 // The parent directory for the new temporary directory
-const tmpDir = '/tmp';
+const tmpDir = os.tmpdir();
 
 // This method is *INCORRECT*:
 fs.mkdtemp(tmpDir, (err, folder) => {
@@ -1195,6 +1217,8 @@ added: v0.0.2
 * `flags` {string|number}
 * `mode` {integer}
 * `callback` {Function}
+  * `err` {Error}
+  * `fd` {integer}
 
 Asynchronous file open. See open(2). `flags` can be:
 
@@ -1301,6 +1325,9 @@ added: v0.0.2
 * `length` {integer}
 * `position` {integer}
 * `callback` {Function}
+  * `err` {Error}
+  * `bytesRead` {integer}
+  * `buffer` {Buffer}
 
 Read data from the file specified by `fd`.
 
@@ -1326,6 +1353,8 @@ added: v0.1.8
 * `options` {string|Object}
   * `encoding` {string} default = `'utf8'`
 * `callback` {Function}
+  * `err` {Error}
+  * `files` {string[]|Buffer[]}
 
 Asynchronous readdir(3).  Reads the contents of a directory.
 The callback gets two arguments `(err, files)` where `files` is an array of
@@ -1363,6 +1392,8 @@ added: v0.1.29
   * `encoding` {string|null} default = `null`
   * `flag` {string} default = `'r'`
 * `callback` {Function}
+  * `err` {Error}
+  * `data` {string|Buffer}
 
 Asynchronously reads the entire contents of a file. Example:
 
@@ -1441,6 +1472,8 @@ added: v0.1.31
 * `options` {string|Object}
   * `encoding` {string} default = `'utf8'`
 * `callback` {Function}
+  * `err` {Error}
+  * `linkString` {string|Buffer}
 
 Asynchronous readlink(2). The callback gets two arguments `(err,
 linkString)`.
@@ -1488,6 +1521,8 @@ added: v0.1.31
 * `options` {string|Object}
   * `encoding` {string} default = `'utf8'`
 * `callback` {Function}
+  * `err` {Error}
+  * `resolvedPath` {string|Buffer}
 
 Asynchronous realpath(3). The `callback` gets two arguments `(err,
 resolvedPath)`. May use `process.cwd` to resolve relative paths.
@@ -1525,6 +1560,7 @@ added: v0.0.2
 * `oldPath` {string|Buffer}
 * `newPath` {string|Buffer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous rename(2). No arguments other than a possible exception are given
 to the completion callback.
@@ -1546,6 +1582,7 @@ added: v0.0.2
 
 * `path` {string|Buffer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous rmdir(2). No arguments other than a possible exception are given
 to the completion callback.
@@ -1572,6 +1609,8 @@ added: v0.0.2
 
 * `path` {string|Buffer}
 * `callback` {Function}
+  * `err` {Error}
+  * `stats` {fs.Stats}
 
 Asynchronous stat(2). The callback gets two arguments `(err, stats)` where
 `stats` is an [`fs.Stats`][] object.
@@ -1604,6 +1643,7 @@ added: v0.1.31
 * `path` {string|Buffer}
 * `type` {string}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous symlink(2). No arguments other than a possible exception are given
 to the completion callback. The `type` argument can be set to `'dir'`,
@@ -1639,6 +1679,7 @@ added: v0.8.6
 * `path` {string|Buffer}
 * `len` {integer} default = `0`
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous truncate(2). No arguments other than a possible exception are
 given to the completion callback. A file descriptor can also be passed as the
@@ -1662,6 +1703,7 @@ added: v0.0.2
 
 * `path` {string|Buffer}
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronous unlink(2). No arguments other than a possible exception are given
 to the completion callback.
@@ -1682,6 +1724,8 @@ added: v0.1.31
 
 * `filename` {string|Buffer}
 * `listener` {Function}
+  * `eventType` {string}
+  * `filename` {string|Buffer}
 
 Stop watching for changes on `filename`. If `listener` is specified, only that
 particular listener is removed. Otherwise, *all* listeners are removed and you
@@ -1703,6 +1747,7 @@ added: v0.4.2
 * `atime` {integer}
 * `mtime` {integer}
 * `callback` {Function}
+  * `err` {Error}
 
 Change file timestamps of the file referenced by the supplied path.
 
@@ -1743,6 +1788,8 @@ added: v0.5.10
   * `encoding` {string} Specifies the character encoding to be used for the
      filename passed to the listener. default = `'utf8'`
 * `listener` {Function}
+  * `eventType` {string}
+  * `filename` {string|Buffer}
 
 Watch for changes on `filename`, where `filename` is either a file or a
 directory.  The returned object is a [`fs.FSWatcher`][].
@@ -1840,6 +1887,8 @@ added: v0.1.31
   * `persistent` {boolean}
   * `interval` {integer}
 * `listener` {Function}
+  * `current` {fs.Stats}
+  * `previous` {fs.Stats}
 
 Watch for changes on `filename`. The callback `listener` will be called each
 time the file is accessed.
@@ -1876,17 +1925,29 @@ you need to compare `curr.mtime` and `prev.mtime`.
 `fs.unwatchFile`. `fs.watch` should be used instead of `fs.watchFile` and
 `fs.unwatchFile` when possible.
 
-## fs.write(fd, buffer, offset, length[, position], callback)
+*Note:* When a file being watched by `fs.watchFile()` disappears and reappears,
+then the `previousStat` reported in the second callback event (the file's
+reappearance) will be the same as the `previousStat` of the first callback
+event (its disappearance).
+
+This happens when:
+- the file is deleted, followed by a restore
+- the file is renamed twice - the second time back to its original name
+
+## fs.write(fd, buffer[, offset[, length[, position]]], callback)
 <!-- YAML
 added: v0.0.2
 -->
 
 * `fd` {integer}
-* `buffer` {string | Buffer}
+* `buffer` {Buffer}
 * `offset` {integer}
 * `length` {integer}
 * `position` {integer}
 * `callback` {Function}
+  * `err` {Error}
+  * `bytesWritten` {integer}
+  * `buffer` {Buffer|Uint8Array}
 
 Write `buffer` to the file specified by `fd`.
 
@@ -1908,19 +1969,22 @@ On Linux, positional writes don't work when the file is opened in append mode.
 The kernel ignores the position argument and always appends the data to
 the end of the file.
 
-## fs.write(fd, data[, position[, encoding]], callback)
+## fs.write(fd, string[, position[, encoding]], callback)
 <!-- YAML
 added: v0.11.5
 -->
 
 * `fd` {integer}
-* `data` {string | Buffer}
+* `string` {string}
 * `position` {integer}
 * `encoding` {string}
 * `callback` {Function}
+  * `err` {Error}
+  * `written` {integer}
+  * `string` {string}
 
-Write `data` to the file specified by `fd`.  If `data` is not a Buffer instance
-then the value will be coerced to a string.
+Write `string` to the file specified by `fd`.  If `string` is not a string, then
+the value will be coerced to one.
 
 `position` refers to the offset from the beginning of the file where this data
 should be written. If `typeof position !== 'number'` the data will be written at
@@ -1956,6 +2020,7 @@ added: v0.1.29
   * `mode` {integer} default = `0o666`
   * `flag` {string} default = `'w'`
 * `callback` {Function}
+  * `err` {Error}
 
 Asynchronously writes data to a file, replacing the file if it already exists.
 `data` can be a string or a buffer.
@@ -2001,24 +2066,24 @@ added: v0.1.29
 
 The synchronous version of [`fs.writeFile()`][]. Returns `undefined`.
 
-## fs.writeSync(fd, buffer, offset, length[, position])
+## fs.writeSync(fd, buffer[, offset[, length[, position]]])
 <!-- YAML
 added: v0.1.21
 -->
 
 * `fd` {integer}
-* `buffer` {string | Buffer}
+* `buffer` {Buffer}
 * `offset` {integer}
 * `length` {integer}
 * `position` {integer}
 
-## fs.writeSync(fd, data[, position[, encoding]])
+## fs.writeSync(fd, string[, position[, encoding]])
 <!-- YAML
 added: v0.11.5
 -->
 
 * `fd` {integer}
-* `data` {string | Buffer}
+* `string` {string}
 * `position` {integer}
 * `encoding` {string}
 

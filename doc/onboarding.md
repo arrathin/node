@@ -158,7 +158,7 @@ onboarding session.
   * After one or two approvals, land the PR.
     * Be sure to add the `PR-URL: <full-pr-url>` and appropriate `Reviewed-By:` metadata!
     * [`core-validate-commit`][] helps a lot with this – install and use it if you can!
-    * If you use Chrome, [`node-review`][] fetches the metadata for you
+    * [`node-core-utils`][] fetches the metadata for you.
 
 ## Final notes
 
@@ -172,7 +172,12 @@ onboarding session.
     * [https://github.com/nodejs/readable-stream](https://github.com/nodejs/readable-stream)
     * [https://github.com/nodejs/LTS](https://github.com/nodejs/LTS)
     * [https://github.com/nodejs/citgm](https://github.com/nodejs/citgm)
+  * The Node.js Foundation hosts regular summits for active contributors to the Node.js
+    project, where we have face-to-face discussion about our work on the project.
+    The foundation has travel funds to cover participants' expenses including
+    accommodation, transportation, visa fees etc. if needed. Check out the
+    [summit](https://github.com/nodejs/summit) repository for details.
 
 [Code of Conduct]: https://github.com/nodejs/TSC/blob/master/CODE_OF_CONDUCT.md
 [`core-validate-commit`]: https://github.com/evanlucas/core-validate-commit
-[`node-review`]: https://github.com/evanlucas/node-review
+[`node-core-utils`]: https://github.com/nodejs/node-core-utils

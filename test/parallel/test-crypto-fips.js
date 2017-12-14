@@ -6,13 +6,16 @@ if (!common.hasCrypto)
 const assert = require('assert');
 const spawnSync = require('child_process').spawnSync;
 const path = require('path');
+const fixtures = require('../common/fixtures');
 
 const FIPS_ENABLED = 1;
 const FIPS_DISABLED = 0;
 const FIPS_ERROR_STRING = 'Error: Cannot set FIPS mode';
 const OPTION_ERROR_STRING = 'bad option';
-const CNF_FIPS_ON = path.join(common.fixturesDir, 'openssl_fips_enabled.cnf');
-const CNF_FIPS_OFF = path.join(common.fixturesDir, 'openssl_fips_disabled.cnf');
+
+const CNF_FIPS_ON = fixtures.path('openssl_fips_enabled.cnf');
+const CNF_FIPS_OFF = fixtures.path('openssl_fips_disabled.cnf');
+
 let num_children_ok = 0;
 
 function compiledWithFips() {
@@ -207,6 +210,15 @@ testHelper(
   ['--force-fips'],
   compiledWithFips() ? FIPS_ERROR_STRING : OPTION_ERROR_STRING,
   'require("crypto").fips = false',
+  process.env);
+
+// --force-fips makes setFipsCrypto enable a no-op (FIPS stays on)
+testHelper(
+  compiledWithFips() ? 'stdout' : 'stderr',
+  ['--force-fips'],
+  compiledWithFips() ? FIPS_ENABLED : OPTION_ERROR_STRING,
+  '(require("crypto").fips = true,' +
+  'require("crypto").fips)',
   process.env);
 
 // --force-fips and --enable-fips order does not matter

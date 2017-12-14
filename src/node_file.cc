@@ -4,9 +4,7 @@
 #include "node_internals.h"
 #include "node_stat_watcher.h"
 
-#include "env.h"
 #include "env-inl.h"
-#include "req-wrap.h"
 #include "req-wrap-inl.h"
 #include "string_bytes.h"
 #include "util.h"
@@ -445,35 +443,6 @@ Local<Value> BuildStatsObject(Environment* env, const uv_stat_t* s) {
   // We need to check the return value of Number::New() and Date::New()
   // and make sure that we bail out when V8 returns an empty handle.
 
-  // Unsigned integers. It does not actually seem to be specified whether
-  // uid and gid are unsigned or not, but in practice they are unsigned,
-  // and Node’s (F)Chown functions do check their arguments for unsignedness.
-#define X(name)                                                               \
-  Local<Value> name = Integer::NewFromUnsigned(env->isolate(), s->st_##name); \
-  if (name.IsEmpty())                                                         \
-    return Local<Object>();                                                   \
-
-  X(uid)
-  X(gid)
-# if defined(__POSIX__)
-  X(blksize)
-# else
-  Local<Value> blksize = Undefined(env->isolate());
-# endif
-#undef X
-
-  // Integers.
-#define X(name)                                                               \
-  Local<Value> name = Integer::New(env->isolate(), s->st_##name);             \
-  if (name.IsEmpty())                                                         \
-    return Local<Object>();                                                   \
-
-  X(dev)
-  X(mode)
-  X(nlink)
-  X(rdev)
-#undef X
-
   // Numbers.
 #define X(name)                                                               \
   Local<Value> name = Number::New(env->isolate(),                             \
@@ -481,11 +450,19 @@ Local<Value> BuildStatsObject(Environment* env, const uv_stat_t* s) {
   if (name.IsEmpty())                                                         \
     return Local<Object>();                                                   \
 
+  X(uid)
+  X(gid)
   X(ino)
   X(size)
+  X(dev)
+  X(mode)
+  X(nlink)
+  X(rdev)
 # if defined(__POSIX__)
+  X(blksize)
   X(blocks)
 # else
+  Local<Value> blksize = Undefined(env->isolate());
   Local<Value> blocks = Undefined(env->isolate());
 # endif
 #undef X
