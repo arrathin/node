@@ -306,6 +306,7 @@ test-v8: v8 test-hash-seed
         --no-presubmit \
         --shell-dir=$(PWD)/deps/v8z/out/$(V8_ARCH).$(BUILDTYPE_LOWER) \
 	 $(TAP_V8)
+	git clean -fdxq -- deps/v8
 	@echo Testing hash seed
 	$(MAKE) test-hash-seed
 

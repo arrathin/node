@@ -6,10 +6,8 @@
 
 <!--name=module-->
 
-Node.js has a simple module loading system.  In Node.js, files and modules
-are in one-to-one correspondence (each file is treated as a separate module).
-
-As an example, consider a file named `foo.js`:
+In the Node.js module system, each file is treated as a separate module. For
+example, consider a file named `foo.js`:
 
 ```js
 const circle = require('./circle.js');
@@ -45,9 +43,9 @@ instead of `exports`.
 Below, `bar.js` makes use of the `square` module, which exports a constructor:
 
 ```js
-const square = require('./square.js');
-const mySquare = square(2);
-console.log(`The area of my square is ${mySquare.area()}`);
+const Square = require('./square.js');
+const mySquare = new Square(2);
+console.log(`The area of mySquare is ${mySquare.area()}`);
 ```
 
 The `square` module is defined in `square.js`:

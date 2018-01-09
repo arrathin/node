@@ -19,13 +19,10 @@ policies, and releases are managed under an
 
 **This project is bound by a [Code of Conduct][].**
 
-If you need help using or installing Node.js, please use the
-[nodejs/help](https://github.com/nodejs/help) issue tracker.
-
 
 # Table of Contents
 
-* [Resources for Newcomers](#resources-for-newcomers)
+* [Support](#support)
 * [Release Types](#release-types)
   * [Download](#download)
     * [Current and LTS Releases](#current-and-lts-releases)
@@ -33,38 +30,43 @@ If you need help using or installing Node.js, please use the
     * [API Documentation](#api-documentation)
   * [Verifying Binaries](#verifying-binaries)
 * [Building Node.js](#building-nodejs)
-  * [Security](#security)
-  * [Current Project Team Members](#current-project-team-members)
-    * [TSC (Technical Steering Committee)](#tsc-technical-steering-committee)
-    * [Collaborators](#collaborators)
-    * [Release Team](#release-team)
+* [Security](#security)
+* [Current Project Team Members](#current-project-team-members)
+  * [TSC (Technical Steering Committee)](#tsc-technical-steering-committee)
+  * [Collaborators](#collaborators)
+  * [Release Team](#release-team)
+* [Contributing to Node.js](#contributing-to-nodejs)
 
-## Resources for Newcomers
+## Support
 
-### Official Resources
+Node.js contributors have limited availability to address general support
+questions. Please make sure you are using a [currently-supported version of
+Node.js](https://github.com/nodejs/Release#release-schedule).
 
-* [Website][]
+When looking for support, please first search for your question in these venues:
+
+* [Node.js Website][]
 * [Node.js Help][]
-* [Contributing to the project][]
-* IRC (node core development): [#node-dev on chat.freenode.net][]
+* [Open or closed issues in the Node.js GitHub organization](https://github.com/issues?utf8=%E2%9C%93&q=sort%3Aupdated-desc+org%3Anodejs+is%3Aissue)
+* [Questions tagged 'node.js' on StackOverflow][]
 
-### Unofficial Resources
+If you didn't find an answer in one of the venues above, you can:
 
-* IRC (general questions): [#node.js on chat.freenode.net][]. Please see
-<http://nodeirc.info/> for more information regarding the `#node.js` IRC
-channel.
+* Join the **unofficial** [#node.js channel on chat.freenode.net][]. See
+<http://nodeirc.info/> for more information.
 
-_Please note that unofficial resources are neither managed by (nor necessarily
-endorsed by) the Node.js TSC. Specifically, such resources are not
-currently covered by the [Node.js Moderation Policy][] and the selection and
-actions of resource operators/moderators are not subject to TSC oversight._
+GitHub issues are meant for tracking enhancements and bugs, not general support.
+
+Remember, libre != gratis; the open source license grants you the freedom to use
+and modify, but not commitments of other people's time. Please be respectful,
+and set your expectations accordingly.
 
 ## Release Types
 
 The Node.js project maintains multiple types of releases:
 
 * **Current**: Released from active development branches of this repository,
-  versioned by [SemVer](http://semver.org/) and signed by a member of the
+  versioned by [SemVer](https://semver.org) and signed by a member of the
   [Release Team](#release-team).
   Code for Current releases is organized in this repository by major version
   number. For example: [v4.x](https://github.com/nodejs/node/tree/v4.x).
@@ -88,7 +90,7 @@ The Node.js project maintains multiple types of releases:
 
 More information can be found in the [LTS README](https://github.com/nodejs/LTS/).
 
-## Download
+### Download
 
 Binaries, installers, and source tarballs are available at
 <https://nodejs.org>.
@@ -363,6 +365,10 @@ For more information about the governance of the Node.js project, see
 **Gibson Fahnestock** &lt;gibfahn@gmail.com&gt; (he/him)
 * [gireeshpunathil](https://github.com/gireeshpunathil) -
 **Gireesh Punathil** &lt;gpunathi@in.ibm.com&gt; (he/him)
+* [guybedford](https://github.com/guybedford) -
+**Guy Bedford** &lt;guybedford@gmail.com&gt; (he/him)
+* [hashseed](https://github.com/hashseed) -
+**Yang Guo** &lt;yangguo@chromium.org&gt; (he/him)
 * [iarna](https://github.com/iarna) -
 **Rebecca Turner** &lt;me@re-becca.org&gt;
 * [imran-iq](https://github.com/imran-iq) -
@@ -407,6 +413,8 @@ For more information about the governance of the Node.js project, see
 **Luigi Pinca** &lt;luigipinca@gmail.com&gt; (he/him)
 * [lucamaraschi](https://github.com/lucamaraschi) -
 **Luca Maraschi** &lt;luca.maraschi@gmail.com&gt; (he/him)
+* [maclover7](https://github.com/maclover7) -
+**Jon Moss** &lt;me@jonathanmoss.me&gt; (he/him)
 * [matthewloring](https://github.com/matthewloring) -
 **Matthew Loring** &lt;mattloring@google.com&gt;
 * [mcollina](https://github.com/mcollina) -
@@ -576,16 +584,16 @@ Previous releases may also have been signed with one of the following GPG keys:
 * **Timothy J Fontaine** &lt;tjfontaine@gmail.com&gt;
 `7937DFD2AB06298B2293C3187D33FF9D0246406D`
 
-### Working Groups
+## Contributing to Node.js
 
-Information on the current Node.js Working Groups can be found in the
-[TSC repository](https://github.com/nodejs/TSC/blob/master/WORKING_GROUPS.md).
+* [Contributing to the project][]
+* [Working Groups][]
 
 [npm]: https://www.npmjs.com
-[Website]: https://nodejs.org/en/
+[Code of Conduct]: https://github.com/nodejs/TSC/blob/master/CODE_OF_CONDUCT.md
 [Contributing to the project]: CONTRIBUTING.md
 [Node.js Help]: https://github.com/nodejs/help
-[Node.js Moderation Policy]: https://github.com/nodejs/TSC/blob/master/Moderation-Policy.md
-[#node.js on chat.freenode.net]: https://webchat.freenode.net?channels=node.js&uio=d4
-[#node-dev on chat.freenode.net]: https://webchat.freenode.net?channels=node-dev&uio=d4
-[Code of Conduct]: https://github.com/nodejs/TSC/blob/master/CODE_OF_CONDUCT.md
+[Node.js Website]: https://nodejs.org/en/
+[Questions tagged 'node.js' on StackOverflow]: https://stackoverflow.com/questions/tagged/node.js
+[Working Groups]: https://github.com/nodejs/TSC/blob/master/WORKING_GROUPS.md
+[#node.js channel on chat.freenode.net]: https://webchat.freenode.net?channels=node.js&uio=d4

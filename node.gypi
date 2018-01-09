@@ -330,7 +330,6 @@
         '_XOPEN_SOURCE_EXTENDED',
         '_UNIX03_THREADS',
         '_UNIX03_SOURCE',
-        '_XOPEN_SOURCE=600',
         '_OPEN_SYS_SOCK_IPV6',
         '_POSIX_SOURCE',
         '_OPEN_SYS',

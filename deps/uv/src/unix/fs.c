@@ -1140,7 +1140,7 @@ static void uv__fs_work(struct uv__work* w) {
     X(SCANDIR, uv__fs_scandir(req));
     X(READLINK, uv__fs_readlink(req));
     X(REALPATH, uv__fs_realpath(req));
-    X(RENAME, rename(req->path, req->new_path));
+    X(RENAME, uv__fs_rename(req->path, req->new_path));
     X(RMDIR, rmdir(req->path));
     X(SENDFILE, uv__fs_sendfile(req));
     X(STAT, uv__fs_stat(req->path, &req->statbuf));
@@ -1419,6 +1419,14 @@ int uv_fs_realpath(uv_loop_t* loop,
   PATH;
   POST;
 }
+
+int uv__fs_rename( const char* path,
+                 const char* new_path) {
+int rc = rename(path, new_path);
+printf("In rename: rc = %d path=%s, new_path=%s\n", rc, path, new_path);
+return rc;
+}
+
 
 
 int uv_fs_rename(uv_loop_t* loop,

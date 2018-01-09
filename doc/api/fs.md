@@ -589,6 +589,7 @@ added: v0.1.31
   * `autoClose` {boolean}
   * `start` {integer}
   * `end` {integer}
+  * `highWaterMark` {integer}
 
 Returns a new [`ReadStream`][] object. (See [Readable Stream][]).
 
@@ -604,7 +605,8 @@ const defaults = {
   encoding: null,
   fd: null,
   mode: 0o666,
-  autoClose: true
+  autoClose: true,
+  highWaterMark: 64 * 1024
 };
 ```
 
@@ -1259,7 +1261,7 @@ The file is created if it does not exist.
 * `'ax+'` - Like `'a+'` but fails if `path` exists.
 
 `mode` sets the file mode (permission and sticky bits), but only if the file was
-created. It defaults to `0666`, readable and writable.
+created. It defaults to `0o666` (readable and writable).
 
 The callback gets two arguments `(err, fd)`.
 
@@ -1850,7 +1852,7 @@ a new inode. The watch will emit an event for the delete but will continue
 watching the *original* inode. Events for the new inode will not be emitted.
 This is expected behavior.
 
-In AIX, save and close of a file being watched causes two notifications -
+On AIX, save and close of a file being watched causes two notifications -
 one for adding new content, and one for truncation. Moreover, save and
 close operations on some platforms cause inode changes that force watch
 operations to become invalid and ineffective. AIX retains inode for the
