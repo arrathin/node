@@ -64,6 +64,16 @@ class ProcessWrap : public HandleWrap {
                    reinterpret_cast<uv_handle_t*>(&process_),
                    AsyncWrap::PROVIDER_PROCESSWRAP) {
   }
+  
+  static bool isAsciiPgm(const char *pgmName) {
+    const char * AsciiPgms[2] = { "git", "python"};
+    for (int pgId = 0 ; pgId < 3; pgId++) {
+      if (strcmp(AsciiPgms[pgId],pgmName) == 0) {
+        return true; 
+      }
+    }
+    return false;
+  }
 
   static void ParseStdioOptions(Environment* env,
                                 Local<Object> js_options,
@@ -74,7 +84,7 @@ class ProcessWrap : public HandleWrap {
     uint32_t len = stdios->Length();
     options->stdio = new uv_stdio_container_t[len];
     options->stdio_count = len;
-
+    bool ascii_output = isAsciiPgm(options->file);
     for (uint32_t i = 0; i < len; i++) {
       Local<Object> stdio = stdios->Get(i).As<Object>();
       Local<Value> type = stdio->Get(env->type_string());
@@ -90,6 +100,11 @@ class ProcessWrap : public HandleWrap {
         options->stdio[i].data.stream =
             reinterpret_cast<uv_stream_t*>(
                 Unwrap<PipeWrap>(handle)->UVHandle());
+        if (ascii_output && i > 0) {
+          options->stdio[i].data.stream->ascii = true;
+        }else{
+          options->stdio[i].data.stream->ascii = false;
+        }
       } else if (type->Equals(env->wrap_string())) {
         Local<String> handle_key = env->handle_string();
         Local<Object> handle = stdio->Get(handle_key).As<Object>();
@@ -98,6 +113,7 @@ class ProcessWrap : public HandleWrap {
 
         options->stdio[i].flags = UV_INHERIT_STREAM;
         options->stdio[i].data.stream = stream;
+        options->stdio[i].data.stream->ascii = false;
       } else {
         Local<String> fd_key = env->fd_string();
         int fd = static_cast<int>(stdio->Get(fd_key)->IntegerValue());

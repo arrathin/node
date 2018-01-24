@@ -83,6 +83,7 @@ void uv__stream_init(uv_loop_t* loop,
   stream->accepted_fd = -1;
   stream->queued_fds = NULL;
   stream->delayed_error = 0;
+  stream->ascii = 0;
   QUEUE_INIT(&stream->write_queue);
   QUEUE_INIT(&stream->write_completed_queue);
   stream->write_queue_size = 0;
@@ -401,6 +402,7 @@ int uv__stream_open(uv_stream_t* stream, int fd, int flags) {
   stream->flags |= flags;
 
   if (stream->type == UV_TCP) {
+    stream->ascii = 0;
     if ((stream->flags & UV_TCP_NODELAY) && uv__tcp_nodelay(fd, 1))
       return -errno;
 
@@ -462,7 +464,8 @@ void uv__stream_destroy(uv_stream_t* stream) {
     stream->shutdown_req->cb(stream->shutdown_req, -ECANCELED);
     stream->shutdown_req = NULL;
   }
-
+  
+  stream->ascii = 0;
   assert(stream->write_queue_size == 0);
 }
 
@@ -1230,7 +1233,7 @@ static void uv__read(uv_stream_t* stream) {
       }
 
 #if defined(__MVS__)
-      if (stream->type == UV_NAMED_PIPE)
+      if (stream->type == UV_NAMED_PIPE && stream->ascii == 0)
         __e2a_l(buf.base, nread);
 
       if (is_ipc && msg.msg_controllen > 0) {
