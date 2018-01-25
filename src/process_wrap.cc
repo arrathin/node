@@ -67,7 +67,7 @@ class ProcessWrap : public HandleWrap {
   
   static bool isAsciiPgm(const char *pgmName) {
     const char * AsciiPgms[2] = { "git", "python"};
-    for (int pgId = 0 ; pgId < 3; pgId++) {
+    for (int pgId = 0 ; pgId < 2; pgId++) {
       if (strcmp(AsciiPgms[pgId],pgmName) == 0) {
         return true; 
       }
