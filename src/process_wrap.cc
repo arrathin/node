@@ -5,6 +5,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <regex>
 #ifdef __MVS__
 #include <unistd.h> // e2a
 #endif
@@ -65,12 +66,22 @@ class ProcessWrap : public HandleWrap {
                    AsyncWrap::PROVIDER_PROCESSWRAP) {
   }
   
-  static bool isAsciiPgm(const char *pgmName) {
-    const char * AsciiPgms[2] = { "git", "python"};
+  static bool isAsciiPgm(const char *pgm) {
+    const char * pgmName = pgm;
+    const char * AsciiPgms[2] = { "git", "python2"};
+    std::cmatch cm;
+    std::regex absolutePath("^.*\/([^/]*)$");
+    if (std::regex_match(pgmName,cm,absolutePath)) {
+        pgmName = cm[1].str().c_str();
+        if (cm.size() > 2) {
+            return false;
+            }
+    } 
+
     for (int pgId = 0 ; pgId < 2; pgId++) {
-      if (strcmp(AsciiPgms[pgId],pgmName) == 0) {
-        return true; 
-      }
+       if (strcmp(pgmName,AsciiPgms[pgId]) == 0) {  
+           return true;
+       } 
     }
     return false;
   }
