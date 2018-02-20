@@ -21,6 +21,7 @@ using v8::Exception;
 using v8::Function;
 using v8::FunctionCallbackInfo;
 using v8::FunctionTemplate;
+using v8::Integer;
 using v8::Local;
 using v8::Object;
 using v8::String;
@@ -81,6 +82,19 @@ TLSWrap::~TLSWrap() {
 #ifdef SSL_CTRL_SET_TLSEXT_SERVERNAME_CB
   sni_context_.Reset();
 #endif  // SSL_CTRL_SET_TLSEXT_SERVERNAME_CB
+
+  // See test/parallel/test-tls-transport-destroy-after-own-gc.js:
+  // If this TLSWrap is garbage collected, we cannot allow callbacks to be
+  // called on this stream.
+
+  if (stream_ == nullptr)
+    return;
+  stream_->set_destruct_cb({ nullptr, nullptr });
+  stream_->set_after_write_cb({ nullptr, nullptr });
+  stream_->set_alloc_cb({ nullptr, nullptr });
+  stream_->set_read_cb({ nullptr, nullptr });
+  stream_->set_destruct_cb({ nullptr, nullptr });
+  stream_->Unconsume();
 }
 
 
@@ -276,6 +290,7 @@ void TLSWrap::EncOut() {
 
   // No data to write
   if (BIO_pending(enc_out_) == 0) {
+    UpdateWriteQueueSize();
     if (clear_in_->Length() == 0)
       InvokeQueued(0);
     return;
@@ -540,13 +555,29 @@ bool TLSWrap::IsClosing() {
 }
 
 
+uint32_t TLSWrap::UpdateWriteQueueSize(uint32_t write_queue_size) {
+  HandleScope scope(env()->isolate());
+  if (write_queue_size == 0)
+    write_queue_size = BIO_pending(enc_out_);
+  object()->Set(env()->context(),
+                env()->write_queue_size_string(),
+                Integer::NewFromUnsigned(env()->isolate(),
+                                         write_queue_size)).FromJust();
+  return write_queue_size;
+}
+
+
 int TLSWrap::ReadStart() {
-  return stream_->ReadStart();
+  if (stream_ != nullptr)
+    return stream_->ReadStart();
+  return 0;
 }
 
 
 int TLSWrap::ReadStop() {
-  return stream_->ReadStop();
+  if (stream_ != nullptr)
+    return stream_->ReadStop();
+  return 0;
 }
 
 
@@ -580,8 +611,12 @@ int TLSWrap::DoWrite(WriteWrap* w,
     ClearOut();
     // However, if there is any data that should be written to the socket,
     // the callback should not be invoked immediately
-    if (BIO_pending(enc_out_) == 0)
+    if (BIO_pending(enc_out_) == 0) {
+      // net.js expects writeQueueSize to be > 0 if the write isn't
+      // immediately flushed
+      UpdateWriteQueueSize(1);
       return stream_->DoWrite(w, bufs, count, send_handle);
+    }
   }
 
   // Queue callback to execute it on next tick
@@ -631,13 +666,15 @@ int TLSWrap::DoWrite(WriteWrap* w,
 
   // Try writing data immediately
   EncOut();
+  UpdateWriteQueueSize();
 
   return 0;
 }
 
 
 void TLSWrap::OnAfterWriteImpl(WriteWrap* w, void* ctx) {
-  // Intentionally empty
+  TLSWrap* wrap = static_cast<TLSWrap*>(ctx);
+  wrap->UpdateWriteQueueSize();
 }
 
 
@@ -901,6 +938,15 @@ int TLSWrap::SelectSNIContextCallback(SSL* s, int* ad, void* arg) {
 #endif  // SSL_CTRL_SET_TLSEXT_SERVERNAME_CB
 
 
+void TLSWrap::UpdateWriteQueueSize(const FunctionCallbackInfo<Value>& args) {
+  TLSWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap, args.Holder());
+
+  uint32_t write_queue_size = wrap->UpdateWriteQueueSize();
+  args.GetReturnValue().Set(write_queue_size);
+}
+
+
 void TLSWrap::Initialize(Local<Object> target,
                          Local<Value> unused,
                          Local<Context> context) {
@@ -916,12 +962,13 @@ void TLSWrap::Initialize(Local<Object> target,
   t->InstanceTemplate()->SetInternalFieldCount(1);
   t->SetClassName(FIXED_ONE_BYTE_STRING(env->isolate(), "\x54\x4c\x53\x57\x72\x61\x70"));
 
-  env->SetProtoMethod(t, "\x72\x65\x63\x65\x69\x76\x65", Receive);
-  env->SetProtoMethod(t, "\x73\x74\x61\x72\x74", Start);
-  env->SetProtoMethod(t, "\x73\x65\x74\x56\x65\x72\x69\x66\x79\x4d\x6f\x64\x65", SetVerifyMode);
-  env->SetProtoMethod(t, "\x65\x6e\x61\x62\x6c\x65\x53\x65\x73\x73\x69\x6f\x6e\x43\x61\x6c\x6c\x62\x61\x63\x6b\x73", EnableSessionCallbacks);
-  env->SetProtoMethod(t, "\x64\x65\x73\x74\x72\x6f\x79\x53\x53\x4c", DestroySSL);
-  env->SetProtoMethod(t, "\x65\x6e\x61\x62\x6c\x65\x43\x65\x72\x74\x43\x62", EnableCertCb);
+  env->SetProtoMethod(t, u8"receive", Receive);
+  env->SetProtoMethod(t, u8"start", Start);
+  env->SetProtoMethod(t, u8"setVerifyMode", SetVerifyMode);
+  env->SetProtoMethod(t, u8"enableSessionCallbacks", EnableSessionCallbacks);
+  env->SetProtoMethod(t, u8"destroySSL", DestroySSL);
+  env->SetProtoMethod(t, u8"enableCertCb", EnableCertCb);
+  env->SetProtoMethod(t, u8"updateWriteQueueSize", UpdateWriteQueueSize);
 
   StreamBase::AddMethods<TLSWrap>(env, t, StreamBase::kFlagHasWritev);
   SSLWrap<TLSWrap>::AddMethods(env, t);

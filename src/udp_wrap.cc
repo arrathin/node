@@ -7,6 +7,7 @@
 #include "util-inl.h"
 
 #include <stdlib.h>
+#include <unistd.h>
 
 
 namespace node {
@@ -95,16 +96,17 @@ void UDPWrap::Initialize(Local<Object> target,
   env->SetProtoMethod(t, "\x72\x65\x63\x76\x53\x74\x6f\x70", RecvStop);
   env->SetProtoMethod(t, "\x67\x65\x74\x73\x6f\x63\x6b\x6e\x61\x6d\x65",
                       GetSockOrPeerName<UDPWrap, uv_udp_getsockname>);
-  env->SetProtoMethod(t, "\x61\x64\x64\x4d\x65\x6d\x62\x65\x72\x73\x68\x69\x70", AddMembership);
-  env->SetProtoMethod(t, "\x64\x72\x6f\x70\x4d\x65\x6d\x62\x65\x72\x73\x68\x69\x70", DropMembership);
-  env->SetProtoMethod(t, "\x73\x65\x74\x4d\x75\x6c\x74\x69\x63\x61\x73\x74\x54\x54\x4c", SetMulticastTTL);
-  env->SetProtoMethod(t, "\x73\x65\x74\x4d\x75\x6c\x74\x69\x63\x61\x73\x74\x4c\x6f\x6f\x70\x62\x61\x63\x6b", SetMulticastLoopback);
-  env->SetProtoMethod(t, "\x73\x65\x74\x42\x72\x6f\x61\x64\x63\x61\x73\x74", SetBroadcast);
-  env->SetProtoMethod(t, "\x73\x65\x74\x54\x54\x4c", SetTTL);
+  env->SetProtoMethod(t, u8"addMembership", AddMembership);
+  env->SetProtoMethod(t, u8"dropMembership", DropMembership);
+  env->SetProtoMethod(t, u8"setMulticastInterface", SetMulticastInterface);
+  env->SetProtoMethod(t, u8"setMulticastTTL", SetMulticastTTL);
+  env->SetProtoMethod(t, u8"setMulticastLoopback", SetMulticastLoopback);
+  env->SetProtoMethod(t, u8"setBroadcast", SetBroadcast);
+  env->SetProtoMethod(t, u8"setTTL", SetTTL);
 
-  env->SetProtoMethod(t, "\x72\x65\x66", HandleWrap::Ref);
-  env->SetProtoMethod(t, "\x75\x6e\x72\x65\x66", HandleWrap::Unref);
-  env->SetProtoMethod(t, "\x68\x61\x73\x52\x65\x66", HandleWrap::HasRef);
+  env->SetProtoMethod(t, u8"ref", HandleWrap::Ref);
+  env->SetProtoMethod(t, u8"unref", HandleWrap::Unref);
+  env->SetProtoMethod(t, u8"hasRef", HandleWrap::HasRef);
 
   target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "\x55\x44\x50"), t->GetFunction());
   env->set_udp_constructor_function(t->GetFunction());
@@ -208,6 +210,23 @@ X(SetMulticastLoopback, uv_udp_set_multicast_loop)
 
 #undef X
 
+void UDPWrap::SetMulticastInterface(const FunctionCallbackInfo<Value>& args) {
+  UDPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
+
+  CHECK_EQ(args.Length(), 1);
+  CHECK(args[0]->IsString());
+
+  Utf8Value iface(args.GetIsolate(), args[0]);
+  __a2e_s(&((*iface)[0]));
+
+  const char* iface_cstr = *iface;
+
+  int err = uv_udp_set_multicast_interface(&wrap->handle_, iface_cstr);
+  args.GetReturnValue().Set(err);
+}
 
 void UDPWrap::SetMembership(const FunctionCallbackInfo<Value>& args,
                             uv_membership membership) {

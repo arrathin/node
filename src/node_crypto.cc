@@ -124,6 +124,8 @@ static const char* const root_certs[] = {
 #include "node_root_certs.h"  // NOLINT(build/include_order)
 };
 
+static const char system_cert_path[] = NODE_OPENSSL_SYSTEM_CERT_PATH;
+
 static std::string extra_root_certs_file;  // NOLINT(runtime/string)
 
 static X509_STORE* root_cert_store;
@@ -730,6 +732,9 @@ static X509_STORE* NewRootCertStore() {
   }
 
   X509_STORE* store = X509_STORE_new();
+  if (*system_cert_path != '\0') {
+    X509_STORE_load_locations(store, system_cert_path, nullptr);
+  }
   if (ssl_openssl_cert_store) {
     X509_STORE_set_default_paths(store);
   } else {
@@ -3526,9 +3531,17 @@ void CipherBase::SetAuthTag(const FunctionCallbackInfo<Value>& args) {
 
   CipherBase* cipher;
   ASSIGN_OR_RETURN_UNWRAP(&cipher, args.Holder());
+  // Restrict GCM tag lengths according to NIST 800-38d, page 9.
+  unsigned int tag_len = Buffer::Length(buf);
+  if (tag_len > 16 || (tag_len < 12 && tag_len != 8 && tag_len != 4)) {
+    ProcessEmitWarning(cipher->env(),
+        u8"Permitting authentication tag lengths of %u bytes is deprecated. "
+        "Valid GCM tag lengths are 4, 8, 12, 13, 14, 15, 16.",
+        tag_len);
+  }
 
-  if (!cipher->SetAuthTag(Buffer::Data(buf), Buffer::Length(buf)))
-    env->ThrowError("\x41\x74\x74\x65\x6d\x70\x74\x69\x6e\x67\x20\x74\x6f\x20\x73\x65\x74\x20\x61\x75\x74\x68\x20\x74\x61\x67\x20\x69\x6e\x20\x75\x6e\x73\x75\x70\x70\x6f\x72\x74\x65\x64\x20\x73\x74\x61\x74\x65");
+  if (!cipher->SetAuthTag(Buffer::Data(buf), tag_len))
+    env->ThrowError(u8"Attempting to set auth tag in unsupported state");
 }
 
 
@@ -5601,11 +5614,18 @@ void PBKDF2(const FunctionCallbackInfo<Value>& args) {
 // Only instantiate within a valid HandleScope.
 class RandomBytesRequest : public AsyncWrap {
  public:
-  RandomBytesRequest(Environment* env, Local<Object> object, size_t size)
+  enum FreeMode { FREE_DATA, DONT_FREE_DATA };
+
+  RandomBytesRequest(Environment* env,
+                     Local<Object> object,
+                     size_t size,
+                     char* data,
+                     FreeMode free_mode)
       : AsyncWrap(env, object, AsyncWrap::PROVIDER_CRYPTO),
         error_(0),
         size_(size),
-        data_(node::Malloc(size)) {
+        data_(data),
+        free_mode_(free_mode) {
     Wrap(object, this);
   }
 
@@ -5626,9 +5646,15 @@ class RandomBytesRequest : public AsyncWrap {
     return data_;
   }
 
+  inline void set_data(char* data) {
+    data_ = data;
+  }
+
   inline void release() {
-    free(data_);
     size_ = 0;
+    if (free_mode_ == FREE_DATA) {
+      free(data_);
+    }
   }
 
   inline void return_memory(char** d, size_t* len) {
@@ -5654,6 +5680,7 @@ class RandomBytesRequest : public AsyncWrap {
   unsigned long error_;  // NOLINT(runtime/int)
   size_t size_;
   char* data_;
+  const FreeMode free_mode_;
 };
 
 
@@ -5692,7 +5719,18 @@ void RandomBytesCheck(RandomBytesRequest* req, Local<Value> argv[2]) {
     size_t size;
     req->return_memory(&data, &size);
     argv[0] = Null(req->env()->isolate());
-    argv[1] = Buffer::New(req->env(), data, size).ToLocalChecked();
+    Local<Value> buffer =
+        req->object()->Get(req->env()->context(),
+                           req->env()->buffer_string()).ToLocalChecked();
+
+    if (buffer->IsUint8Array()) {
+      CHECK_LE(req->size(), Buffer::Length(buffer));
+      char* buf = Buffer::Data(buffer);
+      memcpy(buf, data, req->size());
+      argv[1] = buffer;
+    } else {
+      argv[1] = Buffer::New(req->env(), data, size).ToLocalChecked();
+    }
   }
 }
 
@@ -5711,11 +5749,22 @@ void RandomBytesAfter(uv_work_t* work_req, int status) {
 }
 
 
+void RandomBytesProcessSync(Environment* env,
+                            RandomBytesRequest* req,
+                            Local<Value> argv[2]) {
+  env->PrintSyncTrace();
+  RandomBytesWork(req->work_req());
+  RandomBytesCheck(req, argv);
+  delete req;
+
+  if (!argv[0]->IsNull())
+    env->isolate()->ThrowException(argv[0]);
+}
+
+
 void RandomBytes(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  // maybe allow a buffer to write to? cuts down on object creation
-  // when generating random data in a loop
   if (!args[0]->IsUint32()) {
     return env->ThrowTypeError("\x73\x69\x7a\x65\x20\x6d\x75\x73\x74\x20\x62\x65\x20\x61\x20\x6e\x75\x6d\x62\x65\x72\x20\x3e\x3d\x20\x30");
   }
@@ -5725,7 +5774,13 @@ void RandomBytes(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowRangeError("\x73\x69\x7a\x65\x20\x69\x73\x20\x6e\x6f\x74\x20\x61\x20\x76\x61\x6c\x69\x64\x20\x53\x6d\x69");
 
   Local<Object> obj = env->NewInternalFieldObject();
-  RandomBytesRequest* req = new RandomBytesRequest(env, obj, size);
+  char* data = node::Malloc(size);
+  RandomBytesRequest* req =
+      new RandomBytesRequest(env,
+                             obj,
+                             size,
+                             data,
+                             RandomBytesRequest::FREE_DATA);
 
   if (args[1]->IsFunction()) {
     obj->Set(FIXED_ONE_BYTE_STRING(args.GetIsolate(), "\x6f\x6e\x64\x6f\x6e\x65"), args[1]);
@@ -5738,15 +5793,55 @@ void RandomBytes(const FunctionCallbackInfo<Value>& args) {
                   RandomBytesAfter);
     args.GetReturnValue().Set(obj);
   } else {
-    env->PrintSyncTrace();
     Local<Value> argv[2];
-    RandomBytesWork(req->work_req());
-    RandomBytesCheck(req, argv);
-    delete req;
+    RandomBytesProcessSync(env, req, argv);
+    if (argv[0]->IsNull())
+      args.GetReturnValue().Set(argv[1]);
+  }
+}
 
-    if (!argv[0]->IsNull())
-      env->isolate()->ThrowException(argv[0]);
-    else
+
+void RandomBytesBuffer(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
+  CHECK(args[0]->IsUint8Array());
+  CHECK(args[1]->IsUint32());
+  CHECK(args[2]->IsUint32());
+
+  int64_t offset = args[1]->IntegerValue();
+  int64_t size = args[2]->IntegerValue();
+
+  Local<Object> obj = env->NewInternalFieldObject();
+  obj->Set(env->context(), env->buffer_string(), args[0]).FromJust();
+  char* data = Buffer::Data(args[0]);
+  data += offset;
+
+  RandomBytesRequest* req =
+      new RandomBytesRequest(env,
+                             obj,
+                             size,
+                             data,
+                             RandomBytesRequest::DONT_FREE_DATA);
+  if (args[3]->IsFunction()) {
+    obj->Set(env->context(),
+             FIXED_ONE_BYTE_STRING(args.GetIsolate(), "\x6f\x6e\x64\x6f\x6e\x65"),
+             args[3]).FromJust();
+
+    if (env->in_domain()) {
+      obj->Set(env->context(),
+               env->domain_string(),
+               env->domain_array()->Get(0)).FromJust();
+    }
+
+    uv_queue_work(env->event_loop(),
+                  req->work_req(),
+                  RandomBytesWork,
+                  RandomBytesAfter);
+    args.GetReturnValue().Set(obj);
+  } else {
+    Local<Value> argv[2];
+    RandomBytesProcessSync(env, req, argv);
+    if (argv[0]->IsNull())
       args.GetReturnValue().Set(argv[1]);
   }
 }
@@ -6171,16 +6266,17 @@ void InitCrypto(Local<Object> target,
 #ifndef OPENSSL_NO_ENGINE
   env->SetMethod(target, "\x73\x65\x74\x45\x6e\x67\x69\x6e\x65", SetEngine);
 #endif  // !OPENSSL_NO_ENGINE
-  env->SetMethod(target, "\x67\x65\x74\x46\x69\x70\x73\x43\x72\x79\x70\x74\x6f", GetFipsCrypto);
-  env->SetMethod(target, "\x73\x65\x74\x46\x69\x70\x73\x43\x72\x79\x70\x74\x6f", SetFipsCrypto);
-  env->SetMethod(target, "\x50\x42\x4b\x44\x46\x32", PBKDF2);
-  env->SetMethod(target, "\x72\x61\x6e\x64\x6f\x6d\x42\x79\x74\x65\x73", RandomBytes);
-  env->SetMethod(target, "\x74\x69\x6d\x69\x6e\x67\x53\x61\x66\x65\x45\x71\x75\x61\x6c", TimingSafeEqual);
-  env->SetMethod(target, "\x67\x65\x74\x53\x53\x4c\x43\x69\x70\x68\x65\x72\x73", GetSSLCiphers);
-  env->SetMethod(target, "\x67\x65\x74\x43\x69\x70\x68\x65\x72\x73", GetCiphers);
-  env->SetMethod(target, "\x67\x65\x74\x48\x61\x73\x68\x65\x73", GetHashes);
-  env->SetMethod(target, "\x67\x65\x74\x43\x75\x72\x76\x65\x73", GetCurves);
-  env->SetMethod(target, "\x70\x75\x62\x6c\x69\x63\x45\x6e\x63\x72\x79\x70\x74",
+  env->SetMethod(target, u8"getFipsCrypto", GetFipsCrypto);
+  env->SetMethod(target, u8"setFipsCrypto", SetFipsCrypto);
+  env->SetMethod(target, u8"PBKDF2", PBKDF2);
+  env->SetMethod(target, u8"randomBytes", RandomBytes);
+  env->SetMethod(target, u8"randomFill", RandomBytesBuffer);
+  env->SetMethod(target, u8"timingSafeEqual", TimingSafeEqual);
+  env->SetMethod(target, u8"getSSLCiphers", GetSSLCiphers);
+  env->SetMethod(target, u8"getCiphers", GetCiphers);
+  env->SetMethod(target, u8"getHashes", GetHashes);
+  env->SetMethod(target, u8"getCurves", GetCurves);
+  env->SetMethod(target, u8"publicEncrypt",
                  PublicKeyCipher::Cipher<PublicKeyCipher::kPublic,
                                          EVP_PKEY_encrypt_init,
                                          EVP_PKEY_encrypt>);

@@ -54,6 +54,12 @@ static void GetProxyDetails(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(ret);
 }
 
+// Side effect-free stringification that will never throw exceptions.
+static void SafeToString(const FunctionCallbackInfo<Value>& args) {
+  auto context = args.GetIsolate()->GetCurrentContext();
+  args.GetReturnValue().Set(args[0]->ToDetailString(context).ToLocalChecked());
+}
+
 static void GetHiddenValue(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
@@ -119,9 +125,10 @@ void Initialize(Local<Object> target,
   VALUE_METHOD_MAP(V)
 #undef V
 
-  env->SetMethod(target, "\x67\x65\x74\x48\x69\x64\x64\x65\x6e\x56\x61\x6c\x75\x65", GetHiddenValue);
-  env->SetMethod(target, "\x73\x65\x74\x48\x69\x64\x64\x65\x6e\x56\x61\x6c\x75\x65", SetHiddenValue);
-  env->SetMethod(target, "\x67\x65\x74\x50\x72\x6f\x78\x79\x44\x65\x74\x61\x69\x6c\x73", GetProxyDetails);
+  env->SetMethod(target, u8"getHiddenValue", GetHiddenValue);
+  env->SetMethod(target, u8"setHiddenValue", SetHiddenValue);
+  env->SetMethod(target, u8"getProxyDetails", GetProxyDetails);
+  env->SetMethod(target, u8"safeToString", SafeToString);
 
   env->SetMethod(target, "\x73\x74\x61\x72\x74\x53\x69\x67\x69\x6e\x74\x57\x61\x74\x63\x68\x64\x6f\x67", StartSigintWatchdog);
   env->SetMethod(target, "\x73\x74\x6f\x70\x53\x69\x67\x69\x6e\x74\x57\x61\x74\x63\x68\x64\x6f\x67", StopSigintWatchdog);

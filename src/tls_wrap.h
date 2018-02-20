@@ -113,6 +113,7 @@ class TLSWrap : public AsyncWrap,
   bool IsIPCPipe() override;
   bool IsTTY() override;
   bool IsPipe() override;
+  uint32_t UpdateWriteQueueSize(uint32_t write_queue_size = 0);
 
   // Resource implementation
   static void OnAfterWriteImpl(WriteWrap* w, void* ctx);
@@ -121,7 +122,6 @@ class TLSWrap : public AsyncWrap,
                          const uv_buf_t* buf,
                          uv_handle_type pending,
                          void* ctx);
-  static void OnAfterWriteSelf(WriteWrap* w, void* ctx);
   static void OnAllocSelf(size_t size, uv_buf_t* buf, void* ctx);
   static void OnReadSelf(ssize_t nread,
                          const uv_buf_t* buf,
@@ -168,6 +168,10 @@ class TLSWrap : public AsyncWrap,
   // If true - delivered EOF to the js-land, either after `close_notify`, or
   // after the `UV_EOF` on socket.
   bool eof_;
+
+ private:
+  static void UpdateWriteQueueSize(
+      const v8::FunctionCallbackInfo<v8::Value>& args);
 };
 
 }  // namespace node

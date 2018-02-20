@@ -277,6 +277,13 @@ static const unsigned kMaxSignal = 32;
 
 #ifdef __MVS__
 static uv_thread_t signalHandlerThread;
+class ThreadPoolObject {
+public:
+  ~ThreadPoolObject()
+  {
+    int rc = uv_queue_work(NULL, NULL, NULL, NULL);
+  }
+};
 #endif
 
 static void PrintString(FILE* out, const char* format, va_list ap) {
@@ -2449,6 +2456,9 @@ static void WaitForInspectorDisconnect(Environment* env) {
 
 void Exit(const FunctionCallbackInfo<Value>& args) {
   WaitForInspectorDisconnect(Environment::GetCurrent(args));
+#ifdef __MVS__
+  uv_queue_work(NULL, NULL, NULL, NULL);
+#endif
   exit(args[0]->Int32Value());
 }
 
@@ -2695,6 +2705,8 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
 }
 
 
+#ifdef __MVS__
+
 static void ReleaseResourcesOnExit() {
   /* TODO: This might make all other ReleaseSystem... functions redundant */
   IPCQPROC bufptr;
@@ -2729,7 +2741,6 @@ static void ReleaseResourcesOnExit() {
 }
 
 
-#ifdef __MVS__
 void on_sigabrt (int signum)
 {
   V8::ReleaseSystemResources();
@@ -3204,6 +3215,12 @@ static void EnvEnumerator(const PropertyCallbackInfo<Array>& info) {
 }
 
 
+static void GetParentProcessId(Local<Name> property,
+                               const PropertyCallbackInfo<Value>& info) {
+  info.GetReturnValue().Set(Integer::New(info.GetIsolate(), uv_os_getppid()));
+}
+
+
 static Local<Object> GetFeatures(Environment* env) {
   EscapableHandleScope scope(env->isolate());
 
@@ -3558,6 +3575,9 @@ void SetupProcessObject(Environment* env,
 
   READONLY_PROPERTY(process, "\x70\x69\x64", Integer::New(env->isolate(), getpid()));
   READONLY_PROPERTY(process, "\x66\x65\x61\x74\x75\x72\x65\x73", GetFeatures(env));
+
+  process->SetAccessor(FIXED_ONE_BYTE_STRING(env->isolate(), "\x70\x70\x69\x64"),
+                       GetParentProcessId);
 
   auto need_immediate_callback_string =
       FIXED_ONE_BYTE_STRING(env->isolate(), "\x5f\x6e\x65\x65\x64\x49\x6d\x6d\x65\x64\x69\x61\x74\x65\x43\x61\x6c\x6c\x62\x61\x63\x6b");
@@ -4066,8 +4086,8 @@ static bool ArgIsAllowed(const char* arg, const char* allowed) {
   for (; *arg && *allowed; arg++, allowed++) {
     // Like normal strcmp(), except that a '_' in `allowed` matches either a '-'
     // or '_' in `arg`.
-    if (*allowed == '_') {
-      if (!(*arg == '_' || *arg == '-'))
+    if (*allowed == '\x5f') {
+      if (!(*arg == '\x5f' || *arg == '\x2d'))
         return false;
     } else {
       if (*arg != *allowed)
@@ -4076,7 +4096,7 @@ static bool ArgIsAllowed(const char* arg, const char* allowed) {
   }
 
   // "--some-arg=val" is allowed for "--some-arg"
-  if (*arg == '=')
+  if (*arg == '\x3d')
     return true;
 
   // Both must be null, or one string is just a prefix of the other, not a
@@ -4121,7 +4141,7 @@ static void CheckIfAllowedInEnv(const char* exe, bool is_env,
     u8"--icu-data-dir",
 
     // V8 options (define with '_', which allows '-' or '_')
-    u8"--abort-on-uncaught-exception",
+    u8"--abort_on_uncaught_exception",
     u8"--max_old_space_size",
   };
 
@@ -4158,6 +4178,10 @@ static void ParseArgs(int* argc,
   const char** new_exec_argv = new const char*[nargs];
   const char** new_v8_argv = new const char*[nargs];
   const char** new_argv = new const char*[nargs];
+#if HAVE_OPENSSL
+  bool use_bundled_ca = false;
+  bool use_openssl_ca = false;
+#endif  // HAVE_OPENSSL
 
   for (unsigned int i = 0; i < nargs; ++i) {
     new_exec_argv[i] = nullptr;
@@ -4263,7 +4287,9 @@ static void ParseArgs(int* argc,
       default_cipher_list = arg + 18;
     } else if (strncmp(arg, u8"--use-openssl-ca", 16) == 0) {
       ssl_openssl_cert_store = true;
+      use_openssl_ca = true;
     } else if (strncmp(arg, u8"--use-bundled-ca", 16) == 0) {
+      use_bundled_ca = true;
       ssl_openssl_cert_store = false;
 #if NODE_FIPS_MODE
     } else if (strcmp(arg, "\x2d\x2d\x65\x6e\x61\x62\x6c\x65\x2d\x66\x69\x70\x73") == 0) {
@@ -4297,6 +4323,16 @@ static void ParseArgs(int* argc,
     new_exec_argc += args_consumed;
     index += args_consumed;
   }
+
+#if HAVE_OPENSSL
+  if (use_openssl_ca && use_bundled_ca) {
+    PrintErrorString(
+            u8"%s: either --use-openssl-ca or --use-bundled-ca can be used, "
+            "not both\n",
+            argv[0]);
+    exit(9);
+  }
+#endif
 
   // Copy remaining arguments.
   const unsigned int args_left = nargs - index;
@@ -5218,6 +5254,7 @@ static void StartNodeInstance(void* arg) {
 }
 
 int Start(int argc, char** argv) {
+  ThreadPoolObject threadPoolObj;
   PlatformInit();
 
   CHECK_GT(argc, 0);

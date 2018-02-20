@@ -102,15 +102,17 @@ static void post(QUEUE* q) {
 
 
 #ifndef _WIN32
+#ifdef __MVS__
+static void cleanup(void) {
+#else
 UV_DESTRUCTOR(static void cleanup(void)) {
+#endif
   unsigned int i;
 
   if (initialized == 0)
     return;
 
-# ifndef __MVS__
   post(&exit_message);
-# endif
 
   for (i = 0; i < nthreads; i++)
     if (uv_thread_join(threads + i))
@@ -273,6 +275,12 @@ int uv_queue_work(uv_loop_t* loop,
                   uv_work_t* req,
                   uv_work_cb work_cb,
                   uv_after_work_cb after_work_cb) {
+
+  if (req == NULL && loop == NULL && work_cb == NULL && after_work_cb == NULL) {
+    cleanup();
+    return 0;
+  }
+
   if (work_cb == NULL)
     return UV_EINVAL;
 

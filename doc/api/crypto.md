@@ -347,7 +347,7 @@ added: v1.0.0
 When using an authenticated encryption mode (only `GCM` is currently
 supported), the `decipher.setAuthTag()` method is used to pass in the
 received _authentication tag_. If no tag is provided, or if the cipher text
-has been tampered with, [`decipher.final()`][] with throw, indicating that the
+has been tampered with, [`decipher.final()`][] will throw, indicating that the
 cipher text should be discarded due to failed authentication.
 
 Returns `this` for method chaining.
@@ -1395,7 +1395,7 @@ higher the number of iterations, the more secure the derived key will be,
 but will take a longer amount of time to complete.
 
 The `salt` should also be as unique as possible. It is recommended that the
-salts are random and their lengths are greater than 16 bytes. See
+salts are random and their lengths are at least 16 bytes. See
 [NIST SP 800-132][] for details.
 
 Example:
@@ -1429,7 +1429,7 @@ higher the number of iterations, the more secure the derived key will be,
 but will take a longer amount of time to complete.
 
 The `salt` should also be as unique as possible. It is recommended that the
-salts are random and their lengths are greater than 16 bytes. See
+salts are random and their lengths are at least 16 bytes. See
 [NIST SP 800-132][] for details.
 
 Example:
@@ -1587,6 +1587,66 @@ sufficient entropy available.
 This should normally never take longer than a few milliseconds. The only time
 when generating the random bytes may conceivably block for a longer period of
 time is right after boot, when the whole system is still low on entropy.
+
+### crypto.randomFillSync(buffer[, offset][, size])
+<!-- YAML
+added: v6.13.0
+-->
+
+* `buffer` {Buffer|Uint8Array} Must be supplied.
+* `offset` {number} Defaults to `0`.
+* `size` {number} Defaults to `buffer.length - offset`.
+
+Synchronous version of [`crypto.randomFill()`][].
+
+Returns `buffer`
+
+```js
+const buf = Buffer.alloc(10);
+console.log(crypto.randomFillSync(buf).toString('hex'));
+
+crypto.randomFillSync(buf, 5);
+console.log(buf.toString('hex'));
+
+// The above is equivalent to the following:
+crypto.randomFillSync(buf, 5, 5);
+console.log(buf.toString('hex'));
+```
+
+### crypto.randomFill(buffer[, offset][, size], callback)
+<!-- YAML
+added: v6.13.0
+-->
+
+* `buffer` {Buffer|Uint8Array} Must be supplied.
+* `offset` {number} Defaults to `0`.
+* `size` {number} Defaults to `buffer.length - offset`.
+* `callback` {Function} `function(err, buf) {}`.
+
+This function is similar to [`crypto.randomBytes()`][] but requires the first
+argument to be a [`Buffer`][] that will be filled. It also
+requires that a callback is passed in.
+
+If the `callback` function is not provided, an error will be thrown.
+
+```js
+const buf = Buffer.alloc(10);
+crypto.randomFill(buf, (err, buf) => {
+  if (err) throw err;
+  console.log(buf.toString('hex'));
+});
+
+crypto.randomFill(buf, 5, (err, buf) => {
+  if (err) throw err;
+  console.log(buf.toString('hex'));
+});
+
+// The above is equivalent to the following:
+crypto.randomFill(buf, 5, 5, (err, buf) => {
+  if (err) throw err;
+  console.log(buf.toString('hex'));
+});
+```
 
 ### crypto.setEngine(engine[, flags])
 <!-- YAML
@@ -2006,6 +2066,8 @@ the `crypto`, `tls`, and `https` modules and are generally specific to OpenSSL.
 [`crypto.getCurves()`]: #crypto_crypto_getcurves
 [`crypto.getHashes()`]: #crypto_crypto_gethashes
 [`crypto.pbkdf2()`]: #crypto_crypto_pbkdf2_password_salt_iterations_keylen_digest_callback
+[`crypto.randomBytes()`]: #crypto_crypto_randombytes_size_callback
+[`crypto.randomFill()`]: #crypto_crypto_randomfill_buffer_offset_size_callback
 [`decipher.final()`]: #crypto_decipher_final_output_encoding
 [`decipher.update()`]: #crypto_decipher_update_data_input_encoding_output_encoding
 [`diffieHellman.setPublicKey()`]: #crypto_diffiehellman_setpublickey_public_key_encoding

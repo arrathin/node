@@ -695,7 +695,6 @@ void uv__fs_event_close(uv_fs_event_t* handle) {
 
 
 int uv_fs_event_init(uv_loop_t* loop, uv_fs_event_t* handle) {
-  // Register handle
   uv__handle_init(loop, (uv_handle_t*)handle, UV_FS_EVENT);
   return 0;
 }
@@ -705,15 +704,18 @@ int uv_fs_event_start(uv_fs_event_t* handle, uv_fs_event_cb cb,
                       const char* filename, unsigned int flags) {
   uv__os390_epoll* ep;
   _RFIS reg_struct;
-  char *path;
+  char* path;
   int rc;
+
+  if (uv__is_active(handle))
+    return UV_EINVAL;
 
   ep = handle->loop->ep;
   assert(ep->msg_queue != -1);
 
-  reg_struct.__rfis_cmd  = _RFIS_REG;    
-  reg_struct.__rfis_qid  = ep->msg_queue;     
-  reg_struct.__rfis_type = 1;            
+  reg_struct.__rfis_cmd  = _RFIS_REG;
+  reg_struct.__rfis_qid  = ep->msg_queue;
+  reg_struct.__rfis_type = 1;
   memcpy(reg_struct.__rfis_utok, &handle, sizeof(handle));
 
   path = uv__strdup(filename);
@@ -739,17 +741,26 @@ int uv_fs_event_stop(uv_fs_event_t* handle) {
   _RFIS reg_struct;
   int rc;
 
+  if (!uv__is_active(handle))
+    return 0;
+
   ep = handle->loop->ep;
   assert(ep->msg_queue != -1);
 
-  reg_struct.__rfis_cmd  = _RFIS_UNREG;    
-  reg_struct.__rfis_qid  = ep->msg_queue;     
-  reg_struct.__rfis_type = 1;            
-  memcpy(reg_struct.__rfis_rftok, handle->rfis_rftok, sizeof(handle->rfis_rftok));
+  reg_struct.__rfis_cmd  = _RFIS_UNREG;
+  reg_struct.__rfis_qid  = ep->msg_queue;
+  reg_struct.__rfis_type = 1;
+  memcpy(reg_struct.__rfis_rftok, handle->rfis_rftok,
+         sizeof(handle->rfis_rftok));
 
-  rc = __w_pioctl(NULL, _IOCC_REGFILEINT, sizeof(reg_struct), &reg_struct);
+  /* 
+   * This call will take "/" as the path argument in case we
+   * don't care to supply the correct path. The system will simply
+   * ignore it.
+   */
+  rc = __w_pioctl("/", _IOCC_REGFILEINT, sizeof(reg_struct), &reg_struct);
   if (rc != 0 && errno != EALREADY && errno != ENOENT)
-    return -errno;
+    abort();
 
   uv__handle_stop(handle);
 
@@ -978,7 +989,12 @@ void uv__set_process_title(const char* title) {
 }
 
 int uv__io_fork(uv_loop_t* loop) {
-  uv__platform_loop_delete(loop);
+  /* 
+    Nullify the msg queue but don't close it because
+    it is still being used by the parent.
+  */
+  loop->ep = NULL;
 
+  uv__platform_loop_delete(loop);
   return uv__platform_loop_init(loop);
 }

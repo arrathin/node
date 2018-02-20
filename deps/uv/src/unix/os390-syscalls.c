@@ -106,16 +106,16 @@ static void maybe_resize(uv__os390_epoll* lst, unsigned int len) {
   unsigned int newsize;
   unsigned int i;
   struct pollfd* newlst;
-  struct pollfd e;
+  struct pollfd event;
 
   if (len <= lst->size)
     return;
 
   if (lst->size == 0)
-    e.fd = -1;
+    event.fd = -1;
   else {
     /* Extract the message queue at the end. */
-    e = lst->items[lst->size - 1];
+    event = lst->items[lst->size - 1];
     lst->items[lst->size - 1].fd = -1;
   }
 
@@ -128,44 +128,25 @@ static void maybe_resize(uv__os390_epoll* lst, unsigned int len) {
     newlst[i].fd = -1;
 
   /* Restore the message queue at the end */
-  newlst[newsize - 1] = e;
+  newlst[newsize - 1] = event;
 
   lst->items = newlst;
   lst->size = newsize;
 }
 
 
-static void epoll_init(void) {
-  QUEUE_INIT(&global_epoll_queue);
-  if (uv_mutex_init(&global_epoll_lock))
-    abort();
-}
-
-
-uv__os390_epoll* epoll_create1(int flags) {
-  uv__os390_epoll* lst;
+static void init_message_queue(uv__os390_epoll* lst) {
   struct {
     long int header;
     char body;
   } msg;
-
-  lst = uv__malloc(sizeof(*lst));
-  if (lst != NULL) {
-    /* initialize list */
-    lst->size = 0;
-    lst->items = NULL;
-    uv_once(&once, epoll_init);
-    uv_mutex_lock(&global_epoll_lock);
-    QUEUE_INSERT_TAIL(&global_epoll_queue, &lst->member);
-    uv_mutex_unlock(&global_epoll_lock);
-  }
 
   /* initialize message queue */
   lst->msg_queue = msgget(IPC_PRIVATE, 0622 | IPC_CREAT);
   if (lst->msg_queue == -1)
     abort();
 
-  /* 
+  /*
      On z/OS, the message queue will be affiliated with the process only
      when a send is performed on it. Once this is done, the system
      can be queried for all message queues belonging to our process id.
@@ -177,10 +158,72 @@ uv__os390_epoll* epoll_create1(int flags) {
   /* Clean up the dummy message sent above */
   if (msgrcv(lst->msg_queue, &msg, sizeof(msg.body), 0, 0) != sizeof(msg.body))
     abort();
+}
 
-  maybe_resize(lst, 1);
-  lst->items[lst->size - 1].fd = lst->msg_queue;
-  lst->items[lst->size - 1].events = POLLIN;
+
+static void before_fork(void) {
+  uv_mutex_lock(&global_epoll_lock);
+}
+
+
+static void after_fork(void) {
+  uv_mutex_unlock(&global_epoll_lock);
+}
+
+
+static void child_fork(void) {
+  QUEUE* q;
+  uv_once_t child_once = UV_ONCE_INIT;
+
+  /* reset once */
+  memcpy(&once, &child_once, sizeof(child_once));
+
+  /* reset epoll list */
+  while (!QUEUE_EMPTY(&global_epoll_queue)) {
+    uv__os390_epoll* lst;
+    q = QUEUE_HEAD(&global_epoll_queue);
+    QUEUE_REMOVE(q);
+    lst = QUEUE_DATA(q, uv__os390_epoll, member);
+    uv__free(lst->items);
+    lst->items = NULL;
+    lst->size = 0;
+  }
+
+  uv_mutex_unlock(&global_epoll_lock);
+  uv_mutex_destroy(&global_epoll_lock);
+}
+
+
+static void epoll_init(void) {
+  QUEUE_INIT(&global_epoll_queue);
+  if (uv_mutex_init(&global_epoll_lock))
+    abort();
+
+  /* TODO: fix */
+#if 0
+  if (pthread_atfork(&before_fork, &after_fork, &child_fork))
+    abort();
+#endif
+}
+
+
+uv__os390_epoll* epoll_create1(int flags) {
+  uv__os390_epoll* lst;
+
+  lst = uv__malloc(sizeof(*lst));
+  if (lst != NULL) {
+    /* initialize list */
+    lst->size = 0;
+    lst->items = NULL;
+    init_message_queue(lst);
+    maybe_resize(lst, 1);
+    lst->items[lst->size - 1].fd = lst->msg_queue;
+    lst->items[lst->size - 1].events = POLLIN;
+    uv_once(&once, epoll_init);
+    uv_mutex_lock(&global_epoll_lock);
+    QUEUE_INSERT_TAIL(&global_epoll_queue, &lst->member);
+    uv_mutex_unlock(&global_epoll_lock);
+  }
 
   return lst;
 }
@@ -192,7 +235,7 @@ int epoll_ctl(uv__os390_epoll* lst,
               struct epoll_event *event) {
   uv_mutex_lock(&global_epoll_lock);
 
-  if(op == EPOLL_CTL_DEL) {
+  if (op == EPOLL_CTL_DEL) {
     if (fd >= lst->size || lst->items[fd].fd == -1) {
       uv_mutex_unlock(&global_epoll_lock);
       errno = ENOENT;
@@ -238,10 +281,11 @@ int epoll_wait(uv__os390_epoll* lst, struct epoll_event* events,
   size = _SET_FDS_MSGS(size, 1, lst->size - 1);
   pfds = lst->items;
   pollret = poll(pfds, size, timeout);
-  if (pollret == -1 || pollret == 0)
+  if (pollret <= 0)
     return pollret;
 
   pollret = _NFDS(pollret) + _NMSGS(pollret);
+
   reventcount = 0;
   for (int i = 0; 
        i < lst->size && i < maxevents && reventcount < pollret; ++i) {
@@ -385,9 +429,9 @@ ssize_t os390_readlink(const char* path, char* buf, size_t len) {
   ssize_t rlen;
   ssize_t vlen;
   ssize_t plen;
-  char *delimiter;
+  char* delimiter;
   char old_delim;
-  char *tmpbuf;
+  char* tmpbuf;
   char realpathstr[PATH_MAX + 1];
 
   tmpbuf = uv__malloc(len + 1);
@@ -447,4 +491,13 @@ ssize_t os390_readlink(const char* path, char* buf, size_t len) {
   uv__free(tmpbuf);
 
   return rlen;
+}
+
+
+size_t strnlen(const char* str, size_t maxlen) {
+  char* p = memchr(str, 0, maxlen);
+  if (p == NULL)
+    return maxlen;
+  else
+    return p - str;
 }

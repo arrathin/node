@@ -5,6 +5,7 @@ This directory contains modules used to test the Node.js implementation.
 ## Table of Contents
 
 * [Common module API](#common-module-api)
+* [Duplex pair helper](#duplex-pair-helper)
 * [WPT module](#wpt-module)
 
 ## Common Module API
@@ -26,12 +27,14 @@ A stream to push an array into a REPL
 
 Blocks for `time` amount of time.
 
-### canCreateSymLink
-API to indicate whether the current running process can create
-symlinks. On Windows, this returns false if the process running
-doesn't have privileges to create symlinks (specifically
-[SeCreateSymbolicLinkPrivilege](https://msdn.microsoft.com/en-us/library/windows/desktop/bb530716(v=vs.85).aspx)).
-On non-Windows platforms, this currently returns true.
+### canCreateSymLink()
+* return [&lt;Boolean>]
+
+Checks whether the current running process can create symlinks. On Windows, this
+returns `false` if the process running doesn't have privileges to create
+symlinks
+([SeCreateSymbolicLinkPrivilege](https://msdn.microsoft.com/en-us/library/windows/desktop/bb530716(v=vs.85).aspx)).
+On non-Windows platforms, this always returns `true`.
 
 ### crashOnUnhandledRejection()
 
@@ -46,9 +49,9 @@ failures.
 Platform normalizes the `dd` command
 
 ### enoughTestMem
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
-Check if there is more than 1gb of total memory.
+Indicates if there is more than 1gb of total memory.
 
 ### expectsError(settings)
 * `settings` [&lt;Object>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)
@@ -81,7 +84,7 @@ Tests whether `name` and `expected` are part of a raised warning.
 Checks if `pathname` exists
 
 ### fixturesDir
-* return [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
+* [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
 
 Path to the 'fixtures' directory.
 
@@ -92,37 +95,37 @@ Path to the 'fixtures' directory.
 Returns an instance of all possible `ArrayBufferView`s of the provided Buffer.
 
 ### globalCheck
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
-Turn this off if the test should not check for global leaks.
+Set to `false` if the test should not check for global leaks.
 
 ### hasCrypto
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
-Checks for 'openssl'.
+Indicates whether OpenSSL is available.
 
 ### hasFipsCrypto
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
-Checks `hasCrypto` and `crypto` with fips.
+Indicates `hasCrypto` and `crypto` with fips.
 
 ### hasIPv6
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
-Checks whether `IPv6` is supported on this platform.
+Indicates whether `IPv6` is supported on this platform.
 
 ### hasMultiLocalhost
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
-Checks if there are multiple localhosts available.
+Indicates if there are multiple localhosts available.
 
 ### inFreeBSDJail
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
 Checks whether free BSD Jail is true or false.
 
 ### isAix
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
 Platform check for Advanced Interactive eXecutive (AIX).
 
@@ -133,54 +136,54 @@ Platform check for Advanced Interactive eXecutive (AIX).
 Attempts to 'kill' `pid`
 
 ### isFreeBSD
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
 Platform check for Free BSD.
 
 ### isLinux
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
 Platform check for Linux.
 
 ### isLinuxPPCBE
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
 Platform check for Linux on PowerPC.
 
 ### isOSX
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
 Platform check for macOS.
 
 ### isSunOS
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
 Platform check for SunOS.
 
 ### isWindows
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
 Platform check for Windows.
 
 ### isWOW64
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
 Platform check for Windows 32-bit on Windows 64-bit.
 
 ### leakedGlobals
-* return [&lt;Array>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
+* [&lt;Array>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
 
-Checks whether any globals are not on the `knownGlobals` list.
+Indicates whether any globals are not on the `knownGlobals` list.
 
 ### localhostIPv4
-* return [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
+* [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
 
-Gets IP of localhost
+IP of `localhost`.
 
 ### localIPv6Hosts
-* return [&lt;Array>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
+* [&lt;Array>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
 
-Array of IPV6 hosts.
+Array of IPV6 representations for `localhost`.
 
 ### mustCall([fn][, exact])
 * `fn` [&lt;Function>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function) default = () => {}
@@ -218,9 +221,9 @@ Returns a function that triggers an `AssertionError` if it is invoked. `msg` is 
 Returns `true` if the exit code `exitCode` and/or signal name `signal` represent the exit code and/or signal name of a node process that aborted, `false` otherwise.
 
 ### opensslCli
-* return [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
+* [&lt;Boolean>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type)
 
-Checks whether 'opensslCli' is supported.
+Indicates whether 'opensslCli' is supported.
 
 ### platformTimeout(ms)
 * `ms` [&lt;Number>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type)
@@ -229,14 +232,14 @@ Checks whether 'opensslCli' is supported.
 Platform normalizes timeout.
 
 ### PIPE
-* return [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
+* [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
 
-Path to the test sock.
+Path to the test socket.
 
 ### PORT
-* return [&lt;Number>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type) default = `12346`
+* [&lt;Number>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type) default = `12346`
 
-Port tests are running on.
+A port number for tests to use if one is needed.
 
 ### printSkipMessage(msg)
 * `msg` [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
@@ -249,7 +252,7 @@ Logs '1..0 # Skipped: ' + `msg`
 Deletes the 'tmp' dir and recreates it
 
 ### rootDir
-* return [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
+* [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
 
 Path to the 'root' directory. either `/` or `c:\\` (windows)
 
@@ -271,7 +274,7 @@ Platform normalizes the `pwd` command.
 Synchronous version of `spawnPwd`.
 
 ### tmpDir
-* return [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
+* [&lt;String>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type)
 
 The realpath of the 'tmp' directory.
 
@@ -315,6 +318,14 @@ Decrements the `Countdown` counter.
 
 Specifies the remaining number of times `Countdown.prototype.dec()` must be
 called before the callback is invoked.
+
+## Duplex pair helper
+
+The `common/duplexpair` module exports a single function `makeDuplexPair`,
+which returns an object `{ clientSide, serverSide }` where each side is a
+`Duplex` stream connected to the other side.
+
+There is no difference between client or server side beyond their names.
 
 ## Fixtures Module
 

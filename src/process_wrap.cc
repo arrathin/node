@@ -68,7 +68,7 @@ class ProcessWrap : public HandleWrap {
   
   static bool isAsciiPgm(const char *pgm) {
     const char * pgmName = pgm;
-    const char * AsciiPgms[2] = { "git", "python2"};
+    const char * AsciiPgms[] = { "git", "python2", "python"};
     std::cmatch cm;
     std::regex absolutePath("^.*\/([^/]*)$");
     if (std::regex_match(pgmName,cm,absolutePath)) {
@@ -78,7 +78,7 @@ class ProcessWrap : public HandleWrap {
             }
     } 
 
-    for (int pgId = 0 ; pgId < 2; pgId++) {
+    for (int pgId = 0 ; pgId < sizeof(AsciiPgms) / sizeof(const char*); pgId++) {
        if (strcmp(pgmName,AsciiPgms[pgId]) == 0) {  
            return true;
        } 

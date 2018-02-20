@@ -121,6 +121,8 @@ connections use asynchronous `server.getConnections` instead.
 added: v0.9.7
 -->
 
+* Returns {net.Server}
+
 Asynchronously get the number of concurrent connections on the server. Works
 when sockets were sent to forks.
 
@@ -574,6 +576,8 @@ server will still send some data.
 
 If `data` is specified, it is equivalent to calling
 `socket.write(data, encoding)` followed by `socket.end()`.
+
+Returns `socket`.
 
 ### socket.localAddress
 <!-- YAML
