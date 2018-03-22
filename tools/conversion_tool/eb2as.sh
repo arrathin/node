@@ -85,11 +85,11 @@ done
 # compile using the temp file that has been converted into ascii
 if [ $LINK = 1 ]
 then
-    $COMPILER ${COMPILE[*]} ${deleted[*]} >/dev/null 2>/dev/null
+    $COMPILER++ ${COMPILE[*]} ${deleted[*]} >/dev/null 2>/dev/null
     RETVAL=$?
     if [ $RETVAL != 0 ]
     then
-      $COMPILER ${COMPILE[*]} ${deleted[*]} 2>&1 | cat
+      $COMPILER++ ${COMPILE[*]} ${deleted[*]} 2>&1 | cat
     fi
 elif [ $CFLAG = 1 ]
 then

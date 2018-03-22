@@ -609,6 +609,7 @@
         '<(OBJ_PATH)/stream_base.<(OBJ_SUFFIX)',
         '<(OBJ_PATH)/node_constants.<(OBJ_SUFFIX)',
         '<(OBJ_PATH)/node_revert.<(OBJ_SUFFIX)',
+        '<(OBJ_PATH)/node_watchdog.<(OBJ_SUFFIX)',
       ],
 
       'defines': [

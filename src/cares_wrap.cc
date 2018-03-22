@@ -1292,6 +1292,34 @@ static void IsIPv6(const FunctionCallbackInfo<Value>& args) {
   }
 }
 
+
+void CanonicalizeIP(const FunctionCallbackInfo<Value>& args) {
+  v8::Isolate* isolate = args.GetIsolate();
+  node::Utf8Value ip(isolate, args[0]);
+#ifdef __MVS__
+  __a2e_s(*ip);
+#endif
+  char address_buffer[sizeof(struct in6_addr)];
+  char canonical_ip[INET6_ADDRSTRLEN];
+
+  int af;
+  if (uv_inet_pton(AF_INET, *ip, &address_buffer) == 0)
+    af = AF_INET;
+  else if (uv_inet_pton(AF_INET6, *ip, &address_buffer) == 0)
+    af = AF_INET6;
+  else
+    return;
+
+  int err = uv_inet_ntop(af, address_buffer, canonical_ip,
+                         sizeof(canonical_ip));
+  CHECK_EQ(err, 0);
+
+#ifdef __MVS__
+  __e2a_s(canonical_ip);
+#endif
+  args.GetReturnValue().Set(String::NewFromUtf8(isolate, canonical_ip));
+}
+
 static void GetAddrInfo(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
@@ -1528,6 +1556,7 @@ static void Initialize(Local<Object> target,
   env->SetMethod(target, "\x69\x73\x49\x50", IsIP);
   env->SetMethod(target, "\x69\x73\x49\x50\x76\x34", IsIPv4);
   env->SetMethod(target, "\x69\x73\x49\x50\x76\x36", IsIPv6);
+  env->SetMethod(target, "\x63\x61\x6e\x6f\x6e\x69\x63\x61\x6c\x69\x7a\x65\x49\x50", CanonicalizeIP);
 
   env->SetMethod(target, "\x73\x74\x72\x65\x72\x72\x6f\x72", StrError);
   env->SetMethod(target, "\x67\x65\x74\x53\x65\x72\x76\x65\x72\x73", GetServers);
