@@ -382,6 +382,9 @@ int MAIN(int argc, char **argv)
         printf("\x9\x72\x65\x74\x75\x72\x6e\x28\x64\x73\x61\x29\x3b\xa\x9\x7d\xa");
     }
 
+    if (outformat == FORMAT_ASN1 && genkey)
+        noout = 1;
+
     if (!noout) {
         if (outformat == FORMAT_ASN1)
             i = i2d_DSAparams_bio(out, dsa);

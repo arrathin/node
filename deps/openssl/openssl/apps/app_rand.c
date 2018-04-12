@@ -137,7 +137,7 @@ int app_RAND_load_file(const char *file, BIO *bio_e, int dont_warn)
 #endif
 
     if (file == NULL)
-        file = RAND_file_name(buffer, sizeof buffer);
+        file = RAND_file_name(buffer, sizeof(buffer));
     else if (RAND_egd(file) > 0) {
         /*
          * we try if the given filename is an EGD socket. if it is, we don't
@@ -212,7 +212,7 @@ int app_RAND_write_file(const char *file, BIO *bio_e)
         return 0;
 
     if (file == NULL)
-        file = RAND_file_name(buffer, sizeof buffer);
+        file = RAND_file_name(buffer, sizeof(buffer));
     if (file == NULL || !RAND_write_file(file)) {
         BIO_printf(bio_e, "\x75\x6e\x61\x62\x6c\x65\x20\x74\x6f\x20\x77\x72\x69\x74\x65\x20\x27\x72\x61\x6e\x64\x6f\x6d\x20\x73\x74\x61\x74\x65\x27\xa");
         return 0;

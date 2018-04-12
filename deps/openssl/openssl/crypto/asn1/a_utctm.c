@@ -76,7 +76,7 @@ int i2d_ASN1_UTCTIME(ASN1_UTCTIME *a, unsigned char **pp)
     ASN1_STRING x = *(ASN1_STRING *)a;
 
     len = x.length;
-    ebcdic2ascii(tmp, x.data, (len >= sizeof tmp) ? sizeof tmp : len);
+    ebcdic2ascii(tmp, x.data, (len >= sizeof(tmp)) ? sizeof(tmp) : len);
     x.data = tmp;
     return i2d_ASN1_bytes(&x, pp, V_ASN1_UTCTIME, V_ASN1_UNIVERSAL);
 # endif
@@ -317,7 +317,7 @@ time_t ASN1_UTCTIME_get(const ASN1_UTCTIME *s)
     struct tm tm;
     int offset;
 
-    memset(&tm, '\x0', sizeof tm);
+    memset(&tm, '\x0', sizeof(tm));
 
 # define g2(p) (((p)[0]-'\x30')*10+(p)[1]-'\x30')
     tm.tm_year = g2(s->data);

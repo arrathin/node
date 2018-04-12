@@ -114,7 +114,7 @@ int MAIN(int, char **);
 int MAIN(int argc, char **argv)
 {
     static const char magic[] = "\x53\x61\x6c\x74\x65\x64\x5f\x5f";
-    char mbuf[sizeof magic - 1];
+    char mbuf[sizeof(magic) - 1];
     char *strbuf = NULL;
     unsigned char *buff = NULL, *bufsize = NULL;
     int bsize = BSIZE, verbose = 0;
@@ -154,7 +154,7 @@ int MAIN(int argc, char **argv)
         goto end;
 
     /* first check the program name */
-    program_name(argv[0], pname, sizeof pname);
+    program_name(argv[0], pname, sizeof(pname));
     if (strcmp(pname, "\x62\x61\x73\x65\x36\x34") == 0)
         base64 = 1;
 #ifdef ZLIB
@@ -246,8 +246,8 @@ int MAIN(int argc, char **argv)
                 BIO_printf(bio_err, "\x75\x6e\x61\x62\x6c\x65\x20\x74\x6f\x20\x72\x65\x61\x64\x20\x6b\x65\x79\x20\x66\x72\x6f\x6d\x20\x27\x25\x73\x27\xa", file);
                 goto bad;
             }
-            buf[0] = '\x0';
-            if (!fgets(buf, sizeof buf, infile)) {
+            buf[0] = '\0';
+            if (!fgets(buf, sizeof(buf), infile)) {
                 BIO_printf(bio_err, "\x75\x6e\x61\x62\x6c\x65\x20\x74\x6f\x20\x72\x65\x61\x64\x20\x6b\x65\x79\x20\x66\x72\x6f\x6d\x20\x27\x25\x73\x27\xa", file);
                 goto bad;
             }
@@ -432,7 +432,7 @@ int MAIN(int argc, char **argv)
         for (;;) {
             char buf[200];
 
-            BIO_snprintf(buf, sizeof buf, "\x65\x6e\x74\x65\x72\x20\x25\x73\x20\x25\x73\x20\x70\x61\x73\x73\x77\x6f\x72\x64\x3a",
+            BIO_snprintf(buf, sizeof(buf), "\x65\x6e\x74\x65\x72\x20\x25\x73\x20\x25\x73\x20\x70\x61\x73\x73\x77\x6f\x72\x64\x3a",
                          OBJ_nid2ln(EVP_CIPHER_nid(cipher)),
                          (enc) ? "\x65\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e" : "\x64\x65\x63\x72\x79\x70\x74\x69\x6f\x6e");
             strbuf[0] = '\x0';
@@ -517,31 +517,31 @@ int MAIN(int argc, char **argv)
             else {
                 if (enc) {
                     if (hsalt) {
-                        if (!set_hex(hsalt, salt, sizeof salt)) {
+                        if (!set_hex(hsalt, salt, sizeof(salt))) {
                             BIO_printf(bio_err, "\x69\x6e\x76\x61\x6c\x69\x64\x20\x68\x65\x78\x20\x73\x61\x6c\x74\x20\x76\x61\x6c\x75\x65\xa");
                             goto end;
                         }
-                    } else if (RAND_bytes(salt, sizeof salt) <= 0)
+                    } else if (RAND_bytes(salt, sizeof(salt)) <= 0)
                         goto end;
                     /*
                      * If -P option then don't bother writing
                      */
                     if ((printkey != 2)
                         && (BIO_write(wbio, magic,
-                                      sizeof magic - 1) != sizeof magic - 1
+                                      sizeof(magic) - 1) != sizeof(magic) - 1
                             || BIO_write(wbio,
                                          (char *)salt,
-                                         sizeof salt) != sizeof salt)) {
+                                         sizeof(salt)) != sizeof(salt))) {
                         BIO_printf(bio_err, "\x65\x72\x72\x6f\x72\x20\x77\x72\x69\x74\x69\x6e\x67\x20\x6f\x75\x74\x70\x75\x74\x20\x66\x69\x6c\x65\xa");
                         goto end;
                     }
-                } else if (BIO_read(rbio, mbuf, sizeof mbuf) != sizeof mbuf
+                } else if (BIO_read(rbio, mbuf, sizeof(mbuf)) != sizeof(mbuf)
                            || BIO_read(rbio,
                                        (unsigned char *)salt,
-                                       sizeof salt) != sizeof salt) {
+                                       sizeof(salt)) != sizeof(salt)) {
                     BIO_printf(bio_err, "\x65\x72\x72\x6f\x72\x20\x72\x65\x61\x64\x69\x6e\x67\x20\x69\x6e\x70\x75\x74\x20\x66\x69\x6c\x65\xa");
                     goto end;
-                } else if (memcmp(mbuf, magic, sizeof magic - 1)) {
+                } else if (memcmp(mbuf, magic, sizeof(magic) - 1)) {
                     BIO_printf(bio_err, "\x62\x61\x64\x20\x6d\x61\x67\x69\x63\x20\x6e\x75\x6d\x62\x65\x72\xa");
                     goto end;
                 }
@@ -564,7 +564,7 @@ int MAIN(int argc, char **argv)
             int siz = EVP_CIPHER_iv_length(cipher);
             if (siz == 0) {
                 BIO_printf(bio_err, "\x77\x61\x72\x6e\x69\x6e\x67\x3a\x20\x69\x76\x20\x6e\x6f\x74\x20\x75\x73\x65\x20\x62\x79\x20\x74\x68\x69\x73\x20\x63\x69\x70\x68\x65\x72\xa");
-            } else if (!set_hex(hiv, iv, sizeof iv)) {
+            } else if (!set_hex(hiv, iv, sizeof(iv))) {
                 BIO_printf(bio_err, "\x69\x6e\x76\x61\x6c\x69\x64\x20\x68\x65\x78\x20\x69\x76\x20\x76\x61\x6c\x75\x65\xa");
                 goto end;
             }

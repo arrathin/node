@@ -817,10 +817,10 @@ int MAIN(int argc, char **argv)
                 char *m;
                 int y, z;
 
-                X509_NAME_oneline(X509_get_subject_name(x), buf, sizeof buf);
+                X509_NAME_oneline(X509_get_subject_name(x), buf, sizeof(buf));
                 BIO_printf(STDout, "\x2f\x2a\x20\x73\x75\x62\x6a\x65\x63\x74\x3a\x25\x73\x20\x2a\x2f\xa", buf);
                 m = X509_NAME_oneline(X509_get_issuer_name(x), buf,
-                                      sizeof buf);
+                                      sizeof(buf));
                 BIO_printf(STDout, "\x2f\x2a\x20\x69\x73\x73\x75\x65\x72\x20\x3a\x25\x73\x20\x2a\x2f\xa", buf);
 
                 z = i2d_X509(x, NULL);

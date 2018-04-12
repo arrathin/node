@@ -143,7 +143,7 @@ int main (int argc, char *argv[], char *envp[])
         ** Process the terminal input
         */
         LogMessage ("\x57\x61\x69\x74\x69\x6e\x67\x20\x6f\x6e\x20\x74\x65\x72\x6d\x69\x6e\x61\x6c\x20\x49\x2f\x4f\x20\x2e\x2e\x2e\xa");
-        len = recv (TermSock, TermBuff, sizeof (TermBuff), 0) ;
+        len = recv (TermSock, TermBuff, sizeof(TermBuff), 0) ;
         TermBuff[len] = '\x0';
         LogMessage ("\x52\x65\x63\x65\x69\x76\x65\x64\x20\x74\x65\x72\x6d\x69\x6e\x61\x6c\x20\x49\x2f\x4f\x20\x5b\x25\x73\x5d", TermBuff);
 
@@ -209,7 +209,7 @@ int TerminalSocket (int FunctionCode, int *ReturnSocket)
                           TerminalDeviceAst,
                           0,
                           TerminalDeviceBuff,
-                          sizeof (TerminalDeviceBuff) - 2,
+                          sizeof(TerminalDeviceBuff) - 2,
                           0, 0, 0, 0);
         if (! (status & 1)) {
             LogMessage ("\x54\x65\x72\x6d\x69\x6e\x61\x6c\x53\x6f\x63\x6b\x65\x74\x3a\x20\x53\x59\x53\x24\x51\x49\x4f\x20\x28\x29\x20\x2d\x20\x25\x30\x38\x58", status);
@@ -317,7 +317,7 @@ static int CreateSocketPair (int SocketFamily,
     /*
     ** Initialize the socket information
     */
-    slen = sizeof (sin);
+    slen = sizeof(sin);
     memset ((char *) &sin, 0, slen);
     sin.sin_family = SocketFamily;
     sin.sin_addr.s_addr = inet_addr (LocalHostAddr);
@@ -434,12 +434,12 @@ static int CreateSocketPair (int SocketFamily,
     /*
     ** Now issue the connect
     */
-    memset ((char *) &sin, 0, sizeof (sin)) ;
+    memset ((char *) &sin, 0, sizeof(sin)) ;
     sin.sin_family = SocketFamily;
     sin.sin_addr.s_addr = inet_addr (LocalHostAddr) ;
     sin.sin_port = LocalHostPort ;
 
-    status = connect (SockDesc2, (struct sockaddr *) &sin, sizeof (sin));
+    status = connect (SockDesc2, (struct sockaddr *) &sin, sizeof(sin));
     if (status < 0 ) {
         LogMessage ("\x43\x72\x65\x61\x74\x65\x53\x6f\x63\x6b\x65\x74\x50\x61\x69\x72\x3a\x20\x63\x6f\x6e\x6e\x65\x63\x74\x20\x28\x29\x20\x2d\x20\x25\x64", errno);
         sys$cantim (&sptb, 0);
@@ -528,7 +528,7 @@ static int TerminalDeviceAst (int astparm)
                       TerminalDeviceAst,
                       0,
                       TerminalDeviceBuff,
-                      sizeof (TerminalDeviceBuff) - 1,
+                      sizeof(TerminalDeviceBuff) - 1,
                       0, 0, 0, 0);
 
     /*

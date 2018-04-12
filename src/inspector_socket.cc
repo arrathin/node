@@ -395,16 +395,10 @@ static void generate_accept_string(const std::string& client_key,
 }
 
 static int header_value_cb(http_parser* parser, const char* at, size_t length) {
-  static const char SEC_WEBSOCKET_KEY_HEADER[] = "\x53\x65\x63\x2d\x57\x65\x62\x53\x6f\x63\x6b\x65\x74\x2d\x4b\x65\x79";
   auto inspector = static_cast<InspectorSocket*>(parser->data);
   auto state = inspector->http_parsing_state;
   state->parsing_value = true;
-  if (state->current_header.size() == sizeof(SEC_WEBSOCKET_KEY_HEADER) - 1 &&
-      node::StringEqualNoCaseN(state->current_header.data(),
-                               SEC_WEBSOCKET_KEY_HEADER,
-                               sizeof(SEC_WEBSOCKET_KEY_HEADER) - 1)) {
-    state->ws_key.append(at, length);
-  }
+  state->headers[state->current_header].append(at, length);
   return 0;
 }
 
@@ -477,10 +471,62 @@ static void handshake_failed(InspectorSocket* inspector) {
 // init_handshake references message_complete_cb
 static void init_handshake(InspectorSocket* inspector);
 
+static std::string TrimPort(const std::string& host) {
+  size_t last_colon_pos = host.rfind("\x3a");
+  if (last_colon_pos == std::string::npos)
+    return host;
+  size_t bracket = host.rfind("\x5d");
+  if (bracket == std::string::npos || last_colon_pos > bracket)
+    return host.substr(0, last_colon_pos);
+  return host;
+}
+
+static bool IsIPAddress(const std::string& host) {
+  if (host.length() >= 4 && host[0] == '\x5b' && host[host.size() - 1] == '\x5d')
+    return true;
+  int quads = 0;
+  for (char c : host) {
+#ifdef __MVS__
+    __a2e_l(&c, 1);
+#endif
+    if (c == '.')
+      quads++;
+    else if (!isdigit(c))
+      return false;
+  }
+  return quads == 3;
+}
+
+static std::string HeaderValue(const struct http_parsing_state_s* state,
+                               const std::string& header) {
+  bool header_found = false;
+  std::string value;
+  for (const auto& header_value : state->headers) {
+    if (node::StringEqualNoCaseN(header_value.first.data(), header.data(),
+                                 header.length())) {
+      if (header_found)
+        return "";
+      value = header_value.second;
+      header_found = true;
+    }
+  }
+  return value;
+}
+
+static bool IsAllowedHost(const std::string& host_with_port) {
+  std::string host = TrimPort(host_with_port);
+  return host.empty() || IsIPAddress(host)
+         || node::StringEqualNoCase(host.data(), u8"localhost")
+         || node::StringEqualNoCase(host.data(), u8"localhost6");
+}
+
 static int message_complete_cb(http_parser* parser) {
   InspectorSocket* inspector = static_cast<InspectorSocket*>(parser->data);
   struct http_parsing_state_s* state = inspector->http_parsing_state;
-  if (parser->method != HTTP_GET) {
+  std::string ws_key = HeaderValue(state, u8"Sec-WebSocket-Key");
+
+  if (!IsAllowedHost(HeaderValue(state, u8"Host")) ||
+      parser->method != HTTP_GET) {
     handshake_failed(inspector);
   } else if (!parser->upgrade) {
     if (state->callback(inspector, kInspectorHandshakeHttpGet, state->path)) {
@@ -488,17 +534,17 @@ static int message_complete_cb(http_parser* parser) {
     } else {
       handshake_failed(inspector);
     }
-  } else if (state->ws_key.empty()) {
+  } else if (ws_key.empty()) {
     handshake_failed(inspector);
   } else if (state->callback(inspector, kInspectorHandshakeUpgrading,
                              state->path)) {
     char accept_string[ACCEPT_KEY_LENGTH];
-    generate_accept_string(state->ws_key, &accept_string);
-    const char accept_ws_prefix[] = "\x48\x54\x54\x50\x2f\x31\x2e\x31\x20\x31\x30\x31\x20\x53\x77\x69\x74\x63\x68\x69\x6e\x67\x20\x50\x72\x6f\x74\x6f\x63\x6f\x6c\x73\xd\xa"
-                                    "\x55\x70\x67\x72\x61\x64\x65\x3a\x20\x77\x65\x62\x73\x6f\x63\x6b\x65\x74\xd\xa"
-                                    "\x43\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e\x3a\x20\x55\x70\x67\x72\x61\x64\x65\xd\xa"
-                                    "\x53\x65\x63\x2d\x57\x65\x62\x53\x6f\x63\x6b\x65\x74\x2d\x41\x63\x63\x65\x70\x74\x3a\x20";
-    const char accept_ws_suffix[] = "\xd\xa\xd\xa";
+    generate_accept_string(ws_key, &accept_string);
+    const char accept_ws_prefix[] = u8"HTTP/1.1 101 Switching Protocols\r\n"
+                                    "Upgrade: websocket\r\n"
+                                    "Connection: Upgrade\r\n"
+                                    "Sec-WebSocket-Accept: ";
+    const char accept_ws_suffix[] = u8"\r\n\r\n";
     std::string reply(accept_ws_prefix, sizeof(accept_ws_prefix) - 1);
     reply.append(accept_string, sizeof(accept_string));
     reply.append(accept_ws_suffix, sizeof(accept_ws_suffix) - 1);
@@ -547,7 +593,7 @@ static void init_handshake(InspectorSocket* inspector) {
   http_parsing_state_s* state = inspector->http_parsing_state;
   CHECK_NE(state, nullptr);
   state->current_header.clear();
-  state->ws_key.clear();
+  state->headers.clear();
   state->path.clear();
   state->done = false;
   http_parser_init(&state->parser, HTTP_REQUEST);

@@ -96,7 +96,7 @@ const char *DES_options(void)
             size = "\x69\x6e\x74";
         else
             size = "\x6c\x6f\x6e\x67";
-        BIO_snprintf(buf, sizeof buf, "\x64\x65\x73\x28\x25\x73\x2c\x25\x73\x2c\x25\x73\x2c\x25\x73\x29", ptr, risc, unroll,
+        BIO_snprintf(buf, sizeof(buf), "\x64\x65\x73\x28\x25\x73\x2c\x25\x73\x2c\x25\x73\x2c\x25\x73\x29", ptr, risc, unroll,
                      size);
         init = 0;
     }

@@ -3,7 +3,7 @@
  * Written by Nils Larsch for the OpenSSL project.
  */
 /* ====================================================================
- * Copyright (c) 1998-2005 The OpenSSL Project.  All rights reserved.
+ * Copyright (c) 1998-2018 The OpenSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -546,6 +546,9 @@ int MAIN(int argc, char **argv)
         BIO_printf(out, "\x9\x72\x65\x74\x75\x72\x6e\x28\x67\x72\x6f\x75\x70\x29\x3b\xa\x9\x7d\xa");
     }
 
+    if (outformat == FORMAT_ASN1 && genkey)
+        noout = 1;
+
     if (!noout) {
         if (outformat == FORMAT_ASN1)
             i = i2d_ECPKParameters_bio(out, group);
@@ -581,6 +584,9 @@ int MAIN(int argc, char **argv)
 
         if (EC_KEY_set_group(eckey, group) == 0)
             goto end;
+
+        if (new_form)
+            EC_KEY_set_conv_form(eckey, form);
 
         if (!EC_KEY_generate_key(eckey)) {
             EC_KEY_free(eckey);

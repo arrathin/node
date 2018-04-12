@@ -1247,13 +1247,15 @@ void SSL_trace(int write_p, int version, int content_type,
         break;
 
     case SSL3_RT_ALERT:
-        if (msglen != 2)
+        if (msglen != 2) {
             BIO_puts(bio, "\x20\x20\x20\x20\x49\x6c\x6c\x65\x67\x61\x6c\x20\x41\x6c\x65\x72\x74\x20\x4c\x65\x6e\x67\x74\x68\xa");
-        else {
+        } else {
             BIO_printf(bio, "\x20\x20\x20\x20\x4c\x65\x76\x65\x6c\x3d\x25\x73\x28\x25\x64\x29\x2c\x20\x64\x65\x73\x63\x72\x69\x70\x74\x69\x6f\x6e\x3d\x25\x73\x28\x25\x64\x29\xa",
                        SSL_alert_type_string_long(msg[0] << 8),
                        msg[0], SSL_alert_desc_string_long(msg[1]), msg[1]);
         }
+        break;
+
     case TLS1_RT_HEARTBEAT:
         ssl_print_heartbeat(bio, 4, msg, msglen);
         break;

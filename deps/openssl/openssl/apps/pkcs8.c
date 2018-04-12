@@ -277,7 +277,7 @@ int MAIN(int argc, char **argv)
             else {
                 p8pass = pass;
                 if (EVP_read_pw_string
-                    (pass, sizeof pass, "\x45\x6e\x74\x65\x72\x20\x45\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e\x20\x50\x61\x73\x73\x77\x6f\x72\x64\x3a", 1))
+                    (pass, sizeof(pass), "\x45\x6e\x74\x65\x72\x20\x45\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e\x20\x50\x61\x73\x73\x77\x6f\x72\x64\x3a", 1))
                     goto end;
             }
             app_RAND_load_file(NULL, bio_err, 0);
@@ -331,7 +331,7 @@ int MAIN(int argc, char **argv)
             p8pass = passin;
         else {
             p8pass = pass;
-            EVP_read_pw_string(pass, sizeof pass, "\x45\x6e\x74\x65\x72\x20\x50\x61\x73\x73\x77\x6f\x72\x64\x3a", 0);
+            EVP_read_pw_string(pass, sizeof(pass), "\x45\x6e\x74\x65\x72\x20\x50\x61\x73\x73\x77\x6f\x72\x64\x3a", 0);
         }
         p8inf = PKCS8_decrypt(p8, p8pass, strlen(p8pass));
     }

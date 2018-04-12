@@ -221,7 +221,7 @@ static int module_run(const CONF *cnf, char *name, char *value,
         if (!(flags & CONF_MFLAGS_SILENT)) {
             char rcode[DECIMAL_SIZE(ret) + 1];
             CONFerr(CONF_F_MODULE_RUN, CONF_R_MODULE_INITIALIZATION_ERROR);
-            BIO_snprintf(rcode, sizeof rcode, "\x25\x2d\x38\x64", ret);
+            BIO_snprintf(rcode, sizeof(rcode), "\x25\x2d\x38\x64", ret);
             ERR_add_error_data(6, "\x6d\x6f\x64\x75\x6c\x65\x3d", name, "\x2c\x20\x76\x61\x6c\x75\x65\x3d", value,
                                "\x2c\x20\x72\x65\x74\x63\x6f\x64\x65\x3d", rcode);
         }

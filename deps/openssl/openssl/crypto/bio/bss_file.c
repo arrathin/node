@@ -398,15 +398,15 @@ static long MS_CALLBACK file_ctrl(BIO *b, int cmd, long num, void *ptr)
         b->shutdown = (int)num & BIO_CLOSE;
         if (num & BIO_FP_APPEND) {
             if (num & BIO_FP_READ)
-                BUF_strlcpy(p, "\x61\x2b", sizeof p);
+                BUF_strlcpy(p, "\x61\x2b", sizeof(p));
             else
-                BUF_strlcpy(p, "\x61", sizeof p);
+                BUF_strlcpy(p, "\x61", sizeof(p));
         } else if ((num & BIO_FP_READ) && (num & BIO_FP_WRITE))
-            BUF_strlcpy(p, "\x72\x2b", sizeof p);
+            BUF_strlcpy(p, "\x72\x2b", sizeof(p));
         else if (num & BIO_FP_WRITE)
-            BUF_strlcpy(p, "\x77", sizeof p);
+            BUF_strlcpy(p, "\x77", sizeof(p));
         else if (num & BIO_FP_READ)
-            BUF_strlcpy(p, "\x72", sizeof p);
+            BUF_strlcpy(p, "\x72", sizeof(p));
         else {
             BIOerr(BIO_F_FILE_CTRL, BIO_R_BAD_FOPEN_MODE);
             ret = 0;

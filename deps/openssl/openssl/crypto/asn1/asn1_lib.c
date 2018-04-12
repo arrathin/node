@@ -456,8 +456,8 @@ void asn1_add_error(const unsigned char *address, int offset)
 {
     char buf1[DECIMAL_SIZE(address) + 1], buf2[DECIMAL_SIZE(offset) + 1];
 
-    BIO_snprintf(buf1, sizeof buf1, "\x25\x6c\x75", (unsigned long)address);
-    BIO_snprintf(buf2, sizeof buf2, "\x25\x64", offset);
+    BIO_snprintf(buf1, sizeof(buf1), "\x25\x6c\x75", (unsigned long)address);
+    BIO_snprintf(buf2, sizeof(buf2), "\x25\x64", offset);
     ERR_add_error_data(4, "\x61\x64\x64\x72\x65\x73\x73\x3d", buf1, "\x20\x6f\x66\x66\x73\x65\x74\x3d", buf2);
 }
 

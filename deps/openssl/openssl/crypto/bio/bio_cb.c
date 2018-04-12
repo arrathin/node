@@ -76,7 +76,7 @@ long MS_CALLBACK BIO_debug_callback(BIO *bio, int cmd, const char *argp,
     if (BIO_CB_RETURN & cmd)
         r = ret;
 
-    len = BIO_snprintf(buf,sizeof buf,"\x42\x49\x4f\x5b\x25\x70\x5d\x3a\x20",(void *)bio);
+    len = BIO_snprintf(buf,sizeof(buf),"\x42\x49\x4f\x5b\x25\x70\x5d\x3a\x20",(void *)bio);
 
     /* Ignore errors and continue printing the other information. */
     if (len < 0)

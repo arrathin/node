@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
 
     ERR_load_crypto_strings();
-    RAND_seed(rnd_seed, sizeof rnd_seed);
+    RAND_seed(rnd_seed, sizeof(rnd_seed));
 
     BIO_printf(bio_err, "\x74\x65\x73\x74\x20\x67\x65\x6e\x65\x72\x61\x74\x69\x6f\x6e\x20\x6f\x66\x20\x44\x53\x41\x20\x70\x61\x72\x61\x6d\x65\x74\x65\x72\x73\xa");
 

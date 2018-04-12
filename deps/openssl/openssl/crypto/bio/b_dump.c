@@ -64,7 +64,6 @@
 #include "cryptlib.h"
 #include "bio_lcl.h"
 
-#define TRUNCATE
 #define DUMP_WIDTH      16
 #define DUMP_WIDTH_LESS_INDENT(i) (DUMP_WIDTH-((i-(i>6?6:i)+3)/4))
 
@@ -79,16 +78,9 @@ int BIO_dump_indent_cb(int (*cb) (const void *data, size_t len, void *u),
 {
     int ret = 0;
     char buf[288 + 1], tmp[20], str[128 + 1];
-    int i, j, rows, trc;
+    int i, j, rows;
     unsigned char ch;
     int dump_width;
-
-    trc = 0;
-
-#ifdef TRUNCATE
-    for (; (len > 0) && ((s[len - 1] == '\x20') || (s[len - 1] == '\x0')); len--)
-        trc++;
-#endif
 
     if (indent < 0)
         indent = 0;
@@ -104,50 +96,43 @@ int BIO_dump_indent_cb(int (*cb) (const void *data, size_t len, void *u),
     if ((rows * dump_width) < len)
         rows++;
     for (i = 0; i < rows; i++) {
-        BUF_strlcpy(buf, str, sizeof buf);
-        BIO_snprintf(tmp, sizeof tmp, "\x25\x30\x34\x78\x20\x2d\x20", i * dump_width);
-        BUF_strlcat(buf, tmp, sizeof buf);
+        BUF_strlcpy(buf, str, sizeof(buf));
+        BIO_snprintf(tmp, sizeof(tmp), "\x25\x30\x34\x78\x20\x2d\x20", i * dump_width);
+        BUF_strlcat(buf, tmp, sizeof(buf));
         for (j = 0; j < dump_width; j++) {
             if (((i * dump_width) + j) >= len) {
-                BUF_strlcat(buf, "\x20\x20\x20", sizeof buf);
+                BUF_strlcat(buf, "\x20\x20\x20", sizeof(buf));
             } else {
                 ch = ((unsigned char)*(s + i * dump_width + j)) & 0xff;
-                BIO_snprintf(tmp, sizeof tmp, "\x25\x30\x32\x78\x25\x63", ch,
+                BIO_snprintf(tmp, sizeof(tmp), "\x25\x30\x32\x78\x25\x63", ch,
                              j == 7 ? '\x2d' : '\x20');
-                BUF_strlcat(buf, tmp, sizeof buf);
+                BUF_strlcat(buf, tmp, sizeof(buf));
             }
         }
-        BUF_strlcat(buf, "\x20\x20", sizeof buf);
+        BUF_strlcat(buf, "\x20\x20", sizeof(buf));
         for (j = 0; j < dump_width; j++) {
             if (((i * dump_width) + j) >= len)
                 break;
             ch = ((unsigned char)*(s + i * dump_width + j)) & 0xff;
 #ifndef CHARSET_EBCDIC
-            BIO_snprintf(tmp, sizeof tmp, "\x25\x63",
+            BIO_snprintf(tmp, sizeof(tmp), "\x25\x63",
                          ((ch >= '\x20') && (ch <= '\x7e')) ? ch : '\x2e');
 #else
-            BIO_snprintf(tmp, sizeof tmp, "\x25\x63",
+            BIO_snprintf(tmp, sizeof(tmp), "\x25\x63",
                          ((ch >= os_toascii['\x20']) && (ch <= os_toascii['\x7e']))
                          ? os_toebcdic[ch]
                          : '\x2e');
 #endif
-            BUF_strlcat(buf, tmp, sizeof buf);
+            BUF_strlcat(buf, tmp, sizeof(buf));
         }
-        BUF_strlcat(buf, "\xa", sizeof buf);
+        BUF_strlcat(buf, "\xa", sizeof(buf));
         /*
          * if this is the last call then update the ddt_dump thing so that we
          * will move the selection point in the debug window
          */
         ret += cb((void *)buf, strlen(buf), u);
     }
-#ifdef TRUNCATE
-    if (trc > 0) {
-        BIO_snprintf(buf, sizeof buf, "\x25\x73\x25\x30\x34\x78\x20\x2d\x20\x3c\x53\x50\x41\x43\x45\x53\x2f\x4e\x55\x4c\x53\x3e\xa", str,
-                     len + trc);
-        ret += cb((void *)buf, strlen(buf), u);
-    }
-#endif
-    return (ret);
+    return ret;
 }
 
 #ifndef OPENSSL_NO_FP_API

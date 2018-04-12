@@ -1193,7 +1193,7 @@ static int prompt_info(X509_REQ *req,
             /* If OBJ not recognised ignore it */
             if ((nid = OBJ_txt2nid(type)) == NID_undef)
                 goto start;
-            if (BIO_snprintf(buf, sizeof buf, "\x25\x73\x5f\x64\x65\x66\x61\x75\x6c\x74", v->name)
+            if (BIO_snprintf(buf, sizeof(buf), "\x25\x73\x5f\x64\x65\x66\x61\x75\x6c\x74", v->name)
                 >= (int)sizeof(buf)) {
                 BIO_printf(bio_err, "\x4e\x61\x6d\x65\x20\x27\x25\x73\x27\x20\x74\x6f\x6f\x20\x6c\x6f\x6e\x67\xa", v->name);
                 return 0;
@@ -1204,19 +1204,19 @@ static int prompt_info(X509_REQ *req,
                 def = "";
             }
 
-            BIO_snprintf(buf, sizeof buf, "\x25\x73\x5f\x76\x61\x6c\x75\x65", v->name);
+            BIO_snprintf(buf, sizeof(buf), "\x25\x73\x5f\x76\x61\x6c\x75\x65", v->name);
             if ((value = NCONF_get_string(req_conf, dn_sect, buf)) == NULL) {
                 ERR_clear_error();
                 value = NULL;
             }
 
-            BIO_snprintf(buf, sizeof buf, "\x25\x73\x5f\x6d\x69\x6e", v->name);
+            BIO_snprintf(buf, sizeof(buf), "\x25\x73\x5f\x6d\x69\x6e", v->name);
             if (!NCONF_get_number(req_conf, dn_sect, buf, &n_min)) {
                 ERR_clear_error();
                 n_min = -1;
             }
 
-            BIO_snprintf(buf, sizeof buf, "\x25\x73\x5f\x6d\x61\x78", v->name);
+            BIO_snprintf(buf, sizeof(buf), "\x25\x73\x5f\x6d\x61\x78", v->name);
             if (!NCONF_get_number(req_conf, dn_sect, buf, &n_max)) {
                 ERR_clear_error();
                 n_max = -1;
@@ -1252,7 +1252,7 @@ static int prompt_info(X509_REQ *req,
                 if ((nid = OBJ_txt2nid(type)) == NID_undef)
                     goto start2;
 
-                if (BIO_snprintf(buf, sizeof buf, "\x25\x73\x5f\x64\x65\x66\x61\x75\x6c\x74", type)
+                if (BIO_snprintf(buf, sizeof(buf), "\x25\x73\x5f\x64\x65\x66\x61\x75\x6c\x74", type)
                     >= (int)sizeof(buf)) {
                     BIO_printf(bio_err, "\x4e\x61\x6d\x65\x20\x27\x25\x73\x27\x20\x74\x6f\x6f\x20\x6c\x6f\x6e\x67\xa", v->name);
                     return 0;
@@ -1264,20 +1264,20 @@ static int prompt_info(X509_REQ *req,
                     def = "";
                 }
 
-                BIO_snprintf(buf, sizeof buf, "\x25\x73\x5f\x76\x61\x6c\x75\x65", type);
+                BIO_snprintf(buf, sizeof(buf), "\x25\x73\x5f\x76\x61\x6c\x75\x65", type);
                 if ((value = NCONF_get_string(req_conf, attr_sect, buf))
                     == NULL) {
                     ERR_clear_error();
                     value = NULL;
                 }
 
-                BIO_snprintf(buf, sizeof buf, "\x25\x73\x5f\x6d\x69\x6e", type);
+                BIO_snprintf(buf, sizeof(buf), "\x25\x73\x5f\x6d\x69\x6e", type);
                 if (!NCONF_get_number(req_conf, attr_sect, buf, &n_min)) {
                     ERR_clear_error();
                     n_min = -1;
                 }
 
-                BIO_snprintf(buf, sizeof buf, "\x25\x73\x5f\x6d\x61\x78", type);
+                BIO_snprintf(buf, sizeof(buf), "\x25\x73\x5f\x6d\x61\x78", type);
                 if (!NCONF_get_number(req_conf, attr_sect, buf, &n_max)) {
                     ERR_clear_error();
                     n_max = -1;
@@ -1372,13 +1372,13 @@ static int add_DN_object(X509_NAME *n, char *text, const char *def,
         BIO_printf(bio_err, "\x25\x73\x20\x5b\x25\x73\x5d\x3a", text, def);
     (void)BIO_flush(bio_err);
     if (value != NULL) {
-        BUF_strlcpy(buf, value, sizeof buf);
-        BUF_strlcat(buf, "\xa", sizeof buf);
+        BUF_strlcpy(buf, value, sizeof(buf));
+        BUF_strlcat(buf, "\xa", sizeof(buf));
         BIO_printf(bio_err, "\x25\x73\xa", value);
     } else {
         buf[0] = '\x0';
         if (!batch) {
-            if (!fgets(buf, sizeof buf, stdin))
+            if (!fgets(buf, sizeof(buf), stdin))
                 return 0;
         } else {
             buf[0] = '\xa';
@@ -1391,8 +1391,8 @@ static int add_DN_object(X509_NAME *n, char *text, const char *def,
     else if (buf[0] == '\xa') {
         if ((def == NULL) || (def[0] == '\x0'))
             return (1);
-        BUF_strlcpy(buf, def, sizeof buf);
-        BUF_strlcat(buf, "\xa", sizeof buf);
+        BUF_strlcpy(buf, def, sizeof(buf));
+        BUF_strlcat(buf, "\xa", sizeof(buf));
     } else if ((buf[0] == '\x2e') && (buf[1] == '\xa'))
         return (1);
 
@@ -1431,13 +1431,13 @@ static int add_attribute_object(X509_REQ *req, char *text, const char *def,
         BIO_printf(bio_err, "\x25\x73\x20\x5b\x25\x73\x5d\x3a", text, def);
     (void)BIO_flush(bio_err);
     if (value != NULL) {
-        BUF_strlcpy(buf, value, sizeof buf);
-        BUF_strlcat(buf, "\xa", sizeof buf);
+        BUF_strlcpy(buf, value, sizeof(buf));
+        BUF_strlcat(buf, "\xa", sizeof(buf));
         BIO_printf(bio_err, "\x25\x73\xa", value);
     } else {
         buf[0] = '\x0';
         if (!batch) {
-            if (!fgets(buf, sizeof buf, stdin))
+            if (!fgets(buf, sizeof(buf), stdin))
                 return 0;
         } else {
             buf[0] = '\xa';
@@ -1450,8 +1450,8 @@ static int add_attribute_object(X509_REQ *req, char *text, const char *def,
     else if (buf[0] == '\xa') {
         if ((def == NULL) || (def[0] == '\x0'))
             return (1);
-        BUF_strlcpy(buf, def, sizeof buf);
-        BUF_strlcat(buf, "\xa", sizeof buf);
+        BUF_strlcpy(buf, def, sizeof(buf));
+        BUF_strlcat(buf, "\xa", sizeof(buf));
     } else if ((buf[0] == '\x2e') && (buf[1] == '\xa'))
         return (1);
 

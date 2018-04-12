@@ -686,7 +686,7 @@ fmtfp(char **sbuffer,
         iconvert[iplace++] = "\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39"[intpart % 10];
         intpart = (intpart / 10);
     } while (intpart && (iplace < (int)sizeof(iconvert)));
-    if (iplace == sizeof iconvert)
+    if (iplace == sizeof(iconvert))
         iplace--;
     iconvert[iplace] = 0;
 
@@ -695,7 +695,7 @@ fmtfp(char **sbuffer,
         fconvert[fplace++] = "\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39"[fracpart % 10];
         fracpart = (fracpart / 10);
     } while (fplace < max);
-    if (fplace == sizeof fconvert)
+    if (fplace == sizeof(fconvert))
         fplace--;
     fconvert[fplace] = 0;
 

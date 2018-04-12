@@ -422,7 +422,7 @@ int MAIN(int argc, char **argv)
             goto end;
 
         if (s_www_path != NULL) {
-            BIO_snprintf(buf, sizeof buf, "\x47\x45\x54\x20\x25\x73\x20\x48\x54\x54\x50\x2f\x31\x2e\x30\xd\xa\xd\xa",
+            BIO_snprintf(buf, sizeof(buf), "\x47\x45\x54\x20\x25\x73\x20\x48\x54\x54\x50\x2f\x31\x2e\x30\xd\xa\xd\xa",
                          s_www_path);
             SSL_write(scon, buf, strlen(buf));
             while ((i = SSL_read(scon, buf, sizeof(buf))) > 0)
@@ -481,7 +481,7 @@ int MAIN(int argc, char **argv)
     }
 
     if (s_www_path != NULL) {
-        BIO_snprintf(buf, sizeof buf, "\x47\x45\x54\x20\x25\x73\x20\x48\x54\x54\x50\x2f\x31\x2e\x30\xd\xa\xd\xa", s_www_path);
+        BIO_snprintf(buf, sizeof(buf), "\x47\x45\x54\x20\x25\x73\x20\x48\x54\x54\x50\x2f\x31\x2e\x30\xd\xa\xd\xa", s_www_path);
         SSL_write(scon, buf, strlen(buf));
         while (SSL_read(scon, buf, sizeof(buf)) > 0) ;
     }
@@ -517,7 +517,7 @@ int MAIN(int argc, char **argv)
             goto end;
 
         if (s_www_path) {
-            BIO_snprintf(buf, sizeof buf, "\x47\x45\x54\x20\x25\x73\x20\x48\x54\x54\x50\x2f\x31\x2e\x30\xd\xa\xd\xa",
+            BIO_snprintf(buf, sizeof(buf), "\x47\x45\x54\x20\x25\x73\x20\x48\x54\x54\x50\x2f\x31\x2e\x30\xd\xa\xd\xa",
                          s_www_path);
             SSL_write(scon, buf, strlen(buf));
             while ((i = SSL_read(scon, buf, sizeof(buf))) > 0)

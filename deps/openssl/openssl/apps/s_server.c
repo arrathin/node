@@ -2008,7 +2008,7 @@ int MAIN(int argc, char *argv[])
 
     SSL_CTX_set_verify(ctx, s_server_verify, verify_callback);
     SSL_CTX_set_session_id_context(ctx, (void *)&s_server_session_id_context,
-                                   sizeof s_server_session_id_context);
+                                   sizeof(s_server_session_id_context));
 
     /* Set DTLS cookie generation and verification callbacks */
     SSL_CTX_set_cookie_generate_cb(ctx, generate_cookie_callback);
@@ -2019,7 +2019,7 @@ int MAIN(int argc, char *argv[])
         SSL_CTX_set_verify(ctx2, s_server_verify, verify_callback);
         SSL_CTX_set_session_id_context(ctx2,
                                        (void *)&s_server_session_id_context,
-                                       sizeof s_server_session_id_context);
+                                       sizeof(s_server_session_id_context));
 
         tlsextcbp.biodebug = bio_s_out;
         SSL_CTX_set_tlsext_servername_callback(ctx2, ssl_servername_cb);
@@ -2666,9 +2666,9 @@ static int init_ssl_connection(SSL *con)
     if (peer != NULL) {
         BIO_printf(bio_s_out, "\x43\x6c\x69\x65\x6e\x74\x20\x63\x65\x72\x74\x69\x66\x69\x63\x61\x74\x65\xa");
         PEM_write_bio_X509(bio_s_out, peer);
-        X509_NAME_oneline(X509_get_subject_name(peer), buf, sizeof buf);
+        X509_NAME_oneline(X509_get_subject_name(peer), buf, sizeof(buf));
         BIO_printf(bio_s_out, "\x73\x75\x62\x6a\x65\x63\x74\x3d\x25\x73\xa", buf);
-        X509_NAME_oneline(X509_get_issuer_name(peer), buf, sizeof buf);
+        X509_NAME_oneline(X509_get_issuer_name(peer), buf, sizeof(buf));
         BIO_printf(bio_s_out, "\x69\x73\x73\x75\x65\x72\x3d\x25\x73\xa", buf);
         X509_free(peer);
     }

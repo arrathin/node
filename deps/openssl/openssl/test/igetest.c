@@ -200,16 +200,16 @@ static int run_test_vectors(void)
         assert(v->length <= MAX_VECTOR_SIZE);
 
         if (v->encrypt == AES_ENCRYPT)
-            AES_set_encrypt_key(v->key, 8 * sizeof v->key, &key);
+            AES_set_encrypt_key(v->key, 8 * sizeof(v->key), &key);
         else
-            AES_set_decrypt_key(v->key, 8 * sizeof v->key, &key);
-        memcpy(iv, v->iv, sizeof iv);
+            AES_set_decrypt_key(v->key, 8 * sizeof(v->key), &key);
+        memcpy(iv, v->iv, sizeof(iv));
         AES_ige_encrypt(v->in, buf, v->length, &key, iv, v->encrypt);
 
         if (memcmp(v->out, buf, v->length)) {
             printf("\x49\x47\x45\x20\x74\x65\x73\x74\x20\x76\x65\x63\x74\x6f\x72\x20\x25\x64\x20\x66\x61\x69\x6c\x65\x64\xa", n);
-            hexdump(stdout, "\x6b\x65\x79", v->key, sizeof v->key);
-            hexdump(stdout, "\x69\x76", v->iv, sizeof v->iv);
+            hexdump(stdout, "\x6b\x65\x79", v->key, sizeof(v->key));
+            hexdump(stdout, "\x69\x76", v->iv, sizeof(v->iv));
             hexdump(stdout, "\x69\x6e", v->in, v->length);
             hexdump(stdout, "\x65\x78\x70\x65\x63\x74\x65\x64", v->out, v->length);
             hexdump(stdout, "\x67\x6f\x74", buf, v->length);
@@ -218,14 +218,14 @@ static int run_test_vectors(void)
         }
 
         /* try with in == out */
-        memcpy(iv, v->iv, sizeof iv);
+        memcpy(iv, v->iv, sizeof(iv));
         memcpy(buf, v->in, v->length);
         AES_ige_encrypt(buf, buf, v->length, &key, iv, v->encrypt);
 
         if (memcmp(v->out, buf, v->length)) {
             printf("\x49\x47\x45\x20\x74\x65\x73\x74\x20\x76\x65\x63\x74\x6f\x72\x20\x25\x64\x20\x66\x61\x69\x6c\x65\x64\x20\x28\x77\x69\x74\x68\x20\x69\x6e\x20\x3d\x3d\x20\x6f\x75\x74\x29\xa", n);
-            hexdump(stdout, "\x6b\x65\x79", v->key, sizeof v->key);
-            hexdump(stdout, "\x69\x76", v->iv, sizeof v->iv);
+            hexdump(stdout, "\x6b\x65\x79", v->key, sizeof(v->key));
+            hexdump(stdout, "\x69\x76", v->iv, sizeof(v->iv));
             hexdump(stdout, "\x69\x6e", v->in, v->length);
             hexdump(stdout, "\x65\x78\x70\x65\x63\x74\x65\x64", v->out, v->length);
             hexdump(stdout, "\x67\x6f\x74", buf, v->length);
@@ -257,8 +257,8 @@ static int run_test_vectors(void)
 
         if (memcmp(v->out, buf, v->length)) {
             printf("\x42\x69\x64\x69\x72\x65\x63\x74\x69\x6f\x6e\x61\x6c\x20\x49\x47\x45\x20\x74\x65\x73\x74\x20\x76\x65\x63\x74\x6f\x72\x20\x25\x64\x20\x66\x61\x69\x6c\x65\x64\xa", n);
-            hexdump(stdout, "\x6b\x65\x79\x20\x31", v->key1, sizeof v->key1);
-            hexdump(stdout, "\x6b\x65\x79\x20\x32", v->key2, sizeof v->key2);
+            hexdump(stdout, "\x6b\x65\x79\x20\x31", v->key1, sizeof(v->key1));
+            hexdump(stdout, "\x6b\x65\x79\x20\x32", v->key2, sizeof(v->key2));
             hexdump(stdout, "\x69\x76", v->iv, sizeof v->iv);
             hexdump(stdout, "\x69\x6e", v->in, v->length);
             hexdump(stdout, "\x65\x78\x70\x65\x63\x74\x65\x64", v->out, v->length);
@@ -288,19 +288,19 @@ int main(int argc, char **argv)
 
     assert(BIG_TEST_SIZE >= TEST_SIZE);
 
-    RAND_pseudo_bytes(rkey, sizeof rkey);
-    RAND_pseudo_bytes(plaintext, sizeof plaintext);
-    RAND_pseudo_bytes(iv, sizeof iv);
-    memcpy(saved_iv, iv, sizeof saved_iv);
+    RAND_pseudo_bytes(rkey, sizeof(rkey));
+    RAND_pseudo_bytes(plaintext, sizeof(plaintext));
+    RAND_pseudo_bytes(iv, sizeof(iv));
+    memcpy(saved_iv, iv, sizeof(saved_iv));
 
     /* Forward IGE only... */
 
     /* Straight encrypt/decrypt */
-    AES_set_encrypt_key(rkey, 8 * sizeof rkey, &key);
+    AES_set_encrypt_key(rkey, 8 * sizeof(rkey), &key);
     AES_ige_encrypt(plaintext, ciphertext, TEST_SIZE, &key, iv, AES_ENCRYPT);
 
-    AES_set_decrypt_key(rkey, 8 * sizeof rkey, &key);
-    memcpy(iv, saved_iv, sizeof iv);
+    AES_set_decrypt_key(rkey, 8 * sizeof(rkey), &key);
+    memcpy(iv, saved_iv, sizeof(iv));
     AES_ige_encrypt(ciphertext, checktext, TEST_SIZE, &key, iv, AES_DECRYPT);
 
     if (memcmp(checktext, plaintext, TEST_SIZE)) {
@@ -311,16 +311,16 @@ int main(int argc, char **argv)
     }
 
     /* Now check encrypt chaining works */
-    AES_set_encrypt_key(rkey, 8 * sizeof rkey, &key);
-    memcpy(iv, saved_iv, sizeof iv);
+    AES_set_encrypt_key(rkey, 8 * sizeof(rkey), &key);
+    memcpy(iv, saved_iv, sizeof(iv));
     AES_ige_encrypt(plaintext, ciphertext, TEST_SIZE / 2, &key, iv,
                     AES_ENCRYPT);
     AES_ige_encrypt(plaintext + TEST_SIZE / 2,
                     ciphertext + TEST_SIZE / 2, TEST_SIZE / 2,
                     &key, iv, AES_ENCRYPT);
 
-    AES_set_decrypt_key(rkey, 8 * sizeof rkey, &key);
-    memcpy(iv, saved_iv, sizeof iv);
+    AES_set_decrypt_key(rkey, 8 * sizeof(rkey), &key);
+    memcpy(iv, saved_iv, sizeof(iv));
     AES_ige_encrypt(ciphertext, checktext, TEST_SIZE, &key, iv, AES_DECRYPT);
 
     if (memcmp(checktext, plaintext, TEST_SIZE)) {
@@ -331,16 +331,16 @@ int main(int argc, char **argv)
     }
 
     /* And check decrypt chaining */
-    AES_set_encrypt_key(rkey, 8 * sizeof rkey, &key);
-    memcpy(iv, saved_iv, sizeof iv);
+    AES_set_encrypt_key(rkey, 8 * sizeof(rkey), &key);
+    memcpy(iv, saved_iv, sizeof(iv));
     AES_ige_encrypt(plaintext, ciphertext, TEST_SIZE / 2, &key, iv,
                     AES_ENCRYPT);
     AES_ige_encrypt(plaintext + TEST_SIZE / 2,
                     ciphertext + TEST_SIZE / 2, TEST_SIZE / 2,
                     &key, iv, AES_ENCRYPT);
 
-    AES_set_decrypt_key(rkey, 8 * sizeof rkey, &key);
-    memcpy(iv, saved_iv, sizeof iv);
+    AES_set_decrypt_key(rkey, 8 * sizeof(rkey), &key);
+    memcpy(iv, saved_iv, sizeof(iv));
     AES_ige_encrypt(ciphertext, checktext, TEST_SIZE / 2, &key, iv,
                     AES_DECRYPT);
     AES_ige_encrypt(ciphertext + TEST_SIZE / 2,
@@ -355,29 +355,29 @@ int main(int argc, char **argv)
     }
 
     /* make sure garble extends forwards only */
-    AES_set_encrypt_key(rkey, 8 * sizeof rkey, &key);
-    memcpy(iv, saved_iv, sizeof iv);
-    AES_ige_encrypt(plaintext, ciphertext, sizeof plaintext, &key, iv,
+    AES_set_encrypt_key(rkey, 8 * sizeof(rkey), &key);
+    memcpy(iv, saved_iv, sizeof(iv));
+    AES_ige_encrypt(plaintext, ciphertext, sizeof(plaintext), &key, iv,
                     AES_ENCRYPT);
 
     /* corrupt halfway through */
-    ++ciphertext[sizeof ciphertext / 2];
-    AES_set_decrypt_key(rkey, 8 * sizeof rkey, &key);
-    memcpy(iv, saved_iv, sizeof iv);
-    AES_ige_encrypt(ciphertext, checktext, sizeof checktext, &key, iv,
+    ++ciphertext[sizeof(ciphertext) / 2];
+    AES_set_decrypt_key(rkey, 8 * sizeof(rkey), &key);
+    memcpy(iv, saved_iv, sizeof(iv));
+    AES_ige_encrypt(ciphertext, checktext, sizeof(checktext), &key, iv,
                     AES_DECRYPT);
 
     matches = 0;
-    for (n = 0; n < sizeof checktext; ++n)
+    for (n = 0; n < sizeof(checktext); ++n)
         if (checktext[n] == plaintext[n])
             ++matches;
 
-    if (matches > sizeof checktext / 2 + sizeof checktext / 100) {
+    if (matches > sizeof(checktext) / 2 + sizeof(checktext) / 100) {
         printf("\x4d\x6f\x72\x65\x20\x74\x68\x61\x6e\x20\x35\x31\x25\x25\x20\x6d\x61\x74\x63\x68\x65\x73\x20\x61\x66\x74\x65\x72\x20\x67\x61\x72\x62\x6c\x69\x6e\x67\xa");
         ++err;
     }
 
-    if (matches < sizeof checktext / 2) {
+    if (matches < sizeof(checktext) / 2) {
         printf("\x47\x61\x72\x62\x6c\x65\x20\x65\x78\x74\x65\x6e\x64\x73\x20\x62\x61\x63\x6b\x77\x61\x72\x64\x73\x21\xa");
         ++err;
     }
@@ -389,16 +389,16 @@ int main(int argc, char **argv)
      */
     /* possible with biIGE, so the IV is not updated. */
 
-    RAND_pseudo_bytes(rkey2, sizeof rkey2);
+    RAND_pseudo_bytes(rkey2, sizeof(rkey2));
 
     /* Straight encrypt/decrypt */
-    AES_set_encrypt_key(rkey, 8 * sizeof rkey, &key);
-    AES_set_encrypt_key(rkey2, 8 * sizeof rkey2, &key2);
+    AES_set_encrypt_key(rkey, 8 * sizeof(rkey), &key);
+    AES_set_encrypt_key(rkey2, 8 * sizeof(rkey2), &key2);
     AES_bi_ige_encrypt(plaintext, ciphertext, TEST_SIZE, &key, &key2, iv,
                        AES_ENCRYPT);
 
-    AES_set_decrypt_key(rkey, 8 * sizeof rkey, &key);
-    AES_set_decrypt_key(rkey2, 8 * sizeof rkey2, &key2);
+    AES_set_decrypt_key(rkey, 8 * sizeof(rkey), &key);
+    AES_set_decrypt_key(rkey2, 8 * sizeof(rkey2), &key2);
     AES_bi_ige_encrypt(ciphertext, checktext, TEST_SIZE, &key, &key2, iv,
                        AES_DECRYPT);
 
@@ -410,70 +410,70 @@ int main(int argc, char **argv)
     }
 
     /* make sure garble extends both ways */
-    AES_set_encrypt_key(rkey, 8 * sizeof rkey, &key);
-    AES_set_encrypt_key(rkey2, 8 * sizeof rkey2, &key2);
-    AES_ige_encrypt(plaintext, ciphertext, sizeof plaintext, &key, iv,
+    AES_set_encrypt_key(rkey, 8 * sizeof(rkey), &key);
+    AES_set_encrypt_key(rkey2, 8 * sizeof(rkey2), &key2);
+    AES_ige_encrypt(plaintext, ciphertext, sizeof(plaintext), &key, iv,
                     AES_ENCRYPT);
 
     /* corrupt halfway through */
-    ++ciphertext[sizeof ciphertext / 2];
-    AES_set_decrypt_key(rkey, 8 * sizeof rkey, &key);
-    AES_set_decrypt_key(rkey2, 8 * sizeof rkey2, &key2);
-    AES_ige_encrypt(ciphertext, checktext, sizeof checktext, &key, iv,
+    ++ciphertext[sizeof(ciphertext) / 2];
+    AES_set_decrypt_key(rkey, 8 * sizeof(rkey), &key);
+    AES_set_decrypt_key(rkey2, 8 * sizeof(rkey2), &key2);
+    AES_ige_encrypt(ciphertext, checktext, sizeof(checktext), &key, iv,
                     AES_DECRYPT);
 
     matches = 0;
-    for (n = 0; n < sizeof checktext; ++n)
+    for (n = 0; n < sizeof(checktext); ++n)
         if (checktext[n] == plaintext[n])
             ++matches;
 
-    if (matches > sizeof checktext / 100) {
+    if (matches > sizeof(checktext) / 100) {
         printf("\x4d\x6f\x72\x65\x20\x74\x68\x61\x6e\x20\x31\x25\x25\x20\x6d\x61\x74\x63\x68\x65\x73\x20\x61\x66\x74\x65\x72\x20\x62\x69\x64\x69\x72\x65\x63\x74\x69\x6f\x6e\x61\x6c\x20\x67\x61\x72\x62\x6c\x69\x6e\x67\xa");
         ++err;
     }
 
     /* make sure garble extends both ways (2) */
-    AES_set_encrypt_key(rkey, 8 * sizeof rkey, &key);
-    AES_set_encrypt_key(rkey2, 8 * sizeof rkey2, &key2);
-    AES_ige_encrypt(plaintext, ciphertext, sizeof plaintext, &key, iv,
+    AES_set_encrypt_key(rkey, 8 * sizeof(rkey), &key);
+    AES_set_encrypt_key(rkey2, 8 * sizeof(rkey2), &key2);
+    AES_ige_encrypt(plaintext, ciphertext, sizeof(plaintext), &key, iv,
                     AES_ENCRYPT);
 
     /* corrupt right at the end */
-    ++ciphertext[sizeof ciphertext - 1];
-    AES_set_decrypt_key(rkey, 8 * sizeof rkey, &key);
-    AES_set_decrypt_key(rkey2, 8 * sizeof rkey2, &key2);
-    AES_ige_encrypt(ciphertext, checktext, sizeof checktext, &key, iv,
+    ++ciphertext[sizeof(ciphertext) - 1];
+    AES_set_decrypt_key(rkey, 8 * sizeof(rkey), &key);
+    AES_set_decrypt_key(rkey2, 8 * sizeof(rkey2), &key2);
+    AES_ige_encrypt(ciphertext, checktext, sizeof(checktext), &key, iv,
                     AES_DECRYPT);
 
     matches = 0;
-    for (n = 0; n < sizeof checktext; ++n)
+    for (n = 0; n < sizeof(checktext); ++n)
         if (checktext[n] == plaintext[n])
             ++matches;
 
-    if (matches > sizeof checktext / 100) {
+    if (matches > sizeof(checktext) / 100) {
         printf("\x4d\x6f\x72\x65\x20\x74\x68\x61\x6e\x20\x31\x25\x25\x20\x6d\x61\x74\x63\x68\x65\x73\x20\x61\x66\x74\x65\x72\x20\x62\x69\x64\x69\x72\x65\x63\x74\x69\x6f\x6e\x61\x6c\x20\x67\x61\x72\x62\x6c\x69\x6e\x67\x20\x28\x32\x29\xa");
         ++err;
     }
 
     /* make sure garble extends both ways (3) */
-    AES_set_encrypt_key(rkey, 8 * sizeof rkey, &key);
-    AES_set_encrypt_key(rkey2, 8 * sizeof rkey2, &key2);
-    AES_ige_encrypt(plaintext, ciphertext, sizeof plaintext, &key, iv,
+    AES_set_encrypt_key(rkey, 8 * sizeof(rkey), &key);
+    AES_set_encrypt_key(rkey2, 8 * sizeof(rkey2), &key2);
+    AES_ige_encrypt(plaintext, ciphertext, sizeof(plaintext), &key, iv,
                     AES_ENCRYPT);
 
     /* corrupt right at the start */
     ++ciphertext[0];
-    AES_set_decrypt_key(rkey, 8 * sizeof rkey, &key);
-    AES_set_decrypt_key(rkey2, 8 * sizeof rkey2, &key2);
-    AES_ige_encrypt(ciphertext, checktext, sizeof checktext, &key, iv,
+    AES_set_decrypt_key(rkey, 8 * sizeof(rkey), &key);
+    AES_set_decrypt_key(rkey2, 8 * sizeof(rkey2), &key2);
+    AES_ige_encrypt(ciphertext, checktext, sizeof(checktext), &key, iv,
                     AES_DECRYPT);
 
     matches = 0;
-    for (n = 0; n < sizeof checktext; ++n)
+    for (n = 0; n < sizeof(checktext); ++n)
         if (checktext[n] == plaintext[n])
             ++matches;
 
-    if (matches > sizeof checktext / 100) {
+    if (matches > sizeof(checktext) / 100) {
         printf("\x4d\x6f\x72\x65\x20\x74\x68\x61\x6e\x20\x31\x25\x25\x20\x6d\x61\x74\x63\x68\x65\x73\x20\x61\x66\x74\x65\x72\x20\x62\x69\x64\x69\x72\x65\x63\x74\x69\x6f\x6e\x61\x6c\x20\x67\x61\x72\x62\x6c\x69\x6e\x67\x20\x28\x33\x29\xa");
         ++err;
     }

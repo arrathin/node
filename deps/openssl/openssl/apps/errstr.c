@@ -108,7 +108,7 @@ int MAIN(int argc, char **argv)
 
     for (i = 1; i < argc; i++) {
         if (sscanf(argv[i], "\x25\x6c\x78", &l)) {
-            ERR_error_string_n(l, buf, sizeof buf);
+            ERR_error_string_n(l, buf, sizeof(buf));
             printf("\x25\x73\xa", buf);
         } else {
             printf("\x25\x73\x3a\x20\x62\x61\x64\x20\x65\x72\x72\x6f\x72\x20\x63\x6f\x64\x65\xa", argv[i]);

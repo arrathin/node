@@ -2181,10 +2181,10 @@ static void print_stuff(BIO *bio, SSL *s, int full)
             BIO_printf(bio, "\x2d\x2d\x2d\xaC\x65\x72\x74\x69\x66\x69\x63\x61\x74\x65\x20\x63\x68\x61\x69\x6e\xa");
             for (i = 0; i < sk_X509_num(sk); i++) {
                 X509_NAME_oneline(X509_get_subject_name(sk_X509_value(sk, i)),
-                                  buf, sizeof buf);
+                                  buf, sizeof(buf));
                 BIO_printf(bio, "\x25\x32\x64\x20\x73\x3a\x25\x73\xa", i, buf);
                 X509_NAME_oneline(X509_get_issuer_name(sk_X509_value(sk, i)),
-                                  buf, sizeof buf);
+                                  buf, sizeof(buf));
                 BIO_printf(bio, "\x20\x20\x20\x69\x3a\x25\x73\xa", buf);
                 if (c_showcerts)
                     PEM_write_bio_X509(bio, sk_X509_value(sk, i));
@@ -2199,9 +2199,9 @@ static void print_stuff(BIO *bio, SSL *s, int full)
             /* Redundant if we showed the whole chain */
             if (!(c_showcerts && got_a_chain))
                 PEM_write_bio_X509(bio, peer);
-            X509_NAME_oneline(X509_get_subject_name(peer), buf, sizeof buf);
+            X509_NAME_oneline(X509_get_subject_name(peer), buf, sizeof(buf));
             BIO_printf(bio, "\x73\x75\x62\x6a\x65\x63\x74\x3d\x25\x73\xa", buf);
-            X509_NAME_oneline(X509_get_issuer_name(peer), buf, sizeof buf);
+            X509_NAME_oneline(X509_get_issuer_name(peer), buf, sizeof(buf));
             BIO_printf(bio, "\x69\x73\x73\x75\x65\x72\x3d\x25\x73\xa", buf);
         } else
             BIO_printf(bio, "\x6e\x6f\x20\x70\x65\x65\x72\x20\x63\x65\x72\x74\x69\x66\x69\x63\x61\x74\x65\x20\x61\x76\x61\x69\x6c\x61\x62\x6c\x65\xa");
@@ -2218,7 +2218,7 @@ static void print_stuff(BIO *bio, SSL *s, int full)
         } else {
             BIO_printf(bio, "\x2d\x2d\x2d\xa\x4e\x6f\x20\x63\x6c\x69\x65\x6e\x74\x20\x63\x65\x72\x74\x69\x66\x69\x63\x61\x74\x65\x20\x43\x41\x20\x6e\x61\x6d\x65\x73\x20\x73\x65\x6e\x74\xa");
         }
-        p = SSL_get_shared_ciphers(s, buf, sizeof buf);
+        p = SSL_get_shared_ciphers(s, buf, sizeof(buf));
         if (p != NULL) {
             /*
              * This works only for SSL 2.  In later protocol versions, the

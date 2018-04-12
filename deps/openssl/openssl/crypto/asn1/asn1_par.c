@@ -87,13 +87,13 @@ static int asn1_print_info(BIO *bp, int tag, int xclass, int constructed,
 
     p = str;
     if ((xclass & V_ASN1_PRIVATE) == V_ASN1_PRIVATE)
-        BIO_snprintf(str, sizeof str, "\x70\x72\x69\x76\x20\x5b\x20\x25\x64\x20\x5d\x20", tag);
+        BIO_snprintf(str, sizeof(str), "\x70\x72\x69\x76\x20\x5b\x20\x25\x64\x20\x5d\x20", tag);
     else if ((xclass & V_ASN1_CONTEXT_SPECIFIC) == V_ASN1_CONTEXT_SPECIFIC)
-        BIO_snprintf(str, sizeof str, "\x63\x6f\x6e\x74\x20\x5b\x20\x25\x64\x20\x5d", tag);
+        BIO_snprintf(str, sizeof(str), "\x63\x6f\x6e\x74\x20\x5b\x20\x25\x64\x20\x5d", tag);
     else if ((xclass & V_ASN1_APPLICATION) == V_ASN1_APPLICATION)
-        BIO_snprintf(str, sizeof str, "\x61\x70\x70\x6c\x20\x5b\x20\x25\x64\x20\x5d", tag);
+        BIO_snprintf(str, sizeof(str), "\x61\x70\x70\x6c\x20\x5b\x20\x25\x64\x20\x5d", tag);
     else if (tag > 30)
-        BIO_snprintf(str, sizeof str, "\x3c\x41\x53\x4e\x31\x20\x25\x64\x3e", tag);
+        BIO_snprintf(str, sizeof(str), "\x3c\x41\x53\x4e\x31\x20\x25\x64\x3e", tag);
     else
         p = ASN1_tag2str(tag);
 

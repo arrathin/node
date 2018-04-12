@@ -217,7 +217,7 @@ int MAIN(int argc, char **argv)
                 BIO_printf(STDout, "\x25\x73\x20\x2d\x20", nm);
             }
 #endif
-            BIO_puts(STDout, SSL_CIPHER_description(c, buf, sizeof buf));
+            BIO_puts(STDout, SSL_CIPHER_description(c, buf, sizeof(buf)));
         }
     }
 

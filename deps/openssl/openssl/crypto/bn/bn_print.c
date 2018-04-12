@@ -391,10 +391,10 @@ char *BN_options(void)
     if (!init) {
         init++;
 #ifdef BN_LLONG
-        BIO_snprintf(data, sizeof data, "\x62\x6e\x28\x25\x64\x2c\x25\x64\x29",
+        BIO_snprintf(data, sizeof(data), "\x62\x6e\x28\x25\x64\x2c\x25\x64\x29",
                      (int)sizeof(BN_ULLONG) * 8, (int)sizeof(BN_ULONG) * 8);
 #else
-        BIO_snprintf(data, sizeof data, "\x62\x6e\x28\x25\x64\x2c\x25\x64\x29",
+        BIO_snprintf(data, sizeof(data), "\x62\x6e\x28\x25\x64\x2c\x25\x64\x29",
                      (int)sizeof(BN_ULONG) * 8, (int)sizeof(BN_ULONG) * 8);
 #endif
     }

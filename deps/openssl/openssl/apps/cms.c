@@ -4,7 +4,7 @@
  * project.
  */
 /* ====================================================================
- * Copyright (c) 2008 The OpenSSL Project.  All rights reserved.
+ * Copyright (c) 2008-2018 The OpenSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -977,12 +977,16 @@ int MAIN(int argc, char **argv)
 
             signer = load_cert(bio_err, signerfile, FORMAT_PEM, NULL,
                                e, "\x73\x69\x67\x6e\x65\x72\x20\x63\x65\x72\x74\x69\x66\x69\x63\x61\x74\x65");
-            if (!signer)
+            if (!signer) {
+                ret = 2;
                 goto end;
+            }
             key = load_key(bio_err, keyfile, keyform, 0, passin, e,
                            "\x73\x69\x67\x6e\x69\x6e\x67\x20\x6b\x65\x79\x20\x66\x69\x6c\x65");
-            if (!key)
+            if (!key) {
+                ret = 2;
                 goto end;
+            }
             for (kparam = key_first; kparam; kparam = kparam->next) {
                 if (kparam->idx == i) {
                     tflags |= CMS_KEY_PARAM;

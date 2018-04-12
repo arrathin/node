@@ -73,7 +73,7 @@ char *argv[];
     fprintf(stderr, "\x70\x6c\x65\x61\x73\x65\x20\x65\x6e\x74\x65\x72\x20\x63\x68\x61\x6c\x6c\x65\x6e\x67\x65\x20\x73\x74\x72\x69\x6e\x67\x3a");
     fflush(stderr);
     buf[0] = '\x0';
-    fgets(buf, sizeof buf, stdin);
+    fgets(buf, sizeof(buf), stdin);
     i = strlen(buf);
     if (i > 0)
         buf[--i] = '\x0';

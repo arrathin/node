@@ -149,14 +149,14 @@ int ASN1_mbstring_ncopy(ASN1_STRING **out, const unsigned char *in, int len,
 
     if ((minsize > 0) && (nchar < minsize)) {
         ASN1err(ASN1_F_ASN1_MBSTRING_NCOPY, ASN1_R_STRING_TOO_SHORT);
-        BIO_snprintf(strbuf, sizeof strbuf, "\x25\x6c\x64", minsize);
+        BIO_snprintf(strbuf, sizeof(strbuf), "\x25\x6c\x64", minsize);
         ERR_add_error_data(2, "\x6d\x69\x6e\x73\x69\x7a\x65\x3d", strbuf);
         return -1;
     }
 
     if ((maxsize > 0) && (nchar > maxsize)) {
         ASN1err(ASN1_F_ASN1_MBSTRING_NCOPY, ASN1_R_STRING_TOO_LONG);
-        BIO_snprintf(strbuf, sizeof strbuf, "\x25\x6c\x64", maxsize);
+        BIO_snprintf(strbuf, sizeof(strbuf), "\x25\x6c\x64", maxsize);
         ERR_add_error_data(2, "\x6d\x61\x78\x73\x69\x7a\x65\x3d", strbuf);
         return -1;
     }
