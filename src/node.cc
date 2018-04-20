@@ -32,6 +32,7 @@
 #include "node_internals.h"
 #include "node_revert.h"
 #include "node_debug_options.h"
+#include "node_watchdog.h"
 #include "node_perf.h"
 #include "util.h"
 
@@ -365,14 +366,25 @@ static struct {
 
 #ifdef __POSIX__
 static uv_sem_t debug_semaphore;
-static uv_sem_t debug_shutdown;
 static bool debug_semaphore_active = false;
-static void StopDebugSignalHandler(bool);
+static void StopDebugSignalHandler();
 static const unsigned kMaxSignal = 32;
 #endif
 
 #ifdef __MVS__
 static uv_thread_t signalHandlerThread;
+static int signalHandlerExit;
+class OS390ThreadManager {
+public:
+  static void Destroy(int sig) {
+    uv_queue_work(NULL, NULL, NULL, NULL);
+    SigintWatchdogHelper::GetInstance()->StopThread();
+    msgctl(uv_backend_fd(uv_default_loop()), IPC_RMID, NULL);
+  }
+  ~OS390ThreadManager() {
+    Destroy(0);
+  }
+};
 #endif
 
 static void PrintString(FILE* out, const char* format, va_list ap) {
@@ -383,7 +395,7 @@ static void PrintString(FILE* out, const char* format, va_list ap) {
   if (stderr_handle == INVALID_HANDLE_VALUE ||
       stderr_handle == nullptr ||
       uv_guess_handle(_fileno(stderr)) != UV_TTY) {
-    vfprintf(out, format, ap));
+    vfprintf(out, format, ap);
     va_end(ap);
     return;
   }
@@ -935,6 +947,56 @@ const char *signo_string(int signo) {
 
   default: return "";
   }
+}
+
+
+// Convenience methods
+
+static void platform_exit(int code) {
+#ifndef __MVS__
+  exit(code);
+#endif
+
+  OS390ThreadManager::Destroy(0);
+  exit(code);
+}
+
+
+void ThrowError(v8::Isolate* isolate, const char* errmsg) {
+  Environment::GetCurrent(isolate)->ThrowError(errmsg);
+}
+
+
+void ThrowTypeError(v8::Isolate* isolate, const char* errmsg) {
+  Environment::GetCurrent(isolate)->ThrowTypeError(errmsg);
+}
+
+
+void ThrowRangeError(v8::Isolate* isolate, const char* errmsg) {
+  Environment::GetCurrent(isolate)->ThrowRangeError(errmsg);
+}
+
+
+void ThrowErrnoException(v8::Isolate* isolate,
+                         int errorno,
+                         const char* syscall,
+                         const char* message,
+                         const char* path) {
+  Environment::GetCurrent(isolate)->ThrowErrnoException(errorno,
+                                                        syscall,
+                                                        message,
+                                                        path);
+}
+
+
+void ThrowUVException(v8::Isolate* isolate,
+                      int errorno,
+                      const char* syscall,
+                      const char* message,
+                      const char* path,
+                      const char* dest) {
+  Environment::GetCurrent(isolate)
+      ->ThrowUVException(errorno, syscall, message, path, dest);
 }
 
 
@@ -2018,13 +2080,13 @@ static Local<Value> ExecuteString(Environment* env,
       v8::Script::Compile(env->context(), source, &origin);
   if (script.IsEmpty()) {
     ReportException(env, try_catch);
-    exit(3);
+    platform_exit(3);
   }
 
   Local<Value> result = script.ToLocalChecked()->Run();
   if (result.IsEmpty()) {
     ReportException(env, try_catch);
-    exit(4);
+    platform_exit(4);
   }
 
   return scope.Escape(result);
@@ -2547,7 +2609,7 @@ static void Exit(const FunctionCallbackInfo<Value>& args) {
   if (trace_enabled) {
     v8_platform.StopTracingAgent();
   }
-  exit(args[0]->Int32Value());
+  platform_exit(args[0]->Int32Value());
 }
 
 
@@ -2856,7 +2918,6 @@ void on_sigabrt (int signum)
 }
 #endif
 
-
 static void OnFatalError(const char* location, const char* message) {
   if (location) {
     PrintErrorString("FATAL ERROR: %s %s\n", location, message);
@@ -2864,7 +2925,7 @@ static void OnFatalError(const char* location, const char* message) {
     PrintErrorString("FATAL ERROR: %s\n", message);
   }
   fflush(stderr);
-  ReleaseResourcesOnExit(nullptr);
+  OS390ThreadManager::Destroy(0);
   ABORT();
 }
 
@@ -2921,7 +2982,7 @@ void FatalException(Isolate* isolate,
 #if HAVE_INSPECTOR
     env->inspector_agent()->FatalException(error, message);
 #endif
-    exit(exit_code);
+    platform_exit(exit_code);
   }
 }
 
@@ -3890,6 +3951,11 @@ void SetupProcessObject(Environment* env,
 #undef READONLY_PROPERTY
 
 
+static void AtProcessExit() {
+  uv_tty_reset_mode();
+}
+
+
 void SignalExit(int signo) {
   uv_tty_reset_mode();
   if (trace_enabled) {
@@ -3902,11 +3968,11 @@ void SignalExit(int signo) {
   sa.sa_handler = SIG_DFL;
   CHECK_EQ(sigaction(signo, &sa, nullptr), 0);
 #endif
-  //V8::ReleaseSystemResources();
-  //debugger::Agent::ReleaseSystemResources();
-  //StopDebugSignalHandler(true);
-  ReleaseResourcesOnExit(nullptr);
+#ifdef __MVS__
+  signalHandlerExit = signo;
+#else
   raise(signo);
+#endif
 }
 
 
@@ -3940,7 +4006,7 @@ void LoadEnvironment(Environment* env) {
   Local<Value> f_value = ExecuteString(env, MainSource(env), script_name);
   if (try_catch.HasCaught())  {
     ReportException(env, try_catch);
-    exit(10);
+    platform_exit(10);
   }
   // The bootstrap_node.js file returns a function 'f'
   CHECK(f_value->IsFunction());
@@ -4196,7 +4262,7 @@ static void CheckIfAllowedInEnv(const char* exe, bool is_env,
   }
 
   PrintErrorString("%s: %s is not allowed in NODE_OPTIONS\n", exe, arg);
-  exit(9);
+  platform_exit(9);
 }
 
 
@@ -4252,10 +4318,10 @@ static void ParseArgs(int* argc,
       // Done, consumed by DebugOptions::ParseOption().
     } else if (strcmp(arg, "--version") == 0 || strcmp(arg, "-v") == 0) {
       PrintOutString("%s\n", NODE_VERSION);
-      exit(0);
+      platform_exit(0);
     } else if (strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
       PrintHelp();
-      exit(0);
+      platform_exit(0);
     } else if (strcmp(arg, "--eval") == 0 ||
                strcmp(arg, "-e") == 0 ||
                strcmp(arg, "--print") == 0 ||
@@ -4270,7 +4336,7 @@ static void ParseArgs(int* argc,
         eval_string = argv[index + 1];
         if (eval_string == nullptr) {
           PrintErrorString("%s: %s requires an argument\n", argv[0], arg);
-          exit(9);
+          platform_exit(9);
         }
       } else if ((index + 1 < nargs) &&
                  argv[index + 1] != nullptr &&
@@ -4287,7 +4353,7 @@ static void ParseArgs(int* argc,
       const char* module = argv[index + 1];
       if (module == nullptr) {
         PrintErrorString("%s: %s requires an argument\n", argv[0], arg);
-        exit(9);
+        platform_exit(9);
       }
       args_consumed += 1;
       preload_modules.push_back(module);
@@ -4317,7 +4383,7 @@ static void ParseArgs(int* argc,
       const char* categories = argv[index + 1];
       if (categories == nullptr) {
         PrintErrorString("%s: %s requires an argument\n", argv[0], arg);
-        exit(9);
+        platform_exit(9);
       }
       args_consumed += 1;
       trace_enabled_categories = categories;
@@ -4337,11 +4403,11 @@ static void ParseArgs(int* argc,
       if (!config_experimental_modules) {
         PrintErrorString("%s: %s requires --experimental-modules be enabled\n",
             argv[0], arg);
-        exit(9);
+        platform_exit(9);
       }
       if (module == nullptr) {
         PrintErrorString("%s: %s requires an argument\n", argv[0], arg);
-        exit(9);
+        platform_exit(9);
       }
       args_consumed += 1;
       config_userland_loader = module;
@@ -4416,14 +4482,14 @@ static void ParseArgs(int* argc,
             "%s: either --use-openssl-ca or --use-bundled-ca can be used, "
             "not both\n",
             argv[0]);
-    exit(9);
+    platform_exit(9);
   }
 #endif
 
   if (eval_string != nullptr && syntax_check_only) {
     PrintErrorString(
             "%s: either --check or --eval can be used, not both\n", argv[0]);
-    exit(9);
+    platform_exit(9);
   }
 
   // Copy remaining arguments.
@@ -4432,7 +4498,7 @@ static void ParseArgs(int* argc,
   if (is_env && args_left) {
     PrintErrorString("%s: %s is not supported in NODE_OPTIONS\n",
             argv[0], argv[index]);
-    exit(9);
+    platform_exit(9);
   }
 
   memcpy(new_argv + new_argc, argv + index, args_left * sizeof(*argv));
@@ -4493,6 +4559,8 @@ void DebugProcess(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowErrnoException(errno, "kill");
   }
 }
+
+
 #endif  // __POSIX__
 
 
@@ -4610,15 +4678,23 @@ static void DebugEnd(const FunctionCallbackInfo<Value>& args) {
 
 
 void SignalHandlerThread(void* data) {
+  struct sigaction sa;
   int old;
 
   CHECK_EQ(pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &old), 0);
   CHECK_EQ(pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &old),0);
 
-  while(true) {
+  while(!signalHandlerExit) {
     CHECK_EQ(pause(),-1);
     CHECK_EQ(errno,EINTR);
   }
+  OS390ThreadManager::Destroy(signalHandlerExit);
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = SIG_DFL;
+  CHECK_EQ(sigaction(signalHandlerExit, &sa, nullptr), 0);
+  if (signalHandlerExit == SIGABRT)
+    abort();
+  raise(signalHandlerExit);
 }
 
 
@@ -4666,6 +4742,7 @@ inline void PlatformInit() {
 
   RegisterSignalHandler(SIGINT, SignalExit, true);
   RegisterSignalHandler(SIGTERM, SignalExit, true);
+  RegisterSignalHandler(SIGABRT, SignalExit, true);
 
   // Raise the open file descriptor limit.
   struct rlimit lim;
@@ -4701,13 +4778,6 @@ inline void PlatformInit() {
     }
   }
 #endif  // _WIN32
-#ifdef __MVS__
-  //atexit(ReleaseResourcesOnExit);
-  sigset_t set;
-  sigfillset(&set);
-  uv_thread_create(&signalHandlerThread, SignalHandlerThread, NULL);
-  sigprocmask(SIG_BLOCK, &set, NULL);
-#endif
 }
 
 
@@ -4746,6 +4816,10 @@ void ProcessArgv(int* argc,
   if (v8_argc > 1)
     V8::SetFlagsFromCommandLine(&v8_argc, const_cast<char**>(v8_argv), true);
 
+#ifdef __MVS__
+  V8::SetFlagsFromString(u8"--nohard_abort", 14);
+#endif
+
   // Anything that's still in v8_argv is not a V8 or a node option.
   for (int i = 1; i < v8_argc; i++) {
     PrintErrorString("%s: bad option: %s\n", argv[0], v8_argv[i]);
@@ -4754,7 +4828,7 @@ void ProcessArgv(int* argc,
   v8_argv = nullptr;
 
   if (v8_argc > 1) {
-    exit(9);
+    platform_exit(9);
   }
 }
 
@@ -4994,7 +5068,7 @@ int Start(Isolate* isolate, IsolateData* isolate_data,
   sigaction(SIGABND, &action, NULL);
   sigaction(SIGHUP, &action, NULL);
 #endif
-    
+
   HandleScope handle_scope(isolate);
   Local<Context> context = Context::New(isolate);
   Context::Scope context_scope(context);
@@ -5083,7 +5157,6 @@ int Start(uv_loop_t* event_loop,
   if (track_heap_objects) {
     isolate->GetHeapProfiler()->StartTrackingHeapObjects(true);
   }
-
   {
     Mutex::ScopedLock scoped_lock(node_isolate_mutex);
     CHECK_EQ(node_isolate, nullptr);
@@ -5111,7 +5184,7 @@ int Start(uv_loop_t* event_loop,
 }
 
 int Start(int argc, char** argv) {
-  atexit([] () { uv_tty_reset_mode(); });
+  OS390ThreadManager threadPoolObj;
   PlatformInit();
   node::performance::performance_node_start = PERFORMANCE_NOW();
 
@@ -5130,6 +5203,14 @@ int Start(int argc, char** argv) {
   int exec_argc;
   const char** exec_argv;
   Init(&argc, const_cast<const char**>(argv), &exec_argc, &exec_argv);
+
+#ifdef __MVS__
+  signalHandlerExit = 0;
+  sigset_t set;
+  sigfillset(&set);
+  uv_thread_create(&signalHandlerThread, SignalHandlerThread, NULL);
+  sigprocmask(SIG_BLOCK, &set, NULL);
+#endif
 
 #if HAVE_OPENSSL
   {
@@ -5175,8 +5256,6 @@ int Start(int argc, char** argv) {
 
   if (pthread_cancel(signalHandlerThread) == -1)
     abort();
-
-  //StopDebugSignalHandler(true);
 
   delete[] exec_argv;
   exec_argv = nullptr;

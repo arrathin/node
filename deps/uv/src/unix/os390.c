@@ -26,8 +26,10 @@
 #include <unistd.h>
 #include <sys/ps.h>
 #include <builtins.h>
+#ifdef __MVS__
 #include <termios.h>
 #include <sys/msg.h>
+#endif
 #if defined(__clang__)
 #include "csrsic.h"
 #else
@@ -121,6 +123,7 @@ int uv__platform_loop_init(uv_loop_t* loop) {
 
   ep = epoll_create1(0);
   loop->ep = ep;
+  loop->backend_fd = ep->msg_queue;
   if (ep == NULL)
     return -errno;
 
@@ -500,8 +503,8 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
     if (!(p->__nif6e_flags & _NIF6E_FLAGS_ON_LINK_ACTIVE))
       continue;
 
-
     /* All conditions above must match count loop */
+
     i = 0;
     while (i < sizeof(p->__nif6e_name) / sizeof(char) && p->__nif6e_name[i] != ' ')
       ++i;
@@ -628,6 +631,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
       address->name[i] = '\0';
     }
 
+
     address->address.address4 = *((struct sockaddr_in*) &p->ifr_addr);
     address->is_internal = flg.ifr_flags & IFF_LOOPBACK ? 1 : 0;
     address++;
@@ -667,6 +671,9 @@ void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {
         events[i].fd = -1;
 
   /* Remove the file descriptor from the epoll. */
+  dummy.events = 0;
+  dummy.fd = fd;
+  dummy.is_msg = 0;
   if (loop->ep != NULL)
     epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, fd, &dummy);
 }
@@ -712,7 +719,7 @@ int uv_fs_event_start(uv_fs_event_t* handle, uv_fs_event_cb cb,
   int rc;
 
   if (uv__is_active(handle))
-    return -EINVAL;
+    return UV_EINVAL;
 
   ep = handle->loop->ep;
   assert(ep->msg_queue != -1);
@@ -724,7 +731,7 @@ int uv_fs_event_start(uv_fs_event_t* handle, uv_fs_event_cb cb,
 
   path = uv__strdup(filename);
   if (path == NULL)
-    return -ENOMEM;
+    return -errno;
 
   rc = __w_pioctl(path, _IOCC_REGFILEINT, sizeof(reg_struct), &reg_struct);
   if (rc != 0)
@@ -783,11 +790,13 @@ static int os390_message_queue_handler(uv__os390_epoll* ep) {
 
   msglen = msgrcv(ep->msg_queue, &msg, sizeof(msg), 0, IPC_NOWAIT);
 
-  if (msglen == -1 && errno == ENOMSG)
-    return 0;
-
   if (msglen == -1)
-    abort();
+    if (errno == ENOMSG)
+      return 0;
+    else if (errno == EINVAL)
+      return -1;
+    else
+      abort();
 
   events = 0;
   if (msg.__rfim_event == _RFIM_ATTR || msg.__rfim_event == _RFIM_WRITE)
@@ -842,6 +851,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
 
     e.events = w->pevents;
     e.fd = w->fd;
+    e.is_msg = 0;
 
     if (w->events == 0)
       op = UV__EPOLL_CTL_ADD;
@@ -924,8 +934,14 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
         continue;
 
       ep = loop->ep;
-      if (fd == ep->msg_queue) {
-        os390_message_queue_handler(ep);
+      if (pe->is_msg) {
+        if (os390_message_queue_handler(ep) == -1) {
+          /* The user has deleted the System V message queue. Highly likely
+           * because the process is being shut down. So stop listening to it.
+           */
+          epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, ep->msg_queue, pe);
+          loop->backend_fd = -1;
+        }
         continue;
       }
 
