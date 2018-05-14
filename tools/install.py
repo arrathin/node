@@ -141,11 +141,17 @@ def files(action):
   action(['deps/v8z/tools/lldb_commands.py'], 'share/doc/node/')
 
   # conversion_tool files
-  action(['tools/conversion_tool/eb2as.sh',
-        'tools/conversion_tool/cleanup.sh',
-        'tools/conversion_tool/ebcdic2ascii.py',
-        'tools/conversion_tool/ebcdic2ascii_encoder.py',
-        'tools/conversion_tool/read_files.py'], 'bin/')
+  if sys.platform.startswith('zos'):
+    action(['tools/conversion_tool/eb2as.sh',
+          'tools/conversion_tool/cleanup.sh',
+          'tools/conversion_tool/ebcdic2ascii.py',
+          'tools/conversion_tool/ebcdic2ascii_encoder.py',
+          'tools/conversion_tool/read_files.py'], 'bin/')
+    if 'false' == variables.get('node_shared'):
+      action([
+        output_prefix + 'obj.target/lib' + output_file + '.x',
+        output_prefix + 'obj.target/lib' + output_file + '.so',
+      ], 'lib/')
 
   if 'freebsd' in sys.platform or 'openbsd' in sys.platform:
     action(['doc/node.1'], 'man/man1/')
@@ -161,6 +167,8 @@ def headers(action):
     'common.gypi',
     'config.gypi',
     'src/node.h',
+    'src/node_api.h',
+    'src/node_api_types.h',
     'src/node_buffer.h',
     'src/node_object_wrap.h',
     'src/node_version.h',
@@ -169,8 +177,6 @@ def headers(action):
   # Add the expfile that is created on AIX
   if sys.platform.startswith('aix'):
     action(['out/Release/node.exp'], 'include/node/')
-  if sys.platform.startswith('zos'):
-    action(['out/Release/node.x'], 'include/node/')
 
   subdir_files('deps/v8z/include', 'include/node/', action)
 

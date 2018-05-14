@@ -51,7 +51,7 @@ properties of a WHATWG `URL` object.
 ├─────────────┴─────────────────────┴─────────────────────┴──────────┴────────────────┴───────┤
 │                                            href                                             │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
-(all spaces in the "" line should be ignored -- they are purely for formatting)
+(all spaces in the "" line should be ignored — they are purely for formatting)
 ```
 
 Parsing the URL string using the WHATWG API:
@@ -555,7 +555,7 @@ Instantiate a new `URLSearchParams` object with an iterable map in a way that
 is similar to [`Map`][]'s constructor. `iterable` can be an Array or any
 iterable object. That means `iterable` can be another `URLSearchParams`, in
 which case the constructor will simply create a clone of the provided
-`URLSearchParams`.  Elements of `iterable` are key-value pairs, and can
+`URLSearchParams`. Elements of `iterable` are key-value pairs, and can
 themselves be any iterable object.
 
 Duplicate keys are allowed.
@@ -984,6 +984,11 @@ The formatting process operates as follows:
 ### url.parse(urlString[, parseQueryString[, slashesDenoteHost]])
 <!-- YAML
 added: v0.1.25
+changes:
+  - version: v9.0.0
+    pr-url: https://github.com/nodejs/node/pull/13606
+    description: The `search` property on the returned URL object is now `null`
+                 when no query string is present.
 -->
 
 * `urlString` {string} The URL string to parse.

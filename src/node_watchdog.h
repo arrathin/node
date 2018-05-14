@@ -54,7 +54,7 @@ class SigintWatchdogHelper {
   void Register(SigintWatchdog* watchdog);
   void Unregister(SigintWatchdog* watchdog);
   bool HasPendingSignal();
-  void ReleaseSystemResources();
+  void StopThread();
 
   int Start();
   bool Stop();

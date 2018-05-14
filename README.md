@@ -7,10 +7,9 @@
   <a title="CII Best Practices" href="https://bestpractices.coreinfrastructure.org/projects/29"><img src="https://bestpractices.coreinfrastructure.org/projects/29/badge"></a>
 </p>
 
-Node.js is a JavaScript runtime built on Chrome's V8 JavaScript engine. Node.js
-uses an event-driven, non-blocking I/O model that makes it lightweight and
-efficient. The Node.js package ecosystem, [npm][], is the largest ecosystem of
-open source libraries in the world.
+Node.js is a JavaScript runtime built on Chrome's V8 JavaScript engine. For
+more information on using Node.js, see the
+[Node.js Website][].
 
 The Node.js project is supported by the
 [Node.js Foundation](https://nodejs.org/en/foundation/). Contributions,
@@ -195,8 +194,8 @@ us a report nonetheless.
 
 - [#14519](https://github.com/nodejs/node/issues/14519): _Internal domain
   function can be used to cause segfaults_. Causing program termination using
-  either the public Javascript APIs or the private bindings layer APIs requires
-  the ability to execute arbitrary Javascript code, which is already the highest
+  either the public JavaScript APIs or the private bindings layer APIs requires
+  the ability to execute arbitrary JavaScript code, which is already the highest
   level of privilege possible.
 
 - [#12141](https://github.com/nodejs/node/pull/12141): _buffer: zero fill
@@ -248,8 +247,8 @@ For more information about the governance of the Node.js project, see
 **Franziska Hinkelmann** &lt;franziska.hinkelmann@gmail.com&gt; (she/her)
 * [Fishrock123](https://github.com/Fishrock123) -
 **Jeremiah Senkpiel** &lt;fishrock123@rocketmail.com&gt;
-* [indutny](https://github.com/indutny) -
-**Fedor Indutny** &lt;fedor.indutny@gmail.com&gt;
+* [gibfahn](https://github.com/gibfahn) -
+**Gibson Fahnestock** &lt;gibfahn@gmail.com&gt; (he/him)
 * [jasnell](https://github.com/jasnell) -
 **James M Snell** &lt;jasnell@gmail.com&gt; (he/him)
 * [joyeecheung](https://github.com/joyeecheung) -
@@ -258,8 +257,6 @@ For more information about the governance of the Node.js project, see
 **Matteo Collina** &lt;matteo.collina@gmail.com&gt; (he/him)
 * [mhdawson](https://github.com/mhdawson) -
 **Michael Dawson** &lt;michael_dawson@ca.ibm.com&gt; (he/him)
-* [mscdex](https://github.com/mscdex) -
-**Brian White** &lt;mscdex@mscdex.net&gt;
 * [MylesBorins](https://github.com/MylesBorins) -
 **Myles Borins** &lt;myles.borins@gmail.com&gt; (he/him)
 * [ofrobots](https://github.com/ofrobots) -
@@ -281,10 +278,14 @@ For more information about the governance of the Node.js project, see
 **Ben Noordhuis** &lt;info@bnoordhuis.nl&gt;
 * [chrisdickinson](https://github.com/chrisdickinson) -
 **Chris Dickinson** &lt;christopher.s.dickinson@gmail.com&gt;
+* [indutny](https://github.com/indutny) -
+**Fedor Indutny** &lt;fedor.indutny@gmail.com&gt;
 * [isaacs](https://github.com/isaacs) -
 **Isaac Z. Schlueter** &lt;i@izs.me&gt;
 * [joshgav](https://github.com/joshgav) -
 **Josh Gavant** &lt;josh.gavant@outlook.com&gt;
+* [mscdex](https://github.com/mscdex) -
+**Brian White** &lt;mscdex@mscdex.net&gt;
 * [nebrius](https://github.com/nebrius) -
 **Bryan Hughes** &lt;bryan@nebri.us&gt;
 * [orangemocha](https://github.com/orangemocha) -
@@ -342,6 +343,8 @@ For more information about the governance of the Node.js project, see
 **Daniel Bevenius** &lt;daniel.bevenius@gmail.com&gt;
 * [DavidCai1993](https://github.com/DavidCai1993) -
 **David Cai** &lt;davidcai1993@yahoo.com&gt; (he/him)
+* [devsnek](https://github.com/devsnek) -
+**Gus Caplan** &lt;me@gus.host&gt; (he/him)
 * [edsadr](https://github.com/edsadr) -
 **Adrian Estrada** &lt;edsadr@gmail.com&gt; (he/him)
 * [eljefedelrodeodeljefe](https://github.com/eljefedelrodeodeljefe) -
@@ -426,6 +429,8 @@ For more information about the governance of the Node.js project, see
 **Mikeal Rogers** &lt;mikeal.rogers@gmail.com&gt;
 * [misterdjules](https://github.com/misterdjules) -
 **Julien Gilli** &lt;jgilli@nodejs.org&gt;
+* [mmarchini](https://github.com/mmarchini) -
+**Matheus Marchini**  &lt;matheus@sthima.com&gt;
 * [mscdex](https://github.com/mscdex) -
 **Brian White** &lt;mscdex@mscdex.net&gt;
 * [MylesBorins](https://github.com/MylesBorins) -
@@ -593,12 +598,13 @@ Previous releases may also have been signed with one of the following GPG keys:
 
 * [Contributing to the project][]
 * [Working Groups][]
+* [Strategic Initiatives][]
 
-[npm]: https://www.npmjs.com
 [Code of Conduct]: https://github.com/nodejs/admin/blob/master/CODE_OF_CONDUCT.md
 [Contributing to the project]: CONTRIBUTING.md
 [Node.js Help]: https://github.com/nodejs/help
 [Node.js Website]: https://nodejs.org/en/
 [Questions tagged 'node.js' on StackOverflow]: https://stackoverflow.com/questions/tagged/node.js
 [Working Groups]: https://github.com/nodejs/TSC/blob/master/WORKING_GROUPS.md
+[Strategic Initiatives]: https://github.com/nodejs/TSC/blob/master/Strategic-Initiatives.md
 [#node.js channel on chat.freenode.net]: https://webchat.freenode.net?channels=node.js&uio=d4

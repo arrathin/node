@@ -340,15 +340,5 @@ void Agent::MessageHandler(const v8::Debug::Message& message) {
 }
 
 
-void Agent::ReleaseSystemResources() {
-#ifdef __MVS__
-  std::vector<uv_sem_t>::iterator i = system_ipc.begin();
-  while(i != system_ipc.end()) {
-    uv_sem_destroy(&(*i));
-    i++;
-  }
-#endif
-}
-
 }  // namespace debugger
 }  // namespace node

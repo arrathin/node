@@ -8,6 +8,7 @@ const TIMER = 200;
 const SLEEP = 2000;
 
 const start = Date.now();
+const execOpts = { encoding: 'utf8', shell: true };
 let err;
 let caught = false;
 
@@ -72,7 +73,8 @@ ret = execFileSync(process.execPath, args, { encoding: 'utf8' });
 
 assert.strictEqual(ret, `${msg}\n`);
 
-// Verify that the cwd option works - GH #7824
+// Verify that the cwd option works.
+// See https://github.com/nodejs/node-v0.x-archive/issues/7824.
 {
   const cwd = common.rootDir;
   const cmd = common.isWindows ? 'echo %cd%' : 'pwd';
@@ -81,7 +83,8 @@ assert.strictEqual(ret, `${msg}\n`);
   assert.strictEqual(response.toString().trim(), cwd);
 }
 
-// Verify that stderr is not accessed when stdio = 'ignore' - GH #7966
+// Verify that stderr is not accessed when stdio = 'ignore'.
+// See https://github.com/nodejs/node-v0.x-archive/issues/7966.
 {
   assert.throws(function() {
     execSync('exit -1', {stdio: 'ignore'});
@@ -103,3 +106,8 @@ assert.strictEqual(ret, `${msg}\n`);
     return true;
   });
 }
+
+// Verify the shell option works properly
+assert.doesNotThrow(() => {
+  execFileSync(process.execPath, [], execOpts);
+});

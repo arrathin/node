@@ -3,7 +3,7 @@
 
 #define NODE_MAJOR_VERSION 6
 #define NODE_MINOR_VERSION 14
-#define NODE_PATCH_VERSION 1
+#define NODE_PATCH_VERSION 2
 
 #define NODE_VERSION_IS_LTS 1
 #define NODE_VERSION_LTS_CODENAME "\x42\x6f\x72\x6f\x6e"
@@ -14,6 +14,10 @@
 #define USTR(x) u8##x
 #define NODE_STRINGIFY(n) NODE_STRINGIFY_HELPER(n)
 #define NODE_STRINGIFY_HELPER(n) USTR(#n)
+#endif
+
+#ifndef NODE_RELEASE
+#define NODE_RELEASE "\x6e\x6f\x64\x65"
 #endif
 
 #ifndef NODE_TAG
@@ -56,5 +60,8 @@
  * other dependencies.
  */
 #define NODE_MODULE_VERSION 48 /* Node.js v6.0.0 */
+
+// the NAPI_VERSION provided by this version of the runtime
+#define NAPI_VERSION  3
 
 #endif  // SRC_NODE_VERSION_H_

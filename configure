@@ -61,7 +61,7 @@ parser = optparse.OptionParser()
 valid_os = ('win', 'mac', 'solaris', 'freebsd', 'openbsd', 'linux',
             'android', 'aix')
 valid_arch = ('arm', 'arm64', 'ia32', 'mips', 'mipsel', 'mips64el', 'ppc',
-              'ppc64', 'x32','x64', 'x86', 's390', 's390x')
+              'ppc64', 'x32','x64', 'x86', 'x86_64', 's390', 's390x')
 valid_arm_float_abi = ('soft', 'softfp', 'hard')
 valid_arm_fpu = ('vfp', 'vfpv3', 'vfpv3-d16', 'neon')
 valid_mips_arch = ('loongson', 'r1', 'r2', 'r6', 'rx')
@@ -829,6 +829,9 @@ def configure_node(o):
   # the Makefile resets this to x86 afterward
   if target_arch == 'x86':
     target_arch = 'ia32'
+  # x86_64 is common across linuxes, allow it as an alias for x64
+  if target_arch == 'x86_64':
+    target_arch = 'x64'
   o['variables']['host_arch'] = host_arch
   o['variables']['target_arch'] = target_arch
   o['variables']['node_byteorder'] = sys.byteorder
@@ -846,7 +849,6 @@ def configure_node(o):
     configure_mips(o)
 
   if flavor == 'aix':
-    o['variables']['node_core_target_name'] = 'node_base'
     o['variables']['node_target_type'] = 'static_library'
 
   if target_arch in ('x86', 'x64', 'ia32', 'x32'):
@@ -925,6 +927,8 @@ def configure_node(o):
     shlib_suffix = '%s.dylib'
   elif sys.platform.startswith('aix'):
     shlib_suffix = '%s.a'
+  elif sys.platform.startswith('zos'):
+    shlib_suffix = '%s.x'
   else:
     shlib_suffix = 'so.%s'
 
@@ -945,6 +949,13 @@ def configure_node(o):
     o['variables']['coverage'] = 'true'
   else:
     o['variables']['coverage'] = 'false'
+
+  if options.shared:
+    o['variables']['node_target_type'] = 'shared_library'
+  elif options.enable_static:
+    o['variables']['node_target_type'] = 'static_library'
+  else:
+    o['variables']['node_target_type'] = 'executable'
 
 def configure_library(lib, output):
   shared_lib = 'shared_' + lib
@@ -1441,6 +1452,7 @@ config = {
   'BUILDTYPE': 'Debug' if options.debug else 'Release',
   'USE_XCODE': str(int(options.use_xcode or 0)),
   'PYTHON': sys.executable,
+  'NODE_TARGET_TYPE': variables['node_target_type'],
 }
 
 if options.prefix:

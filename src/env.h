@@ -62,6 +62,8 @@ namespace node {
   V(npn_buffer_private_symbol, "\x6e\x6f\x64\x65\x3a\x6e\x70\x6e\x42\x75\x66\x66\x65\x72")                              \
   V(processed_private_symbol, "\x6e\x6f\x64\x65\x3a\x70\x72\x6f\x63\x65\x73\x73\x65\x64")                               \
   V(selected_npn_buffer_private_symbol, "\x6e\x6f\x64\x65\x3a\x73\x65\x6c\x65\x63\x74\x65\x64\x4e\x70\x6e\x42\x75\x66\x66\x65\x72")             \
+  V(napi_env, "\x6e\x6f\x64\x65\x3a\x6e\x61\x70\x69\x3a\x65\x6e\x76")                                                \
+  V(napi_wrapper, "\x6e\x6f\x64\x65\x3a\x6e\x61\x70\x69\x3a\x77\x72\x61\x70\x70\x65\x72")                                        \
 
 // Strings are per-isolate primitives but Environment proxies them
 // for the sake of convenience.  Strings should be ASCII-only.
@@ -295,7 +297,7 @@ class Environment {
     explicit AsyncCallbackScope(Environment* env);
     ~AsyncCallbackScope();
 
-    inline bool in_makecallback();
+    inline bool in_makecallback() const;
 
    private:
     Environment* env_;

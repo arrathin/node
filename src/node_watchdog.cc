@@ -258,12 +258,11 @@ void SigintWatchdogHelper::Unregister(SigintWatchdog* wd) {
 }
 
 
-void SigintWatchdogHelper::ReleaseSystemResources() {
+void SigintWatchdogHelper::StopThread() {
   if (has_running_thread_ == false)
     return;
   start_stop_count_ = 0;
   Stop();
-  uv_sem_destroy(&sem_);
 }
 
 
@@ -286,9 +285,7 @@ SigintWatchdogHelper::~SigintWatchdogHelper() {
 
 #ifdef __POSIX__
   CHECK_EQ(has_running_thread_, false);
-#ifndef __MVS__  /* z/OS will clean up resources on it's own */
   uv_sem_destroy(&sem_);
-#endif
 #endif
 }
 

@@ -105,7 +105,7 @@ NODE_EXTERN v8::Local<v8::Value> UVException(v8::Isolate* isolate,
                                              const char* path,
                                              const char* dest);
 
-NODE_DEPRECATED("\x55\x73\x65\x20\x45\x72\x72\x6e\x6f\x45\x78\x63\x65\x70\x74\x69\x6f\x6e\x28\x69\x73\x6f\x6c\x61\x74\x65\x2c\x20\x2e\x2e\x2e\x29",
+NODE_DEPRECATED("Use ErrnoException(isolate, ...)",
                 inline v8::Local<v8::Value> ErrnoException(
       int errorno,
       const char* syscall = NULL,
@@ -303,7 +303,7 @@ NODE_EXTERN enum encoding ParseEncoding(
     v8::Isolate* isolate,
     v8::Local<v8::Value> encoding_v,
     enum encoding default_encoding = LATIN1);
-NODE_DEPRECATED("\x55\x73\x65\x20\x50\x61\x72\x73\x65\x45\x6e\x63\x6f\x64\x69\x6e\x67\x28\x69\x73\x6f\x6c\x61\x74\x65\x2c\x20\x2e\x2e\x2e\x29",
+NODE_DEPRECATED("Use ParseEncoding(isolate, ...)",
                 inline enum encoding ParseEncoding(
       v8::Local<v8::Value> encoding_v,
       enum encoding default_encoding = LATIN1) {
@@ -313,7 +313,7 @@ NODE_DEPRECATED("\x55\x73\x65\x20\x50\x61\x72\x73\x65\x45\x6e\x63\x6f\x64\x69\x6
 NODE_EXTERN void FatalException(v8::Isolate* isolate,
                                 const v8::TryCatch& try_catch);
 
-NODE_DEPRECATED("\x55\x73\x65\x20\x46\x61\x74\x61\x6c\x45\x78\x63\x65\x70\x74\x69\x6f\x6e\x28\x69\x73\x6f\x6c\x61\x74\x65\x2c\x20\x2e\x2e\x2e\x29",
+NODE_DEPRECATED("Use FatalException(isolate, ...)",
                 inline void FatalException(const v8::TryCatch& try_catch) {
   return FatalException(v8::Isolate::GetCurrent(), try_catch);
 })
@@ -329,7 +329,7 @@ NODE_EXTERN v8::Local<v8::Value> Encode(v8::Isolate* isolate,
                                         const uint16_t* buf,
                                         size_t len);
 
-NODE_DEPRECATED("\x55\x73\x65\x20\x45\x6e\x63\x6f\x64\x65\x28\x69\x73\x6f\x6c\x61\x74\x65\x2c\x20\x2e\x2e\x2e\x29",
+NODE_DEPRECATED("Use Encode(isolate, ...)",
                 inline v8::Local<v8::Value> Encode(
     const void* buf,
     size_t len,
@@ -348,7 +348,7 @@ NODE_DEPRECATED("\x55\x73\x65\x20\x45\x6e\x63\x6f\x64\x65\x28\x69\x73\x6f\x6c\x6
 NODE_EXTERN ssize_t DecodeBytes(v8::Isolate* isolate,
                                 v8::Local<v8::Value>,
                                 enum encoding encoding = LATIN1);
-NODE_DEPRECATED("\x55\x73\x65\x20\x44\x65\x63\x6f\x64\x65\x42\x79\x74\x65\x73\x28\x69\x73\x6f\x6c\x61\x74\x65\x2c\x20\x2e\x2e\x2e\x29",
+NODE_DEPRECATED("Use DecodeBytes(isolate, ...)",
                 inline ssize_t DecodeBytes(
     v8::Local<v8::Value> val,
     enum encoding encoding = LATIN1) {
@@ -361,7 +361,7 @@ NODE_EXTERN ssize_t DecodeWrite(v8::Isolate* isolate,
                                 size_t buflen,
                                 v8::Local<v8::Value>,
                                 enum encoding encoding = LATIN1);
-NODE_DEPRECATED("\x55\x73\x65\x20\x44\x65\x63\x6f\x64\x65\x57\x72\x69\x74\x65\x28\x69\x73\x6f\x6c\x61\x74\x65\x2c\x20\x2e\x2e\x2e\x29",
+NODE_DEPRECATED("Use DecodeWrite(isolate, ...)",
                 inline ssize_t DecodeWrite(char* buf,
                                            size_t buflen,
                                            v8::Local<v8::Value> val,
@@ -377,7 +377,7 @@ NODE_EXTERN v8::Local<v8::Value> WinapiErrnoException(
     const char *msg = "",
     const char *path = NULL);
 
-NODE_DEPRECATED("\x55\x73\x65\x20\x57\x69\x6e\x61\x70\x69\x45\x72\x72\x6e\x6f\x45\x78\x63\x65\x70\x74\x69\x6f\x6e\x28\x69\x73\x6f\x6c\x61\x74\x65\x2c\x20\x2e\x2e\x2e\x29",
+NODE_DEPRECATED("Use WinapiErrnoException(isolate, ...)",
                 inline v8::Local<v8::Value> WinapiErrnoException(int errorno,
     const char *syscall = NULL,  const char *msg = "",
     const char *path = NULL) {
@@ -426,7 +426,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
 #ifdef _WIN32
 # define NODE_MODULE_EXPORT __declspec(dllexport)
 #else
-# define NODE_MODULE_EXPORT __attribute__((visibility("\x64\x65\x66\x61\x75\x6c\x74")))
+# define NODE_MODULE_EXPORT __attribute__((visibility("default")))
 #endif
 
 #ifdef NODE_SHARED_MODE
@@ -439,7 +439,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
 #pragma section(".CRT$XCU", read)
 #define NODE_C_CTOR(fn)                                               \
   NODE_CTOR_PREFIX void __cdecl fn(void);                             \
-  __declspec(dllexport, allocate("\x2e\x43\x52\x54\x24\x58\x43\x55"))                         \
+  __declspec(dllexport, allocate(".CRT$XCU"))                         \
       void (__cdecl*fn ## _)(void) = fn;                              \
   NODE_CTOR_PREFIX void __cdecl fn(void)
 #else

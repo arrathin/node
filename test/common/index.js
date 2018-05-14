@@ -29,6 +29,7 @@ exports.isLinuxPPCBE = (process.platform === 'linux') &&
                        (os.endianness() === 'BE');
 exports.isSunOS = process.platform === 'sunos';
 exports.isFreeBSD = process.platform === 'freebsd';
+exports.isOpenBSD = process.platform === 'openbsd';
 exports.isLinux = process.platform === 'linux';
 exports.isOSX = process.platform === 'darwin';
 exports.isZos = process.platform === 'os390';
@@ -487,9 +488,51 @@ exports.fileExists = function(pathname) {
   }
 };
 
+exports.canCreateSymLink = function() {
+  // On Windows, creating symlinks requires admin privileges.
+  // We'll only try to run symlink test if we have enough privileges.
+  // On other platforms, creating symlinks shouldn't need admin privileges
+  if (exports.isWindows) {
+    // whoami.exe needs to be the one from System32
+    // If unix tools are in the path, they can shadow the one we want,
+    // so use the full path while executing whoami
+    const whoamiPath = path.join(process.env['SystemRoot'],
+                                 'System32', 'whoami.exe');
+
+    let err = false;
+    let output = '';
+
+    try {
+      output = execSync(`${whoamiPath} /priv`, { timout: 1000 });
+    } catch (e) {
+      err = true;
+    } finally {
+      if (err || !output.includes('SeCreateSymbolicLinkPrivilege')) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+};
+
+exports.getCallSite = function getCallSite(top) {
+  const originalStackFormatter = Error.prepareStackTrace;
+  Error.prepareStackTrace = (err, stack) =>
+    `${stack[0].getFileName()}:${stack[0].getLineNumber()}`;
+  const err = new Error();
+  Error.captureStackTrace(err, top);
+  // with the V8 Error API, the stack is not formatted until it is accessed
+  err.stack;
+  Error.prepareStackTrace = originalStackFormatter;
+  return err.stack;
+};
+
 exports.mustNotCall = function(msg) {
+  const callSite = exports.getCallSite(exports.mustNotCall);
   return function mustNotCall() {
-    assert.fail(msg || 'function should not have been called');
+    assert.fail(
+      `${msg || 'function should not have been called'} at ${callSite}`);
   };
 };
 
@@ -542,8 +585,8 @@ exports.nodeProcessAborted = function nodeProcessAborted(exitCode, signal) {
   if (exports.isWindows)
     expectedExitCodes = [3221225477, 3];
   else if (process.platform === 'os390') {
-    expectedExitCodes = [137];
-    expectedSignals = ['SIGKILL'];
+    expectedExitCodes = [131];
+    expectedSignals = ['SIGABRT'];
   }
 
   // When using --abort-on-uncaught-exception, V8 will use
@@ -593,6 +636,59 @@ Object.defineProperty(exports, 'hasIntl', {
     return process.binding('config').hasIntl;
   }
 });
+
+// Useful for testing expected internal/error objects
+exports.expectsError = function expectsError(fn, settings, exact) {
+  if (typeof fn !== 'function') {
+    exact = settings;
+    settings = fn;
+    fn = undefined;
+  }
+  function innerFn(error) {
+    assert.strictEqual(error.code, settings.code);
+    if ('type' in settings) {
+      const type = settings.type;
+      if (type !== Error && !Error.isPrototypeOf(type)) {
+        throw new TypeError('`settings.type` must inherit from `Error`');
+      }
+      assert(error instanceof type,
+             `${error.name} is not instance of ${type.name}`);
+      let typeName = error.constructor.name;
+      if (typeName === 'NodeError' && type.name !== 'NodeError') {
+        typeName = Object.getPrototypeOf(error.constructor).name;
+      }
+      assert.strictEqual(typeName, type.name);
+    }
+    if ('message' in settings) {
+      const message = settings.message;
+      if (typeof message === 'string') {
+        assert.strictEqual(error.message, message);
+      } else {
+        assert(message.test(error.message),
+               `${error.message} does not match ${message}`);
+      }
+    }
+    if ('name' in settings) {
+      assert.strictEqual(error.name, settings.name);
+    }
+    if (error.constructor.name === 'AssertionError') {
+      ['generatedMessage', 'actual', 'expected', 'operator'].forEach((key) => {
+        if (key in settings) {
+          const actual = error[key];
+          const expected = settings[key];
+          assert.strictEqual(actual, expected,
+                             `${key}: expected ${expected}, not ${actual}`);
+        }
+      });
+    }
+    return true;
+  }
+  if (fn) {
+    assert.throws(fn, innerFn);
+    return;
+  }
+  return exports.mustCall(innerFn, exact);
+};
 
 // Crash the process on unhandled rejections.
 exports.crashOnUnhandledRejection = function() {
