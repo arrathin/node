@@ -65,6 +65,7 @@ def try_copy(path, dst):
   print 'installing %s' % target_path
   try_mkdir_r(os.path.dirname(target_path))
   try_unlink(target_path) # prevent ETXTBSY errors
+  return os.system('cp %s %s' % (source_path, target_path)) # Remove when python is fixed
   return shutil.copy2(source_path, target_path)
 
 def try_remove(path, dst):
