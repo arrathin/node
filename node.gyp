@@ -212,6 +212,11 @@
           # the executable and rename it back to node.exe later
           'product_name': '<(node_core_target_name)-win',
         }],
+        [ 'node_intermediate_lib_type=="shared_library" and OS=="zos"', {
+          'includes': [
+            'node.gypi'
+          ],
+        }],
       ],
     },
     {

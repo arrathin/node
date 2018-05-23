@@ -424,6 +424,8 @@
           '-qxplink',
           '-q64',
           '-qarch=9',
+          '-qlonglong',
+          '-qenum=int',
         ],
         'ldflags': [
           '-qxplink',
