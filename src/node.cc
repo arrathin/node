@@ -3950,7 +3950,7 @@ static bool ParseDebugOpt(const char* arg) {
 static void PrintHelp() {
   // XXX: If you add an option here, please also add it to doc/node.1 and
   // doc/api/cli.md
-  printf(u8"Usage: node [options] [ -e script | script.js ] [arguments] \n"
+  PrintOutString(u8"Usage: node [options] [ -e script | script.js ] [arguments] \n"
          u8"       node debug script.js [arguments] \n"
          u8"\n"
          u8"Options:\n"
@@ -3966,7 +3966,7 @@ static void PrintHelp() {
          u8"  --throw-deprecation   throw an exception anytime a deprecated "
          u8"function is used\n"
          u8"  --no-warnings         silence all process warnings\n"
-         u8"  --napi-modules        load N-API modules (no-op - option kept for "
+         u8"  --napi-modules        load N-API modules (no-op - option kept for\n"
          u8"                        compatibility)\n"
          u8"  --trace-warnings      show stack traces on process warnings\n"
          u8"  --redirect-warnings=path\n"
