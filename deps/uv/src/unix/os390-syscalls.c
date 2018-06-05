@@ -278,6 +278,7 @@ int epoll_ctl(uv__os390_epoll* lst,
       return -1;
     }
     lst->items[fd].events = event->events;
+    lst->items[fd].revents = 0;
   } else
     abort();
 
@@ -311,6 +312,7 @@ int epoll_wait(uv__os390_epoll* lst, struct epoll_event* events,
 
     ev.fd = pfds[i].fd;
     ev.events = pfds[i].revents;
+    pfds[i].revents = 0;
     events[reventcount++] = ev;
   }
 
