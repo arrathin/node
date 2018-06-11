@@ -308,18 +308,20 @@ int epoll_wait(uv__os390_epoll* lst, struct epoll_event* events,
   for (int i = 0; 
        i < lst->size && i < maxevents && reventcount < pollret; ++i) {
     struct epoll_event ev;
+    struct pollfd* pfd;
 
-    if (pfds[i].fd == -1 || pfds[i].revents == 0)
+    pfd = &pfds[i];
+    if (pfd->fd == -1 || pfd->revents == 0)
       continue;
 
-    ev.fd = pfds[i].fd;
-    ev.events = pfds[i].revents;
-    if (pfds[i].revents & POLLIN && pfds[i].revents & POLLOUT)
+    ev.fd = pfd->fd;
+    ev.events = pfd->revents;
+    if (pfd->revents & POLLIN && pfd->revents & POLLOUT)
       reventcount += 2;
-    else if (pfds[i].revents & (POLLIN | POLLOUT))
+    else if (pfd->revents & (POLLIN | POLLOUT))
       ++reventcount;
 
-    pfds[i].revents = 0;
+    pfd->revents = 0;
     events[nevents++] = ev;
   }
 
