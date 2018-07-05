@@ -448,7 +448,6 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
   __net_ifconf6header_t ifc;
   __net_ifconf6entry_t* ifr;
   __net_ifconf6entry_t* p;
-  __net_ifconf6entry_t flg;
 
   *count = 0;
   /* Assume maximum buffer size allowable */
@@ -514,7 +513,7 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
 
     /* TODO: Retrieve netmask using SIOCGIFNETMASK ioctl */
 
-    address->is_internal = flg.__nif6e_flags & _NIF6E_FLAGS_LOOPBACK ? 1 : 0;
+    address->is_internal = p->__nif6e_flags & _NIF6E_FLAGS_LOOPBACK ? 1 : 0;
 
     address++;
   }
