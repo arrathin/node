@@ -445,6 +445,7 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
   uv_interface_address_t* address;
   int sockfd;
   int maxsize;
+  int i;
   __net_ifconf6header_t ifc;
   __net_ifconf6entry_t* ifr;
   __net_ifconf6entry_t* p;
@@ -504,17 +505,18 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
 
     /* All conditions above must match count loop */
 
-    address->name = uv__strdup(p->__nif6e_name);
-
-    if (p->__nif6e_addr.sin6_family == AF_INET6)
-      address->address.address6 = *((struct sockaddr_in6*) &p->__nif6e_addr);
-    else
-      address->address.address4 = *((struct sockaddr_in*) &p->__nif6e_addr);
+    i = 0;
+    while (i < sizeof(p->__nif6e_name) / sizeof(char) && p->__nif6e_name[i] != ' ')
+      ++i;
+    address->name = uv__malloc(i + 1);
+    if (address->name) {
+      memcpy(address->name, p->__nif6e_name, i);
+      address->name[i] = '\0';
+    }
 
     /* TODO: Retrieve netmask using SIOCGIFNETMASK ioctl */
-
+    address->address.address6 = *((struct sockaddr_in6*) &p->__nif6e_addr);
     address->is_internal = p->__nif6e_flags & _NIF6E_FLAGS_LOOPBACK ? 1 : 0;
-
     address++;
   }
 
@@ -527,6 +529,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
   uv_interface_address_t* address;
   int sockfd;
   int maxsize;
+  int i;
   struct ifconf ifc;
   struct ifreq flg;
   struct ifreq* ifr;
@@ -617,14 +620,17 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
 
     /* All conditions above must match count loop */
 
-    address->name = uv__strdup(p->ifr_name);
-
-    if (p->ifr_addr.sa_family == AF_INET6) {
-      address->address.address6 = *((struct sockaddr_in6*) &p->ifr_addr);
-    } else {
-      address->address.address4 = *((struct sockaddr_in*) &p->ifr_addr);
+    i = 0;
+    while (i < sizeof(p->ifr_name) / sizeof(char) && p->ifr_name[i] != ' ')
+      ++i;
+    address->name = uv__malloc(i + 1);
+    if (address->name) {
+      memcpy(address->name, p->ifr_name, i);
+      address->name[i] = '\0';
     }
 
+
+    address->address.address4 = *((struct sockaddr_in*) &p->ifr_addr);
     address->is_internal = flg.ifr_flags & IFF_LOOPBACK ? 1 : 0;
     address++;
   }
