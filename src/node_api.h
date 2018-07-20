@@ -75,6 +75,12 @@ typedef struct {
 #define EXTERN_C_END
 #endif
 
+#ifndef NODE_STRINGIFY
+#define USTR(x) u8##x
+#define NODE_STRINGIFY(n) NODE_STRINGIFY_HELPER(n)
+#define NODE_STRINGIFY_HELPER(n) USTR(#n)
+#endif
+
 #define NAPI_MODULE_X(modname, regfunc, priv, flags)                  \
   EXTERN_C_START                                                      \
     static napi_module _module =                                      \
@@ -83,7 +89,7 @@ typedef struct {
       flags,                                                          \
       __FILE__,                                                       \
       regfunc,                                                        \
-      #modname,                                                       \
+      NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
       {0},                                                            \
     };                                                                \
