@@ -20,6 +20,8 @@ struct uv_loop_s;  // Forward declaration.
     // Building node with built-in N-API
     #define NAPI_EXTERN __declspec(dllexport)
   #endif
+#elif defined(__MVS__)
+  #define NAPI_EXTERN _Export
 #else
   #define NAPI_EXTERN /* nothing */
 #endif
