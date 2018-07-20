@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#ifdef __MVS__
+# include <unistd.h>
+#endif
 #include "uv.h"
 #include "node_api.h"
 #include "node_internals.h"
@@ -130,8 +133,11 @@ struct napi_env__ {
     RETURN_STATUS_IF_FALSE((env),                                        \
         (len == NAPI_AUTO_LENGTH) || len <= INT_MAX,                     \
         napi_invalid_arg);                                               \
+    std::vector<char> temp(str, str + (len == NAPI_AUTO_LENGTH ? strlen(str) + 1 : len));  \
+    if (temp.size() > 0)                                                         \
+      __e2a_l(&temp[0], temp.size());                                              \
     auto str_maybe = v8::String::NewFromUtf8(                            \
-        (env)->isolate, (str), v8::NewStringType::kInternalized,         \
+        (env)->isolate, (&temp[0]), v8::NewStringType::kInternalized,    \
         static_cast<int>(len));                                          \
     CHECK_MAYBE_EMPTY((env), str_maybe, napi_generic_failure);           \
     (result) = str_maybe.ToLocalChecked();                               \
@@ -158,13 +164,13 @@ struct napi_env__ {
     if ((size_of_element) > 1) {                                               \
       THROW_RANGE_ERROR_IF_FALSE(                                              \
           (env), (byte_offset) % (size_of_element) == 0,                       \
-          "ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT",                             \
-          "start offset of "#type" should be a multiple of "#size_of_element); \
+          u8"ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT",                           \
+          u8"start offset of "#type" should be a multiple of "#size_of_element); \
     }                                                                          \
     THROW_RANGE_ERROR_IF_FALSE((env), (length) * (size_of_element) +           \
         (byte_offset) <= buffer->ByteLength(),                                 \
-        "ERR_NAPI_INVALID_TYPEDARRAY_LENGTH",                                  \
-        "Invalid typed array length");                                         \
+        u8"ERR_NAPI_INVALID_TYPEDARRAY_LENGTH",                                  \
+        u8"Invalid typed array length");                                         \
     (out) = v8::type::New((buffer), (byte_offset), (length));                  \
   } while (0)
 
@@ -970,7 +976,7 @@ napi_status napi_get_last_error_info(napi_env env,
   // change each time a message was added.
   static_assert(
       node::arraysize(error_messages) == napi_callback_scope_mismatch + 1,
-      "Count of error messages must match count of error values");
+      u8"Count of error messages must match count of error values");
   CHECK_LE(env->last_error.error_code, napi_callback_scope_mismatch);
 
   // Wait until someone requests the last error information to fetch the error
@@ -1014,6 +1020,17 @@ NAPI_NO_RETURN void napi_fatal_error(const char* location,
     message_string.assign(
         const_cast<char*>(message), strlen(message));
   }
+
+#ifdef __MVS__
+  transform(location_string.begin(), location_string.end(), location_string.begin(), [](char c) -> char {
+      __e2a_l(&c, 1);
+      return c;
+    });
+  transform(message_string.begin(), message_string.end(), message_string.begin(), [](char c) -> char {
+      __e2a_l(&c, 1);
+      return c;
+    });
+#endif
 
   node::FatalError(location_string.c_str(), message_string.c_str());
 }
@@ -1796,10 +1813,10 @@ static napi_status set_error_code(napi_env env,
       }
     }
     name_string = v8::String::Concat(name_string,
-                                     FIXED_ONE_BYTE_STRING(isolate, " ["));
+                                     FIXED_ONE_BYTE_STRING(isolate, u8" ["));
     name_string = v8::String::Concat(name_string, code_value.As<v8::String>());
     name_string = v8::String::Concat(name_string,
-                                     FIXED_ONE_BYTE_STRING(isolate, "]"));
+                                     FIXED_ONE_BYTE_STRING(isolate, u8"]"));
 
     set_maybe = err_object->Set(context, name_key, name_string);
     RETURN_STATUS_IF_FALSE(env,
@@ -2295,6 +2312,9 @@ napi_status napi_get_value_string_utf8(napi_env env,
       v8::String::NO_NULL_TERMINATION);
 
     buf[copied] = '\0';
+#ifdef __MVS__
+    __a2e_l(buf, copied);
+#endif
     if (result != nullptr) {
       *result = copied;
     }
@@ -2764,8 +2784,8 @@ napi_status napi_instanceof(napi_env env,
 
   if (!ctor->IsFunction()) {
     napi_throw_type_error(env,
-                          "ERR_NAPI_CONS_FUNCTION",
-                          "Constructor must be a function");
+                          u8"ERR_NAPI_CONS_FUNCTION",
+                          u8"Constructor must be a function");
 
     return napi_set_last_error(env, napi_function_expected);
   }
@@ -2835,8 +2855,8 @@ napi_status napi_instanceof(napi_env env,
   if (!prototype_property->IsObject()) {
     napi_throw_type_error(
         env,
-        "ERR_NAPI_CONS_PROTOTYPE_OBJECT",
-        "Constructor.prototype must be an object");
+        u8"ERR_NAPI_CONS_PROTOTYPE_OBJECT",
+        u8"Constructor.prototype must be an object");
 
     return napi_set_last_error(env, napi_object_expected);
   }
@@ -3322,9 +3342,9 @@ napi_status napi_create_dataview(napi_env env,
   if (byte_length + byte_offset > buffer->ByteLength()) {
     napi_throw_range_error(
         env,
-        "ERR_NAPI_INVALID_DATAVIEW_ARGS",
-        "byte_offset + byte_length should be less than or "
-        "equal to the size in bytes of the array passed in");
+        u8"ERR_NAPI_INVALID_DATAVIEW_ARGS",
+        u8"byte_offset + byte_length should be less than or "
+        u8"equal to the size in bytes of the array passed in");
     return napi_set_last_error(env, napi_pending_exception);
   }
   v8::Local<v8::DataView> DataView = v8::DataView::New(buffer, byte_offset,
