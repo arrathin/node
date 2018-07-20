@@ -106,8 +106,8 @@ distclean:
 	$(RM) -r deps/icu
 	$(RM) -r deps/icu4c*.tgz deps/icu4c*.zip deps/icu-tmp
 	$(RM) $(BINARYTAR).* $(TARBALL).*
-	$(RM) -r deps/v8/testing/gmock
-	$(RM) -r deps/v8/testing/gtest
+	$(RM) -r deps/v8z/testing/gmock
+	$(RM) -r deps/v8z/testing/gtest
 
 check: test
 
@@ -202,7 +202,7 @@ ADDONS_NAPI_BINDING_SOURCES := \
 test/addons-napi/.buildstamp: config.gypi \
 	deps/npm/node_modules/node-gyp/package.json \
 	$(ADDONS_NAPI_BINDING_GYPS) $(ADDONS_NAPI_BINDING_SOURCES) \
-	deps/uv/include/*.h deps/v8/include/*.h \
+	deps/uv/include/*.h deps/v8z/include/*.h \
 	src/node.h src/node_buffer.h src/node_object_wrap.h src/node_version.h \
 	src/node_api.h src/node_api_types.h
 #	Cannot use $(wildcard test/addons-napi/*/) here, it's evaluated before
@@ -680,7 +680,7 @@ $(TARBALL): release-only $(NODE_EXE) doc
 	mkdir -p $(TARNAME)/doc/api
 	cp doc/node.1 $(TARNAME)/doc/node.1
 	cp -r out/doc/api/* $(TARNAME)/doc/api/
-	$(RM) -r $(TARNAME)/deps/v8/{test,samples,tools/profviz,tools/run-tests.py}
+	$(RM) -r $(TARNAME)/deps/v8z/{test,samples,tools/profviz,tools/run-tests.py}
 	$(RM) -r $(TARNAME)/doc/images # too big
 	$(RM) -r $(TARNAME)/deps/uv/{docs,samples,test}
 	$(RM) -r $(TARNAME)/deps/openssl/openssl/{doc,demos,test}
