@@ -17,7 +17,7 @@
 #endif
 
 #ifndef NODE_RELEASE
-#define NODE_RELEASE "node"
+#define NODE_RELEASE "\x6e\x6f\x64\x65"
 #endif
 
 #ifndef NODE_TAG

@@ -3477,7 +3477,7 @@ void SetupProcessObject(Environment* env,
   Local<Object> release = Object::New(env->isolate());
   READONLY_PROPERTY(process, "\x72\x65\x6c\x65\x61\x73\x65", release);
   READONLY_PROPERTY(release, "\x6e\x61\x6d\x65",
-                    OneByteString(env->isolate(), *E2A(NODE_RELEASE)));
+                    OneByteString(env->isolate(), NODE_RELEASE));
 
 #if NODE_VERSION_IS_LTS
   READONLY_PROPERTY(release, "\x6c\x74\x73",

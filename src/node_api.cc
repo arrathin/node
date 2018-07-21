@@ -133,11 +133,8 @@ struct napi_env__ {
     RETURN_STATUS_IF_FALSE((env),                                        \
         (len == NAPI_AUTO_LENGTH) || len <= INT_MAX,                     \
         napi_invalid_arg);                                               \
-    std::vector<char> temp(str, str + (len == NAPI_AUTO_LENGTH ? strlen(str) + 1 : len));  \
-    if (temp.size() > 0)                                                         \
-      __e2a_l(&temp[0], temp.size());                                              \
     auto str_maybe = v8::String::NewFromUtf8(                            \
-        (env)->isolate, (&temp[0]), v8::NewStringType::kInternalized,    \
+        (env)->isolate, (str), v8::NewStringType::kInternalized,         \
         static_cast<int>(len));                                          \
     CHECK_MAYBE_EMPTY((env), str_maybe, napi_generic_failure);           \
     (result) = str_maybe.ToLocalChecked();                               \
@@ -908,7 +905,7 @@ void napi_module_register_cb(v8::Local<v8::Object> exports,
   if (_exports != nullptr &&
       _exports != v8impl::JsValueFromV8LocalValue(exports)) {
     napi_value _module = v8impl::JsValueFromV8LocalValue(module);
-    napi_set_named_property(env, _module, "exports", _exports);
+    napi_set_named_property(env, _module, u8"exports", _exports);
   }
 }
 
@@ -931,20 +928,20 @@ void napi_module_register(napi_module* mod) {
 // Warning: Keep in-sync with napi_status enum
 static
 const char* error_messages[] = {nullptr,
-                                "Invalid argument",
-                                "An object was expected",
-                                "A string was expected",
-                                "A string or symbol was expected",
-                                "A function was expected",
-                                "A number was expected",
-                                "A boolean was expected",
-                                "An array was expected",
-                                "Unknown failure",
-                                "An exception is pending",
-                                "The async work item was cancelled",
-                                "napi_escape_handle already called on scope",
-                                "Invalid handle scope usage",
-                                "Invalid callback scope usage"};
+                                u8"Invalid argument",
+                                u8"An object was expected",
+                                u8"A string was expected",
+                                u8"A string or symbol was expected",
+                                u8"A function was expected",
+                                u8"A number was expected",
+                                u8"A boolean was expected",
+                                u8"An array was expected",
+                                u8"Unknown failure",
+                                u8"An exception is pending",
+                                u8"The async work item was cancelled",
+                                u8"napi_escape_handle already called on scope",
+                                u8"Invalid handle scope usage",
+                                u8"Invalid callback scope usage"};
 
 static inline napi_status napi_clear_last_error(napi_env env) {
   env->last_error.error_code = napi_ok;
@@ -1020,17 +1017,6 @@ NAPI_NO_RETURN void napi_fatal_error(const char* location,
     message_string.assign(
         const_cast<char*>(message), strlen(message));
   }
-
-#ifdef __MVS__
-  transform(location_string.begin(), location_string.end(), location_string.begin(), [](char c) -> char {
-      __e2a_l(&c, 1);
-      return c;
-    });
-  transform(message_string.begin(), message_string.end(), message_string.begin(), [](char c) -> char {
-      __e2a_l(&c, 1);
-      return c;
-    });
-#endif
 
   node::FatalError(location_string.c_str(), message_string.c_str());
 }
@@ -1791,7 +1777,7 @@ static napi_status set_error_code(napi_env env,
     }
 
     v8::Local<v8::Name> code_key;
-    CHECK_NEW_FROM_UTF8(env, code_key, "code");
+    CHECK_NEW_FROM_UTF8(env, code_key, u8"code");
 
     v8::Maybe<bool> set_maybe = err_object->Set(context, code_key, code_value);
     RETURN_STATUS_IF_FALSE(env,
@@ -1803,7 +1789,7 @@ static napi_status set_error_code(napi_env env,
     v8::Local<v8::String> name_string;
     CHECK_NEW_FROM_UTF8(env, name_string, "");
     v8::Local<v8::Name> name_key;
-    CHECK_NEW_FROM_UTF8(env, name_key, "name");
+    CHECK_NEW_FROM_UTF8(env, name_key, u8"name");
 
     auto maybe_name = err_object->Get(context, name_key);
     if (!maybe_name.IsEmpty()) {
@@ -2312,9 +2298,6 @@ napi_status napi_get_value_string_utf8(napi_env env,
       v8::String::NO_NULL_TERMINATION);
 
     buf[copied] = '\0';
-#ifdef __MVS__
-    __a2e_l(buf, copied);
-#endif
     if (result != nullptr) {
       *result = copied;
     }
@@ -2799,14 +2782,14 @@ napi_status napi_instanceof(napi_env env,
     if (env->has_instance.IsEmpty()) {
       status = napi_get_global(env, &value);
       if (status != napi_ok) return status;
-      status = napi_get_named_property(env, value, "Symbol", &value);
+      status = napi_get_named_property(env, value, u8"Symbol", &value);
       if (status != napi_ok) return status;
       status = napi_typeof(env, value, &value_type);
       if (status != napi_ok) return status;
 
       // Get "hasInstance" from Symbol
       if (value_type == napi_function) {
-        status = napi_get_named_property(env, value, "hasInstance", &value);
+        status = napi_get_named_property(env, value, u8"hasInstance", &value);
         if (status != napi_ok) return status;
         status = napi_typeof(env, value, &value_type);
         if (status != napi_ok) return status;
@@ -2846,7 +2829,7 @@ napi_status napi_instanceof(napi_env env,
   // a traditional instanceof (early Node.js 6.x).
 
   v8::Local<v8::String> prototype_string;
-  CHECK_NEW_FROM_UTF8(env, prototype_string, "prototype");
+  CHECK_NEW_FROM_UTF8(env, prototype_string, u8"prototype");
 
   auto maybe_prototype = ctor->Get(context, prototype_string);
   CHECK_MAYBE_EMPTY(env, maybe_prototype, napi_generic_failure);

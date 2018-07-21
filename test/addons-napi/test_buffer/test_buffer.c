@@ -6,14 +6,8 @@
 static const char theText[] =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
 
-static const char theTextUtf8[] =
-    u8"Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
-
 static int deleterCallCount = 0;
 static void deleteTheText(napi_env env, void* data, void* finalize_hint) {
-#ifdef __MVS__
-  __a2e_s(data);
-#endif
   NAPI_ASSERT_RETURN_VOID(env, data != NULL && strcmp(data, theText) == 0, "invalid data");
   (void)finalize_hint;
   free(data);
@@ -21,9 +15,6 @@ static void deleteTheText(napi_env env, void* data, void* finalize_hint) {
 }
 
 static void noopDeleter(napi_env env, void* data, void* finalize_hint) {
-#ifdef __MVS__
-  __a2e_s(data);
-#endif
   NAPI_ASSERT_RETURN_VOID(env, data != NULL && strcmp(data, theText) == 0, "invalid data");
   (void)finalize_hint;
   deleterCallCount++;
@@ -42,9 +33,6 @@ napi_value newBuffer(napi_env env, napi_callback_info info) {
                 &theBuffer));
   NAPI_ASSERT(env, theCopy, "Failed to copy static text for newBuffer");
   memcpy(theCopy, theText, kBufferSize);
-#ifdef __MVS__
-  __e2a_l(theCopy, kBufferSize);
-#endif
 
   return theBuffer;
 }
@@ -52,9 +40,6 @@ napi_value newBuffer(napi_env env, napi_callback_info info) {
 napi_value newExternalBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   char* theCopy = strdup(theText);
-#ifdef __MVS__
-  __e2a_s(theCopy);
-#endif
   NAPI_ASSERT(env, theCopy, "Failed to copy static text for newExternalBuffer");
   NAPI_CALL(env,
             napi_create_external_buffer(
@@ -77,7 +62,7 @@ napi_value getDeleterCallCount(napi_env env, napi_callback_info info) {
 napi_value copyBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   NAPI_CALL(env, napi_create_buffer_copy(
-      env, sizeof(theTextUtf8), theTextUtf8, NULL, &theBuffer));
+      env, sizeof(theText), theText, NULL, &theBuffer));
   return theBuffer;
 }
 
