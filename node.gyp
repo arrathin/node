@@ -130,16 +130,16 @@
       'lib/internal/streams/legacy.js',
       'lib/internal/streams/destroy.js',
       'lib/internal/wrap_js_stream.js',
-      'deps/v8/tools/splaytree.js',
-      'deps/v8/tools/codemap.js',
-      'deps/v8/tools/consarray.js',
-      'deps/v8/tools/csvparser.js',
-      'deps/v8/tools/profile.js',
-      'deps/v8/tools/profile_view.js',
-      'deps/v8/tools/logreader.js',
-      'deps/v8/tools/tickprocessor.js',
-      'deps/v8/tools/SourceMap.js',
-      'deps/v8/tools/tickprocessor-driver.js',
+      'deps/v8z/tools/splaytree.js',
+      'deps/v8z/tools/codemap.js',
+      'deps/v8z/tools/consarray.js',
+      'deps/v8z/tools/csvparser.js',
+      'deps/v8z/tools/profile.js',
+      'deps/v8z/tools/profile_view.js',
+      'deps/v8z/tools/logreader.js',
+      'deps/v8z/tools/tickprocessor.js',
+      'deps/v8z/tools/SourceMap.js',
+      'deps/v8z/tools/tickprocessor-driver.js',
       'deps/node-inspect/lib/_inspect.js',
       'deps/node-inspect/lib/internal/inspect_client.js',
       'deps/node-inspect/lib/internal/inspect_repl.js',
@@ -180,7 +180,7 @@
       ],
       'include_dirs': [
         'src',
-        'deps/v8/include',
+        'deps/v8z/include',
       ],
       'conditions': [
         [ 'node_intermediate_lib_type=="static_library" and '
@@ -363,7 +363,7 @@
         'src/util.h',
         'src/util-inl.h',
         'deps/http_parser/http_parser.h',
-        'deps/v8/include/v8.h',
+        'deps/v8z/include/v8.h',
         # javascript files to make for an even more pleasant IDE experience
         '<@(library_files)',
         # node.gyp is added to the project by default.
@@ -661,7 +661,7 @@
               'action_name': 'v8_inspector_compress_protocol_json',
               'process_outputs_as_sources': 1,
               'inputs': [
-                'deps/v8/src/inspector/js_protocol.json',
+                'deps/v8z/src/inspector/js_protocol.json',
               ],
               'outputs': [
                 '<(SHARED_INTERMEDIATE_DIR)/v8_inspector_protocol_json.h',
@@ -931,7 +931,7 @@
       'include_dirs': [
         'src',
         'tools/msvs/genfiles',
-        'deps/v8/include',
+        'deps/v8z/include',
         'deps/cares/include',
         'deps/uv/include',
         '<(SHARED_INTERMEDIATE_DIR)', # for node_natives.h
@@ -1060,6 +1060,13 @@
         ['OS=="solaris"', {
           'ldflags': [ '-I<(SHARED_INTERMEDIATE_DIR)' ]
         }],
+        ['OS=="zos"', {
+          'libraries': [ 
+            '<(OBJ_DIR)/deps/uv/libuv.a',
+            '<(OBJ_DIR)/deps/v8z/tools/gyp/libv8_libplatform.a',
+            '<(OBJ_DIR)/deps/v8z/tools/gyp/libv8_libbase.a'
+          ]
+        }],
       ]
     }
   ], # end targets
@@ -1092,7 +1099,7 @@
           'dependencies': [ '<(node_lib_target_name)' ],
           'include_dirs': [
             'src',
-            'deps/v8/include',
+            'deps/v8z/include',
           ],
           'sources': [
             '<@(library_files)',

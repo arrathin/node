@@ -495,5 +495,5 @@ size_t strnlen(const char* str, size_t maxlen) {
   if (p == NULL)
     return maxlen;
   else
-    return p - str;
+    return (char *)p - str;
 }

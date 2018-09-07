@@ -1,7 +1,7 @@
 {
   'target_defaults': {
     'conditions': [
-      ['OS!="win"', {
+      ['OS not in "win zos"', {
         'defines': [
           '_DARWIN_USE_64_BIT_INODE=1',
           '_LARGEFILE_SOURCE',
@@ -22,6 +22,10 @@
           '__EXTENSIONS__',
           '_XOPEN_SOURCE=500'
         ]
+      }],
+      [ 'OS=="zos"', {
+        'include_dirs': [ 'config/zos' ],
+        'sources': [ 'config/zos/ares_config.h' ],
       }]
     ]
   },
@@ -123,21 +127,25 @@
             '-lws2_32.lib',
             '-liphlpapi.lib'
           ],
-        }, {
+        }],
+        [ 'OS not in "win zos"', {
           # Not Windows i.e. POSIX
           'cflags': [
-            '-g',
             '-pedantic',
             '-Wall',
             '-Wextra',
             '-Wno-unused-parameter'
           ],
-          'defines': [ 'HAVE_CONFIG_H' ],
         }],
-        [ 'OS not in "win android"', {
+        [ 'OS not in "win android zos"', {
           'cflags': [
             '--std=gnu89'
           ],
+        }],
+        [ 'OS not in "win"', {
+          # Not Windows i.e. POSIX
+          'cflags': [ '-g', ],
+          'defines': [ 'HAVE_CONFIG_H' ],
         }],
         [ 'OS=="linux"', {
           'include_dirs': [ 'config/linux' ],

@@ -33,7 +33,9 @@
 # include <limits.h>        // PATH_MAX on Solaris.
 # include <netdb.h>         // MAXHOSTNAMELEN on Solaris.
 # include <unistd.h>        // gethostname, sysconf
-# include <sys/param.h>     // MAXHOSTNAMELEN on Linux and the BSDs.
+#ifndef __MVS__
+  # include <sys/param.h>     // MAXHOSTNAMELEN on Linux and the BSDs.
+#endif
 # include <sys/utsname.h>
 #endif  // __POSIX__
 

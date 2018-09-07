@@ -24,6 +24,8 @@
 #include "node_internals.h"
 #include "uv.h"
 #include <stdio.h>
+#include <unistd.h>
+#include <string.h>
 
 namespace node {
 
@@ -55,6 +57,56 @@ Utf8Value::Utf8Value(Isolate* isolate, Local<Value> value) {
   MakeUtf8String(isolate, value, this);
 }
 
+
+NativeEncodingValue::NativeEncodingValue(Isolate* isolate, Local<Value> value) {
+  if (value.IsEmpty())
+    return;
+
+  MakeUtf8String(isolate, value, this);
+#ifdef __MVS__
+  __a2e_l(out(), length());
+#endif
+}
+
+
+E2A::E2A(const char* val)
+  : length_(strlen(val)) {
+    str_ = (char *)malloc(sizeof(char) * length_ + 1);
+    assert(str_ != NULL);
+    memcpy(str_, val, length_);
+    str_[length_] = NULL;
+#ifdef __MVS__
+    __e2a_l(str_, length_);
+#endif
+}
+
+
+E2A::E2A(const char* val, unsigned len)
+  : length_(len) {
+    str_ = (char *)malloc(sizeof(char) * length_ + 1);
+    assert(str_ != NULL);
+    memcpy(str_, val, length_);
+    str_[length_] = NULL;
+#ifdef __MVS__
+    __e2a_l(str_, length_);
+#endif
+}
+
+E2A::E2A(const char* prefix, const char* val)
+  : length_(0) {
+    int prelen = strlen(prefix);
+    int vallen = strlen(val);
+    length_ = prelen + vallen;
+
+    str_ = (char *)malloc(sizeof(char) * length_ + 1);
+    assert(str_ != NULL);
+    memcpy(str_, prefix, prelen);
+    memcpy(str_ + prelen, val, vallen);
+    str_[length_] = NULL;
+#ifdef __MVS__
+    __e2a_l(str_ + prelen, vallen);
+#endif
+}
 
 TwoByteValue::TwoByteValue(Isolate* isolate, Local<Value> value) {
   if (value.IsEmpty()) {
@@ -95,6 +147,9 @@ BufferValue::BufferValue(Isolate* isolate, Local<Value> value) {
   } else {
     Invalidate();
   }
+#ifdef __MVS__
+  __a2e_l(out(), length());
+#endif
 }
 
 void LowMemoryNotification() {

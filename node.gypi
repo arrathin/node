@@ -38,12 +38,12 @@
       ],
     }],
     [ 'node_enable_d8=="true"', {
-      'dependencies': [ 'deps/v8/src/d8.gyp:d8' ],
+      'dependencies': [ 'deps/v8z/src/d8.gyp:d8' ],
     }],
     [ 'node_use_bundled_v8=="true"', {
       'dependencies': [
-        'deps/v8/src/v8.gyp:v8',
-        'deps/v8/src/v8.gyp:v8_libplatform'
+        'deps/v8z/src/v8.gyp:v8',
+        'deps/v8z/src/v8.gyp:v8_libplatform'
       ],
     }],
     [ 'node_use_v8_platform=="true"', {
@@ -93,7 +93,7 @@
       'defines': [ 'NODE_NO_BROWSER_GLOBALS' ],
     } ],
     [ 'node_use_bundled_v8=="true" and v8_postmortem_support=="true"', {
-      'dependencies': [ 'deps/v8/src/v8.gyp:postmortem-metadata' ],
+      'dependencies': [ 'deps/v8z/src/v8.gyp:postmortem-metadata' ],
       'conditions': [
         # -force_load is not applicable for the static library
         [ 'force_load=="true"', {
@@ -217,7 +217,40 @@
     [ 'OS=="sunos"', {
       'ldflags': [ '-Wl,-M,/usr/lib/ld/map.noexstk' ],
     }],
-
+    [ 'OS=="zos"', {
+      'defines': [
+        '_XOPEN_SOURCE_EXTENDED',
+        '_UNIX03_THREADS',
+        '_UNIX03_SOURCE',
+        '_OPEN_SYS_SOCK_IPV6',
+        '_POSIX_SOURCE',
+        '_OPEN_SYS',
+        '__IBMCPP_TR1__',
+        'NODE_PLATFORM="os390"',
+        'PATH_MAX=_POSIX_PATH_MAX',
+      ],
+      'cflags': [
+        '-q64',
+        '-qFLOAT=IEEE',
+        '-Wno-unknown-escape-sequence',
+        '-fexec-charset=ISO8859-1',
+        '-qlonglong',
+        '-qenum=int',
+      ],
+      'ldflags': [
+        '-q64',
+        '-Wl,DLL',
+      ],
+      'conditions': [
+        [ 'v8_enable_i18n_support==1', {
+          'libraries': [
+            '<(OBJ_DIR)/tools/icu/libicui18n.a',
+            '<(OBJ_DIR)/tools/icu/libicuucx.a',
+            '<(OBJ_DIR)/tools/icu/libicudata.a'
+          ]
+      }]],
+    }],
+    
     [ 'node_use_openssl=="true"', {
       'defines': [ 'HAVE_OPENSSL=1' ],
       'conditions': [

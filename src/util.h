@@ -428,6 +428,32 @@ class BufferValue : public MaybeStackBuffer<char> {
   if (name##_length > 0)                                                      \
     CHECK_NE(name##_data, nullptr);
 
+class E2A {
+  public:
+    explicit E2A(const char* val);
+    explicit E2A(const char* val, unsigned len);
+    explicit E2A(const char* prefix, const char* val);
+
+    ~E2A() {
+        free(str_);
+    }
+
+    char* operator*() {
+      return str_;
+    };
+
+    const char* operator*() const {
+      return str_;
+    };
+
+    size_t length() const {
+      return length_;
+    };
+
+  private:
+    size_t length_;
+    char* str_;
+};
 
 }  // namespace node
 

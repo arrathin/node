@@ -41,12 +41,12 @@
     'conditions': [
       ['GENERATOR=="ninja"', {
         'OBJ_DIR': '<(PRODUCT_DIR)/obj',
-        'V8_BASE': '<(PRODUCT_DIR)/obj/deps/v8/src/libv8_base.a',
+        'V8_BASE': '<(PRODUCT_DIR)/obj/deps/v8z/src/libv8_base.a',
        }, {
          'OBJ_DIR%': '<(PRODUCT_DIR)/obj.target',
-         'V8_BASE%': '<(PRODUCT_DIR)/obj.target/deps/v8/src/libv8_base.a',
+         'V8_BASE%': '<(PRODUCT_DIR)/obj.target/deps/v8z/src/libv8_base.a',
       }],
-      ['OS == "win"', {
+      ['OS == "win" or OS == "zos"', {
         'os_posix': 0,
         'v8_postmortem_support%': 'false',
         'OBJ_DIR': '<(PRODUCT_DIR)/obj',
@@ -80,10 +80,13 @@
           'v8_enable_handle_zapping': 1,
         },
         'defines': [ 'DEBUG', '_DEBUG', 'V8_ENABLE_CHECKS' ],
-        'cflags': [ '-g', '-O0' ],
+        'cflags': [ '-g' ],
         'conditions': [
           ['target_arch=="x64"', {
             'msvs_configuration_platform': 'x64',
+          }],
+          ['OS!="zos"', {
+            'cflags': [ '-O0' ],
           }],
           ['OS=="aix"', {
             'cflags': [ '-gxcoff' ],
@@ -140,7 +143,7 @@
             # pull in V8's postmortem metadata
             'ldflags': [ '-Wl,-z,allextract' ]
           }],
-          ['OS!="mac" and OS!="win"', {
+          ['OS!="mac" and OS!="win" and OS!="zos"', {
             'cflags': [ '-fno-omit-frame-pointer' ],
           }],
           ['OS == "android"', {
@@ -238,7 +241,7 @@
     },
     'msvs_disabled_warnings': [4351, 4355, 4800],
     'conditions': [
-      ['asan == 1 and OS != "mac"', {
+      ['asan == 1 and OS != "mac" and OS !="zos"', {
         'cflags+': [
           '-fno-omit-frame-pointer',
           '-fsanitize=address',
@@ -426,6 +429,17 @@
         'ldflags': [
           '-Wl,--export-dynamic',
         ],
+      }],
+      ['OS == "zos"', {
+         'cflags': [
+           '-qxplink',
+           '-q64',
+           '-qarch=9',
+           ],
+          'ldflags': [
+            '-qxplink',
+            '-q64',
+           ],
       }]
     ],
   }

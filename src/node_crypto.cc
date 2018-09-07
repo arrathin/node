@@ -293,7 +293,13 @@ static Mutex* mutexes;
 static void crypto_threadid_cb(CRYPTO_THREADID* tid) {
   static_assert(sizeof(uv_thread_t) <= sizeof(void*),
                 "uv_thread_t does not fit in a pointer");
+#ifndef __MVS__
   CRYPTO_THREADID_set_pointer(tid, reinterpret_cast<void*>(uv_thread_self()));
+#else
+  uv_thread_t thread_self = uv_thread_self();
+  void* thread_pointer = *reinterpret_cast<void**>(&(thread_self.__));
+  CRYPTO_THREADID_set_pointer(tid, reinterpret_cast<void*>(thread_pointer));
+#endif
 }
 
 

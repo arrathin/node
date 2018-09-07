@@ -43,7 +43,10 @@
         'defines': [
           'WIN32'
         ],
-      }]
+      }],
+      ['OS == "zos"', {
+        'cflags!': [ '-Wall', '-Wextra', '-ftrapv', '-O0' ],
+      }],
     ],
   },
 

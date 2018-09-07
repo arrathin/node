@@ -545,6 +545,16 @@ bool TLSWrap::IsIPCPipe() {
 }
 
 
+bool TLSWrap::IsTTY() {
+  return false;
+}
+
+
+bool TLSWrap::IsPipe() {
+  return stream_->IsPipe();
+}
+
+
 int TLSWrap::GetFD() {
   return stream_->GetFD();
 }

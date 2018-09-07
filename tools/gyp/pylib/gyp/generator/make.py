@@ -147,7 +147,7 @@ cmd_alink_thin = rm -f $@ && $(AR.$(TOOLSET)) crsT $@ $(filter %.o,$^)
 # special "figure out circular dependencies" flags around the entire
 # input list during linking.
 quiet_cmd_link = LINK($(TOOLSET)) $@
-cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ -Wl,--start-group $(LD_INPUTS) $(LIBS) -Wl,--end-group
+cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(LD_INPUTS) $(LIBS)
 
 # We support two kinds of shared objects (.so):
 # 1) shared_library, which is just bundling together many dependent libraries
@@ -170,6 +170,24 @@ cmd_solink = $(LINK.$(TOOLSET)) -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -Wl
 
 quiet_cmd_solink_module = SOLINK_MODULE($(TOOLSET)) $@
 cmd_solink_module = $(LINK.$(TOOLSET)) -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -Wl,-soname=$(@F) -o $@ -Wl,--start-group $(filter-out FORCE_DO_CMD, $^) -Wl,--end-group $(LIBS)
+"""
+
+LINK_COMMANDS_ZOS = """\
+quiet_cmd_alink = AR($(TOOLSET)) $@
+cmd_alink = rm -f $@ && $(AR.$(TOOLSET)) crs $@ $(filter %.o,$^)
+
+quiet_cmd_alink_thin = AR($(TOOLSET)) $@
+cmd_alink_thin = rm -f $@ && $(AR.$(TOOLSET)) crsT $@ $(filter %.o,$^)
+
+quiet_cmd_link = LINK($(TOOLSET)) $@
+cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(LD_INPUTS) $(LIBS)
+
+quiet_cmd_solink = SOLINK($(TOOLSET)) $@
+cmd_solink = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(LD_INPUTS) $(LIBS)
+
+quiet_cmd_solink_module = SOLINK_MODULE($(TOOLSET)) $@
+cmd_solink_module = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(filter-out FORCE_DO_CMD, $^) $(LIBS)
+
 """
 
 LINK_COMMANDS_MAC = """\
@@ -315,7 +333,11 @@ dirx = $(call unreplace_spaces,$(dir $(call replace_spaces,$1)))
 # We write to a dep file on the side first and then rename at the end
 # so we can't end up with a broken dep file.
 depfile = $(depsdir)/$(call replace_spaces,$@).d
+ifeq ($(shell uname),OS/390)
+DEPFLAGS = -qmakedep=gcc -MF $(depfile).raw 
+else
 DEPFLAGS = -MMD -MF $(depfile).raw
+endif
 
 # We have to fixup the deps output in a few ways.
 # (1) the file output should mention the proper .o file.
@@ -1587,7 +1609,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
       for link_dep in link_deps:
         assert ' ' not in link_dep, (
             "Spaces in alink input filenames not supported (%s)"  % link_dep)
-      if (self.flavor not in ('mac', 'openbsd', 'netbsd', 'win') and not
+      if (self.flavor not in ('mac', 'openbsd', 'win') and not
           self.is_standalone_static_library):
         self.WriteDoCmd([self.output_binary], link_deps, 'alink_thin',
                         part_of_all, postbuilds=postbuilds)
@@ -1754,7 +1776,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
 
       # Hash the target name to avoid generating overlong filenames.
       cmddigest = hashlib.sha1(command if command else self.target).hexdigest()
-      intermediate = "%s.intermediate" % (cmddigest)
+      intermediate = "%s.intermediate" % cmddigest
       self.WriteLn('%s: %s' % (' '.join(outputs), intermediate))
       self.WriteLn('\t%s' % '@:');
       self.WriteLn('%s: %s' % ('.INTERMEDIATE', intermediate))
@@ -2045,6 +2067,10 @@ def GenerateOutput(target_list, target_dicts, data, params):
     header_params.update({
         'link_commands': LINK_COMMANDS_ANDROID,
     })
+  elif flavor == 'zos':
+    header_params.update({
+        'link_commands': LINK_COMMANDS_ZOS,
+    })
   elif flavor == 'solaris':
     header_params.update({
         'flock': './gyp-flock-tool flock',
@@ -2054,11 +2080,6 @@ def GenerateOutput(target_list, target_dicts, data, params):
     # Note: OpenBSD has sysutils/flock. lockf seems to be FreeBSD specific.
     header_params.update({
         'flock': 'lockf',
-    })
-  elif flavor == 'openbsd':
-    copy_archive_arguments = '-pPRf'
-    header_params.update({
-        'copy_archive_args': copy_archive_arguments,
     })
   elif flavor == 'aix':
     copy_archive_arguments = '-pPRf'

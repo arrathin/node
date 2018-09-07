@@ -191,7 +191,7 @@ void UDPWrap::DoBind(const FunctionCallbackInfo<Value>& args, int family) {
   // bind(ip, port, flags)
   CHECK_EQ(args.Length(), 3);
 
-  node::Utf8Value address(args.GetIsolate(), args[0]);
+  node::NativeEncodingValue address(args.GetIsolate(), args[0]);
   const int port = args[1]->Uint32Value();
   const int flags = args[2]->Uint32Value();
   char addr[sizeof(sockaddr_in6)];
@@ -303,7 +303,7 @@ void UDPWrap::SetMembership(const FunctionCallbackInfo<Value>& args,
 
   CHECK_EQ(args.Length(), 2);
 
-  node::Utf8Value address(args.GetIsolate(), args[0]);
+  node::NativeEncodingValue address(args.GetIsolate(), args[0]);
   node::Utf8Value iface(args.GetIsolate(), args[1]);
 
   const char* iface_cstr = *iface;
@@ -351,7 +351,7 @@ void UDPWrap::DoSend(const FunctionCallbackInfo<Value>& args, int family) {
   // array in js-land
   size_t count = args[2]->Uint32Value();
   const unsigned short port = args[3]->Uint32Value();
-  node::Utf8Value address(env->isolate(), args[4]);
+  node::NativeEncodingValue address(env->isolate(), args[4]);
   const bool have_callback = args[5]->IsTrue();
 
   SendWrap* req_wrap;
