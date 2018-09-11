@@ -1063,8 +1063,8 @@
         ['OS=="zos"', {
           'libraries': [ 
             '<(OBJ_DIR)/deps/uv/libuv.a',
-            '<(OBJ_DIR)/deps/v8z/tools/gyp/libv8_libplatform.a',
-            '<(OBJ_DIR)/deps/v8z/tools/gyp/libv8_libbase.a'
+            '<(OBJ_DIR)/deps/v8z/src/libv8_libplatform.a',
+            '<(OBJ_DIR)/deps/v8z/src/libv8_libbase.a'
           ]
         }],
       ]
