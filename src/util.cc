@@ -19,6 +19,7 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#include "util.h"
 #include "string_bytes.h"
 #include "node_buffer.h"
 #include "node_internals.h"
@@ -121,7 +122,8 @@ TwoByteValue::TwoByteValue(Isolate* isolate, Local<Value> value) {
   const size_t storage = string->Length() + 1;
   AllocateSufficientStorage(storage);
 
-  const int flags = String::NO_NULL_TERMINATION;
+  const int flags =
+      String::NO_NULL_TERMINATION | String::REPLACE_INVALID_UTF8;
   const int length = string->Write(out(), 0, storage, flags);
   SetLengthAndZeroTerminate(length);
 }

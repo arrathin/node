@@ -222,7 +222,9 @@ class StreamBase : public StreamResource {
   virtual void* Cast() = 0;
   virtual bool IsAlive() = 0;
   virtual bool IsClosing() = 0;
+  virtual bool IsTTY();
   virtual bool IsIPCPipe();
+  virtual bool IsPipe();
   virtual int GetFD();
 
   virtual int ReadStart() = 0;

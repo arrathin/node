@@ -375,6 +375,20 @@ size_t StringBytes::Write(Isolate* isolate,
         *chars_written = nbytes;
       break;
 
+    case EBCDIC:
+      if (is_extern && str->IsOneByte()) {
+        memcpy(buf, data, nbytes);
+      } else {
+        uint8_t* const dst = reinterpret_cast<uint8_t*>(buf);
+        nbytes = str->WriteOneByte(dst, 0, buflen, flags);
+      }
+      if (chars_written != nullptr)
+        *chars_written = nbytes;
+#ifdef __MVS__
+      __a2e_l(buf, nbytes);
+#endif
+      break;
+
     case BUFFER:
     case UTF8:
       nbytes = str->WriteUtf8(buf, buflen, chars_written, flags);
@@ -715,6 +729,14 @@ MaybeLocal<Value> StringBytes::Encode(Isolate* isolate,
       } else {
         return ExternOneByteString::NewFromCopy(isolate, buf, buflen, error);
       }
+      break;
+
+    case EBCDIC:
+      val = String::NewFromUtf8(isolate,
+                                *E2A(buf, buflen),
+                                String::kNormalString,
+                                buflen);
+      break;
 
     case UTF8:
       val = String::NewFromUtf8(isolate,

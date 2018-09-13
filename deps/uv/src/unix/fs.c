@@ -131,6 +131,9 @@
   }                                                                           \
   while (0)
 
+#if defined(__MVS__)
+#define readlink(...) os390_readlink(__VA_ARGS__)
+#endif
 
 static ssize_t uv__fs_fsync(uv_fs_t* req) {
 #if defined(__APPLE__)
@@ -307,7 +310,7 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
 #endif
   ssize_t result;
 
-#if defined(_AIX)
+#if defined(_AIX) || defined(__MVS__)
   struct stat buf;
   if(fstat(req->file, &buf))
     return -1;
@@ -370,6 +373,15 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
   }
 
 done:
+#if defined(__MVS__)
+  if ( !( 
+          (getenv("_BPXK_AUTOCVT") == NULL && buf.st_tag.ft_txtflag && buf.st_tag.ft_ccsid == 819) ||
+          buf.st_tag.ft_ccsid == FT_BINARY
+        )
+     )
+    for (int idx = 0; idx < req->nbufs; idx++)
+      __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
+#endif
   return result;
 }
 
@@ -707,6 +719,26 @@ static ssize_t uv__fs_utime(uv_fs_t* req) {
 
 
 static ssize_t uv__fs_write(uv_fs_t* req) {
+#if defined(__MVS__)
+  int doconvert;
+  struct stat statbuf;
+
+  if(fstat(req->file, &statbuf))
+    return -1;
+
+  doconvert = 0;
+  if ( !( 
+          (getenv("_BPXK_AUTOCVT") == NULL && statbuf.st_tag.ft_txtflag && statbuf.st_tag.ft_ccsid == 819) ||
+          statbuf.st_tag.ft_ccsid == FT_BINARY
+        )
+     )
+    doconvert = 1;
+
+  if (doconvert)
+    for (int idx = 0; idx < req->nbufs; idx++)
+      __a2e_l(req->bufs[idx].base, req->bufs[idx].len);
+#endif
+
 #if defined(__linux__)
   static int no_pwritev;
 #endif
@@ -779,6 +811,11 @@ done:
 #if defined(__APPLE__)
   if (pthread_mutex_unlock(&lock))
     abort();
+#endif
+#if defined(__MVS__)
+  if (doconvert)
+    for (int idx = 0; idx < req->nbufs; idx++)
+      __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
 #endif
 
   return r;
@@ -1055,6 +1092,22 @@ static ssize_t uv__fs_buf_iter(uv_fs_t* req, uv__fs_buf_iter_processor process) 
 }
 
 
+static ssize_t uv__fs_access(uv_fs_t * req) {
+#ifdef __MVS__
+  int r = 0;
+  if (req->flags & F_OK)
+    r = access(req->path, F_OK);
+
+  if (r > -1)
+    r = access(req->path, req->flags & (R_OK | W_OK | X_OK));
+
+  return r;
+#else
+  return access(req->path, req->flags);
+#endif
+}
+
+
 static void uv__fs_work(struct uv__work* w) {
   int retry_on_eintr;
   uv_fs_t* req;
@@ -1072,7 +1125,7 @@ static void uv__fs_work(struct uv__work* w) {
     break;
 
     switch (req->fs_type) {
-    X(ACCESS, access(req->path, req->flags));
+    X(ACCESS, uv__fs_access(req));
     X(CHMOD, chmod(req->path, req->mode));
     X(CHOWN, chown(req->path, req->uid, req->gid));
     X(CLOSE, close(req->file));

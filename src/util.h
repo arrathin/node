@@ -411,22 +411,11 @@ class BufferValue : public MaybeStackBuffer<char> {
   explicit BufferValue(v8::Isolate* isolate, v8::Local<v8::Value> value);
 };
 
-#define THROW_AND_RETURN_UNLESS_BUFFER(env, obj)                            \
-  do {                                                                      \
-    if (!Buffer::HasInstance(obj))                                          \
-      return env->ThrowTypeError("argument should be a Buffer");            \
-  } while (0)
+class NativeEncodingValue : public MaybeStackBuffer<char> {
+ public:
+  explicit NativeEncodingValue(v8::Isolate* isolate, v8::Local<v8::Value> value);
+};
 
-#define SPREAD_BUFFER_ARG(val, name)                                          \
-  CHECK((val)->IsArrayBufferView());                                          \
-  v8::Local<v8::ArrayBufferView> name = (val).As<v8::ArrayBufferView>();      \
-  v8::ArrayBuffer::Contents name##_c = name->Buffer()->GetContents();         \
-  const size_t name##_offset = name->ByteOffset();                            \
-  const size_t name##_length = name->ByteLength();                            \
-  char* const name##_data =                                                   \
-      static_cast<char*>(name##_c.Data()) + name##_offset;                    \
-  if (name##_length > 0)                                                      \
-    CHECK_NE(name##_data, nullptr);
 
 class E2A {
   public:
@@ -454,6 +443,24 @@ class E2A {
     size_t length_;
     char* str_;
 };
+
+#define THROW_AND_RETURN_UNLESS_BUFFER(env, obj)                            \
+  do {                                                                      \
+    if (!Buffer::HasInstance(obj))                                          \
+      return env->ThrowTypeError("argument should be a Buffer");            \
+  } while (0)
+
+#define SPREAD_BUFFER_ARG(val, name)                                          \
+  CHECK((val)->IsArrayBufferView());                                          \
+  v8::Local<v8::ArrayBufferView> name = (val).As<v8::ArrayBufferView>();      \
+  v8::ArrayBuffer::Contents name##_c = name->Buffer()->GetContents();         \
+  const size_t name##_offset = name->ByteOffset();                            \
+  const size_t name##_length = name->ByteLength();                            \
+  char* const name##_data =                                                   \
+      static_cast<char*>(name##_c.Data()) + name##_offset;                    \
+  if (name##_length > 0)                                                      \
+    CHECK_NE(name##_data, nullptr);
+
 
 }  // namespace node
 

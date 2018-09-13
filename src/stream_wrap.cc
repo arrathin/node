@@ -36,6 +36,9 @@
 #include <stdlib.h>  // abort()
 #include <string.h>  // memcpy()
 #include <limits.h>  // INT_MAX
+#if defined(__MVS__)
+#include <unistd.h>  // e2a
+#endif
 
 
 namespace node {
@@ -136,11 +139,21 @@ AsyncWrap* LibuvStreamWrap::GetAsyncWrap() {
 }
 
 
+bool LibuvStreamWrap::IsTTY() {
+  return is_tty();
+}
+
+
 bool LibuvStreamWrap::IsIPCPipe() {
   return is_named_pipe_ipc();
 }
 
 
+bool LibuvStreamWrap::IsPipe() {
+  return is_named_pipe();
+}
+
+  
 uint32_t LibuvStreamWrap::UpdateWriteQueueSize() {
   HandleScope scope(env()->isolate());
   uint32_t write_queue_size = stream()->write_queue_size;
@@ -226,6 +239,10 @@ void LibuvStreamWrap::OnReadImpl(ssize_t nread,
     return;
   }
 
+#ifdef __MVS__
+  if (wrap->IsTTY())
+    __e2a_l(buf->base, nread);
+#endif
   CHECK_LE(static_cast<size_t>(nread), buf->len);
   char* base = node::Realloc(buf->base, nread);
 

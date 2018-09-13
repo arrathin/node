@@ -26,6 +26,9 @@
 
 #include <string.h>
 #include <stdlib.h>
+#ifdef __MVS__
+#include <unistd.h> // e2a
+#endif
 
 namespace node {
 
@@ -194,6 +197,7 @@ class ProcessWrap : public HandleWrap {
                             js_argv->Get(context, i).ToLocalChecked());
         options.args[i] = strdup(*arg);
         CHECK_NE(options.args[i], nullptr);
+        __a2e_s(options.args[i]);
       }
       options.args[argc] = nullptr;
     }
@@ -220,6 +224,7 @@ class ProcessWrap : public HandleWrap {
                              env_opt->Get(context, i).ToLocalChecked());
         options.env[i] = strdup(*pair);
         CHECK_NE(options.env[i], nullptr);
+        __a2e_s(options.env[i]);
       }
       options.env[envc] = nullptr;
     }

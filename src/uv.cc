@@ -45,6 +45,7 @@ void ErrName(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(OneByteString(env->isolate(), *E2A(name)));
 #else
   args.GetReturnValue().Set(OneByteString(env->isolate(), name));
+#endif
 }
 
 

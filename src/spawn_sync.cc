@@ -26,6 +26,9 @@
 
 #include <string.h>
 #include <stdlib.h>
+#ifdef __MVS__
+#include <unistd.h>
+#endif
 
 
 namespace node {
@@ -994,7 +997,10 @@ int SyncProcessRunner::CopyJsString(Local<Value> js_value,
   buffer = new char[size];
 
   written = StringBytes::Write(isolate, buffer, -1, js_string, UTF8);
-  buffer[written] = '\0';
+  buffer[written] = '\x0';
+#ifdef __MVS__
+  __a2e_s(buffer);
+#endif
 
   *target = buffer;
   return 0;
@@ -1054,6 +1060,11 @@ int SyncProcessRunner::CopyJsStringArray(Local<Value> js_value,
   }
 
   list[length] = nullptr;
+
+#ifdef __MVS__
+  for (uint32_t i = 0; i < length; i++)
+    __a2e_s(list[i]);
+#endif
 
   *target = buffer;
   return 0;

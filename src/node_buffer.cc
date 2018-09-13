@@ -1233,13 +1233,14 @@ void SetupBufferJS(const FunctionCallbackInfo<Value>& args) {
   env->SetMethod(proto, "hexSlice", StringSlice<HEX>);
   env->SetMethod(proto, "ucs2Slice", StringSlice<UCS2>);
   env->SetMethod(proto, "utf8Slice", StringSlice<UTF8>);
-
+  env->SetMethod(proto, "ebcdicSlice", StringSlice<EBCDIC>);
   env->SetMethod(proto, "asciiWrite", StringWrite<ASCII>);
   env->SetMethod(proto, "base64Write", StringWrite<BASE64>);
   env->SetMethod(proto, "latin1Write", StringWrite<LATIN1>);
   env->SetMethod(proto, "hexWrite", StringWrite<HEX>);
   env->SetMethod(proto, "ucs2Write", StringWrite<UCS2>);
   env->SetMethod(proto, "utf8Write", StringWrite<UTF8>);
+  env->SetMethod(proto, "ebcdicWrite", StringWrite<EBCDIC>);
 
   if (auto zero_fill_field = env->isolate_data()->zero_fill_field()) {
     CHECK(args[1]->IsObject());

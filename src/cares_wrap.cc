@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
+#include <unistd.h>
 #include <unordered_set>
 
 #if defined(__ANDROID__) || \
@@ -378,6 +379,9 @@ Local<Array> HostentToAddresses(Environment* env,
   char ip[INET6_ADDRSTRLEN];
   for (uint32_t i = 0; host->h_addr_list[i] != nullptr; ++i) {
     uv_inet_ntop(host->h_addrtype, host->h_addr_list[i], ip, sizeof(ip));
+#ifdef __MVS__
+    __e2a_s(ip);
+#endif
     Local<String> address = OneByteString(env->isolate(), ip);
     addresses->Set(context, i + offset, address).FromJust();
   }
@@ -1860,11 +1864,16 @@ void AfterGetAddrInfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
         } else {
           continue;
         }
-
+        
         char ip[INET6_ADDRSTRLEN];
         if (uv_inet_ntop(p->ai_family, addr, ip, sizeof(ip)))
           continue;
 
+#ifdef __MVS__
+        __e2a_s(ip);
+#endif
+
+        // Create JavaScript string
         Local<String> s = OneByteString(env->isolate(), ip);
         results->Set(n, s);
         n++;
@@ -1925,7 +1934,7 @@ void AfterGetNameInfo(uv_getnameinfo_t* req,
 
 
 void IsIP(const FunctionCallbackInfo<Value>& args) {
-  node::Utf8Value ip(args.GetIsolate(), args[0]);
+  node::NativeEncodingValue ip(args.GetIsolate(), args[0]);
   char address_buffer[sizeof(struct in6_addr)];
 
   int rc = 0;
@@ -1938,7 +1947,7 @@ void IsIP(const FunctionCallbackInfo<Value>& args) {
 }
 
 void IsIPv4(const FunctionCallbackInfo<Value>& args) {
-  node::Utf8Value ip(args.GetIsolate(), args[0]);
+  node::NativeEncodingValue ip(args.GetIsolate(), args[0]);
   char address_buffer[sizeof(struct in_addr)];
 
   if (uv_inet_pton(AF_INET, *ip, &address_buffer) == 0) {
@@ -1949,7 +1958,7 @@ void IsIPv4(const FunctionCallbackInfo<Value>& args) {
 }
 
 void IsIPv6(const FunctionCallbackInfo<Value>& args) {
-  node::Utf8Value ip(args.GetIsolate(), args[0]);
+  node::NativeEncodingValue ip(args.GetIsolate(), args[0]);
   char address_buffer[sizeof(struct in6_addr)];
 
   if (uv_inet_pton(AF_INET6, *ip, &address_buffer) == 0) {
@@ -1988,7 +1997,7 @@ void GetAddrInfo(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[2]->IsInt32());
   CHECK(args[4]->IsBoolean());
   Local<Object> req_wrap_obj = args[0].As<Object>();
-  node::Utf8Value hostname(env->isolate(), args[1]);
+  node::NativeEncodingValue hostname(env->isolate(), args[1]);
 
   int32_t flags = 0;
   if (args[3]->IsInt32()) {
@@ -2040,7 +2049,7 @@ void GetNameInfo(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[1]->IsString());
   CHECK(args[2]->IsUint32());
   Local<Object> req_wrap_obj = args[0].As<Object>();
-  node::Utf8Value ip(env->isolate(), args[1]);
+  node::NativeEncodingValue ip(env->isolate(), args[1]);
   const unsigned port = args[2]->Uint32Value(env->context()).FromJust();
   struct sockaddr_storage addr;
 
@@ -2083,6 +2092,9 @@ void GetServers(const FunctionCallbackInfo<Value>& args) {
     int err = uv_inet_ntop(cur->family, caddr, ip, sizeof(ip));
     CHECK_EQ(err, 0);
 
+#ifdef __MVS__
+    __e2a_s(ip);
+#endif
     Local<Array> ret = Array::New(env->isolate(), 2);
     ret->Set(0, OneByteString(env->isolate(), ip));
     ret->Set(1, Integer::New(env->isolate(), cur->udp_port));

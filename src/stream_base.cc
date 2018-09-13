@@ -8,6 +8,7 @@
 #include "string_bytes.h"
 #include "util-inl.h"
 #include "v8.h"
+#include <unistd.h>
 
 #include <limits.h>  // INT_MAX
 
@@ -450,6 +451,15 @@ void StreamBase::EmitData(ssize_t nread,
   AsyncWrap* wrap = GetAsyncWrap();
   CHECK_NE(wrap, nullptr);
   wrap->MakeCallback(env->onread_string(), arraysize(argv), argv);
+}
+
+bool StreamBase::IsPipe() {
+  return false;
+}
+
+
+bool StreamBase::IsTTY() {
+  return false;
 }
 
 
