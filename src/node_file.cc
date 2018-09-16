@@ -503,8 +503,11 @@ static void InternalModuleReadFile(const FunctionCallbackInfo<Value>& args) {
   uv_loop_t* loop = env->event_loop();
 
   CHECK(args[0]->IsString());
+#ifdef __MVS__
+  node::BufferValue path(env->isolate(), args[0]);;
+#else
   node::Utf8Value path(env->isolate(), args[0]);
-
+#endif
   if (strlen(*path) != path.length())
     return;  // Contains a nul byte.
 
@@ -565,8 +568,11 @@ static void InternalModuleStat(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
   CHECK(args[0]->IsString());
+#ifdef __MVS__
+  node::BufferValue path(env->isolate(),args[0]);
+#else
   node::Utf8Value path(env->isolate(), args[0]);
-
+#endif
   uv_fs_t req;
   int rc = uv_fs_stat(env->event_loop(), &req, *path, nullptr);
   if (rc == 0) {
