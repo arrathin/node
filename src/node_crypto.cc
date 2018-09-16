@@ -18,6 +18,12 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
+#ifdef __MVS__
+#define _AE_BIMODAL
+#define snprintf __snprintf_a
+#define printf   __printf_a
+#define fprintf  __fprintf_a
+#endif
 
 #include "node.h"
 #include "node_buffer.h"

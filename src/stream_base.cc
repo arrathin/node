@@ -1,3 +1,4 @@
+#define _AE_BIMODAL
 #include "stream_base-inl.h"
 #include "stream_wrap.h"
 
@@ -274,6 +275,7 @@ int StreamBase::WriteBuffer(const FunctionCallbackInfo<Value>& args) {
 
 template <enum encoding enc>
 int StreamBase::WriteString(const FunctionCallbackInfo<Value>& args) {
+
   Environment* env = Environment::GetCurrent(args);
   CHECK(args[0]->IsObject());
   CHECK(args[1]->IsString());
@@ -358,7 +360,8 @@ int StreamBase::WriteString(const FunctionCallbackInfo<Value>& args) {
 
   buf = uv_buf_init(data, data_size);
 
-  if (!IsIPCPipe()) {
+
+ if (!IsIPCPipe()) {
     err = DoWrite(req_wrap, &buf, 1, nullptr);
   } else {
     uv_handle_t* send_handle = nullptr;

@@ -18,7 +18,10 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+#ifdef __MVS__
+#define _AE_BIMODAL
+#define printf __printf_a
+#endif
 #include "stream_wrap.h"
 #include "stream_base-inl.h"
 
@@ -239,12 +242,12 @@ void LibuvStreamWrap::OnReadImpl(ssize_t nread,
     return;
   }
 
-#ifdef __MVS__
-  if (wrap->IsTTY())
-    __e2a_l(buf->base, nread);
-#endif
   CHECK_LE(static_cast<size_t>(nread), buf->len);
   char* base = node::Realloc(buf->base, nread);
+#ifdef __MVS__
+  if (wrap->IsTTY())
+    __e2a_l(base, nread);
+#endif
 
   if (pending == UV_TCP) {
     pending_obj = AcceptHandle<TCPWrap, uv_tcp_t>(env, wrap);

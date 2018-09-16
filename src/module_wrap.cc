@@ -1,3 +1,10 @@
+#ifdef __MVS__
+#define _AE_BIMODAL
+#define snprintf __snprintf_a
+#define printf   __printf_a
+#define fprintf  __fprintf_a
+#endif
+
 #include <algorithm>
 #include <limits.h>  // PATH_MAX
 #include <sys/stat.h>  // S_IFDIR
@@ -483,6 +490,7 @@ Maybe<URL> Resolve(Environment* env,
                    const std::string& specifier,
                    const URL& base,
                    bool read_pkg_json) {
+  
   URL pure_url(specifier);
   if (!(pure_url.flags() & URL_FLAGS_FAILED)) {
     // just check existence, without altering

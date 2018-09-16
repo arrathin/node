@@ -1,3 +1,9 @@
+#ifdef __MVS__
+#define _AE_BIMODAL
+#define snprintf __snprintf_a
+#define printf __printf_a
+#define fprintf __fprintf_a
+#endif
 #include "node_url.h"
 #include "node_internals.h"
 #include "base-object-inl.h"

@@ -18,7 +18,12 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+#ifdef __MVS__
+#define _AE_BIMODAL
+#define snprintf __snprintf_a
+#define printf   __printf_a
+#define fprintf  __fprintf_a
+#endif
 #include "node_internals.h"
 #include "string_bytes.h"
 
@@ -280,15 +285,25 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
       uv_ip4_name(&interfaces[i].address.address4, ip, sizeof(ip));
       uv_ip4_name(&interfaces[i].netmask.netmask4, netmask, sizeof(netmask));
       family = env->ipv4_string();
+#ifdef __MVS__
+      __e2a_s(ip);
+#endif
     } else if (interfaces[i].address.address4.sin_family == AF_INET6) {
       uv_ip6_name(&interfaces[i].address.address6, ip, sizeof(ip));
       uv_ip6_name(&interfaces[i].netmask.netmask6, netmask, sizeof(netmask));
       family = env->ipv6_string();
+#ifdef __MVS__
+      __e2a_s(ip);
+#endif
     } else {
       strncpy(ip, "<unknown sa family>", INET6_ADDRSTRLEN);
       family = env->unknown_string();
     }
 
+#ifdef __MVS__
+    __e2a_s(netmask);
+    __e2a_s(mac);
+#endif
     o = Object::New(env->isolate());
     o->Set(env->address_string(), OneByteString(env->isolate(), ip));
     o->Set(env->netmask_string(), OneByteString(env->isolate(), netmask));
@@ -361,11 +376,19 @@ static void GetUserInfo(const FunctionCallbackInfo<Value>& args) {
   Local<Value> uid = Number::New(env->isolate(), pwd.uid);
   Local<Value> gid = Number::New(env->isolate(), pwd.gid);
   MaybeLocal<Value> username = StringBytes::Encode(env->isolate(),
+#ifdef __MVS__
+                                                   *E2A(pwd.username),
+#else
                                                    pwd.username,
+#endif
                                                    encoding,
                                                    &error);
   MaybeLocal<Value> homedir = StringBytes::Encode(env->isolate(),
+#ifdef __MVS__
+                                                  *E2A(pwd.homedir),
+#else
                                                   pwd.homedir,
+#endif                                             
                                                   encoding,
                                                   &error);
   MaybeLocal<Value> shell;
@@ -373,7 +396,7 @@ static void GetUserInfo(const FunctionCallbackInfo<Value>& args) {
   if (pwd.shell == nullptr)
     shell = Null(env->isolate());
   else
-    shell = StringBytes::Encode(env->isolate(), pwd.shell, encoding, &error);
+    shell = StringBytes::Encode(env->isolate(), *E2A(pwd.shell), encoding, &error);
 
   uv_os_free_passwd(&pwd);
 

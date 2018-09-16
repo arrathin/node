@@ -417,6 +417,9 @@ MaybeLocal<Object> New(Environment* env, char* data, size_t length) {
     CHECK(length <= kMaxLength);
   }
 
+#ifdef __MVS__
+   __e2a_l(data, length);
+#endif
   Local<ArrayBuffer> ab =
       ArrayBuffer::New(env->isolate(),
                        data,
