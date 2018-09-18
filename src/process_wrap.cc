@@ -179,7 +179,7 @@ class ProcessWrap : public HandleWrap {
     Local<Value> file_v =
         js_options->Get(context, env->file_string()).ToLocalChecked();
     CHECK(file_v->IsString());
-    node::Utf8Value file(env->isolate(), file_v);
+    node::BufferValue file(env->isolate(), file_v);
     options.file = *file;
 
     // options.args
@@ -205,7 +205,7 @@ class ProcessWrap : public HandleWrap {
     // options.cwd
     Local<Value> cwd_v =
         js_options->Get(context, env->cwd_string()).ToLocalChecked();
-    node::Utf8Value cwd(env->isolate(),
+    node::BufferValue cwd(env->isolate(),
                         cwd_v->IsString() ? cwd_v : Local<Value>());
     if (cwd.length() > 0) {
       options.cwd = *cwd;

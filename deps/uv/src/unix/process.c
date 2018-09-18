@@ -289,6 +289,11 @@ static void uv__process_child_init(const uv_process_options_t* options,
   if (options->flags & UV_PROCESS_DETACHED)
     setsid();
 
+#ifdef __MVS__
+  sigfillset(&set);
+  sigprocmask(SIG_UNBLOCK, &set, NULL);
+#endif
+
   /* First duplicate low numbered fds, since it's not safe to duplicate them,
    * they could get replaced. Example: swapping stdout and stderr; without
    * this fd 2 (stderr) would be duplicated into fd 1, thus making both
@@ -584,10 +589,16 @@ int uv_process_kill(uv_process_t* process, int signum) {
 
 
 int uv_kill(int pid, int signum) {
-  if (kill(pid, signum))
+  if (kill(pid, signum)) {
+#ifdef __MVS__
+    if(getpgid(pid) == getpgid(0) && errno == EPERM)
+     return 0;  /* EPERM is returned because the process is a zombie */
+#endif
     return -errno;
-  else
+  }
+  else {
     return 0;
+  }
 }
 
 

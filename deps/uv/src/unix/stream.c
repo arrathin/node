@@ -784,8 +784,9 @@ start:
 
 #if defined(__MVS__)
   if (stream->type == UV_NAMED_PIPE || stream->type == UV_TTY)
-    for (int j = 0; j < iovcnt; ++j)
+    for (int j = 0; j < iovcnt; ++j) {
       __a2e_l(iov[j].iov_base, iov[j].iov_len);
+    }
 #endif
 
   if (req->send_handle) {
@@ -865,9 +866,10 @@ start:
   }
 
 #if defined(__MVS__)
-  if (stream->type == UV_NAMED_PIPE)
-    for (int j = 0; j < iovcnt; ++j)
-      __e2a_l(iov[j].iov_base, iov[j].iov_len);
+  if (stream->type == UV_NAMED_PIPE )
+    for (int j = 0; j < iovcnt; ++j) {
+       __e2a_l(iov[j].iov_base, iov[j].iov_len);
+    }
 #endif
 
   if (n < 0) {
