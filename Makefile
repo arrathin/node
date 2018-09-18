@@ -686,7 +686,11 @@ else
 ifeq ($(findstring powerpc,$(shell uname -p)),powerpc)
 DESTCPU ?= ppc64
 else
+ifeq ($(findstring OS/390,$(shell uname -s)),OS/390)
+DESTCPU ?= s390x
+else
 DESTCPU ?= x86
+endif
 endif
 endif
 endif
@@ -742,6 +746,19 @@ ifeq ($(DESTCPU),ia32)
 override DESTCPU=x86
 endif
 
+ifeq ($(OSTYPE),os390)
+TAR=pax
+TAROPTS=-w -x pax -f
+GZIP=compress
+GZIPOPTS=-c -f
+GZIPEXT=Z
+else
+TAR=tar
+TAROPTS=-cf
+GZIP=gzip
+GZIPOPTS=-c -f -9
+GZIPEXT=gz
+endif
 TARNAME=node-$(FULLVERSION)
 TARBALL=$(TARNAME).tar
 # Custom user-specified variation, use it directly
@@ -750,7 +767,7 @@ BINARYNAME=$(TARNAME)-$(PLATFORM)-$(ARCH)-$(VARIATION)
 else
 BINARYNAME=$(TARNAME)-$(PLATFORM)-$(ARCH)
 endif
-BINARYTAR=$(BINARYNAME).tar
+BINARYTAR=$(BINARYNAME).$(TAR)
 # OSX doesn't have xz installed by default, http://macpkg.sourceforge.net/
 XZ=$(shell which xz > /dev/null 2>&1; echo $$?)
 XZ_COMPRESSION ?= 9e
@@ -864,25 +881,25 @@ $(TARBALL): release-only $(NODE_EXE) doc
 	$(RM) -r $(TARNAME)/test*.tap
 	find $(TARNAME)/ -name ".eslint*" -maxdepth 2 | xargs $(RM)
 	find $(TARNAME)/ -type l | xargs $(RM) # annoying on windows
-	tar -cf $(TARNAME).tar $(TARNAME)
+	$(TAR) $(TAROPTS) $(TARNAME).$(TAR) $(TARNAME)
 	$(RM) -r $(TARNAME)
-	gzip -c -f -9 $(TARNAME).tar > $(TARNAME).tar.gz
+	$(GZIP) $(GZIPOPTS) $(TARNAME).$(TAR) > $(TARNAME).$(TAR).$(GZIPEXT)
 ifeq ($(XZ), 0)
-	xz -c -f -$(XZ_COMPRESSION) $(TARNAME).tar > $(TARNAME).tar.xz
+	xz -c -f -$(XZ_COMPRESSION) $(TARNAME).$(TAR) > $(TARNAME).$(TAR).xz
 endif
-	$(RM) $(TARNAME).tar
+	$(RM) $(TARNAME).$(TAR)
 
 tar: $(TARBALL) ## Create a source tarball.
 
 tar-upload: tar
 	ssh $(STAGINGSERVER) "mkdir -p nodejs/$(DISTTYPEDIR)/$(FULLVERSION)"
-	chmod 664 $(TARNAME).tar.gz
-	scp -p $(TARNAME).tar.gz $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).tar.gz
-	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).tar.gz.done"
+	chmod 664 $(TARNAME).$(TAR).$(GZIPEXT)
+	scp -p $(TARNAME).$(TAR).$(GZIPEXT) $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).$(TAR).$(GZIPEXT)
+	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).$(TAR).$(GZIPEXT).done"
 ifeq ($(XZ), 0)
-	chmod 664 $(TARNAME).tar.xz
-	scp -p $(TARNAME).tar.xz $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).tar.xz
-	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).tar.xz.done"
+	chmod 664 $(TARNAME).$(TAR).xz
+	scp -p $(TARNAME).$(TAR).xz $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).$(TAR).xz
+	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).$(TAR).xz.done"
 endif
 
 doc-upload: doc
@@ -900,25 +917,25 @@ $(TARBALL)-headers: release-only
 		$(CONFIG_FLAGS) $(BUILD_RELEASE_FLAGS)
 	HEADERS_ONLY=1 $(PYTHON) tools/install.py install '$(TARNAME)' '/'
 	find $(TARNAME)/ -type l | xargs $(RM)
-	tar -cf $(TARNAME)-headers.tar $(TARNAME)
+	$(TAR) $(TAROPTS) $(TARNAME)-headers.$(TAR) $(TARNAME)
 	$(RM) -r $(TARNAME)
-	gzip -c -f -9 $(TARNAME)-headers.tar > $(TARNAME)-headers.tar.gz
+	$(GZIP) $(GZIPOPTS) $(TARNAME)-headers.$(TAR) > $(TARNAME)-headers.$(TAR).$(GZIPEXT)
 ifeq ($(XZ), 0)
-	xz -c -f -$(XZ_COMPRESSION) $(TARNAME)-headers.tar > $(TARNAME)-headers.tar.xz
+	xz -c -f -$(XZ_COMPRESSION) $(TARNAME)-headers.$(TAR) > $(TARNAME)-headers.tar.xz
 endif
-	$(RM) $(TARNAME)-headers.tar
+	$(RM) $(TARNAME)-headers.$(TAR)
 
 tar-headers: $(TARBALL)-headers ## Build the node header tarball.
 
 tar-headers-upload: tar-headers
 	ssh $(STAGINGSERVER) "mkdir -p nodejs/$(DISTTYPEDIR)/$(FULLVERSION)"
-	chmod 664 $(TARNAME)-headers.tar.gz
-	scp -p $(TARNAME)-headers.tar.gz $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-headers.tar.gz
-	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-headers.tar.gz.done"
+	chmod 664 $(TARNAME)-headers.$(TAR).$(GZIPEXT)
+	scp -p $(TARNAME)-headers.$(TAR).$(GZIPEXT) $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-headers.$(TAR).$(GZIPEXT)
+	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-headers.$(TAR).$(GZIPEXT).done"
 ifeq ($(XZ), 0)
-	chmod 664 $(TARNAME)-headers.tar.xz
-	scp -p $(TARNAME)-headers.tar.xz $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-headers.tar.xz
-	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-headers.tar.xz.done"
+	chmod 664 $(TARNAME)-headers.$(TAR).xz
+	scp -p $(TARNAME)-headers.$(TAR).xz $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-headers.$(TAR).xz
+	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-headers.$(TAR).xz.done"
 endif
 
 $(BINARYTAR): release-only
@@ -937,25 +954,39 @@ $(BINARYTAR): release-only
 ifeq ($(OSTYPE),darwin)
 	SIGN="$(CODESIGN_CERT)" PKGDIR="$(BINARYNAME)" bash tools/osx-codesign.sh
 endif
-	tar -cf $(BINARYNAME).tar $(BINARYNAME)
-	$(RM) -r $(BINARYNAME)
-	gzip -c -f -9 $(BINARYNAME).tar > $(BINARYNAME).tar.gz
-ifeq ($(XZ), 0)
-	xz -c -f -$(XZ_COMPRESSION) $(BINARYNAME).tar > $(BINARYNAME).tar.xz
+ifeq ($(OSTYPE),os390)
+ifdef COMPILER_ARCHIVE
+	pax -rf $(COMPILER_ARCHIVE) -s#^#$(BINARYNAME)/#
 endif
-	$(RM) $(BINARYNAME).tar
+	$(RM) -f node-latest-$(PLATFORM)-$(ARCH)
+	ln -s $(BINARYNAME) node-latest-$(PLATFORM)-$(ARCH)
+endif
+	$(TAR) $(TAROPTS) $(BINARYNAME).$(TAR) $(BINARYNAME) node-latest-$(PLATFORM)-$(ARCH)
+	$(RM) -r $(BINARYNAME)
+	$(GZIP) $(GZIPOPTS) $(BINARYNAME).$(TAR) > $(BINARYNAME).$(TAR).$(GZIPEXT)
+ifeq ($(XZ), 0)
+	xz -c -f -$(XZ_COMPRESSION) $(BINARYNAME).$(TAR) > $(BINARYNAME).$(TAR).xz
+endif
+	$(RM) $(BINARYNAME).$(TAR)
 
 binary: $(BINARYTAR) ## Build release binary tarballs.
 
 binary-upload: binary
 	ssh $(STAGINGSERVER) "mkdir -p nodejs/$(DISTTYPEDIR)/$(FULLVERSION)"
-	chmod 664 $(TARNAME)-$(OSTYPE)-$(ARCH).tar.gz
-	scp -p $(TARNAME)-$(OSTYPE)-$(ARCH).tar.gz $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-$(OSTYPE)-$(ARCH).tar.gz
-	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-$(OSTYPE)-$(ARCH).tar.gz.done"
+	chmod 664 $(TARNAME)-$(OSTYPE)-$(ARCH).$(TAR).$(GZIPEXT)
+	scp -p $(TARNAME)-$(OSTYPE)-$(ARCH).$(TAR).$(GZIPEXT) $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-$(OSTYPE)-$(ARCH).$(TAR).$(GZIPEXT)
+	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-$(OSTYPE)-$(ARCH).$(TAR).$(GZIPEXT).done"
 ifeq ($(XZ), 0)
-	chmod 664 $(TARNAME)-$(OSTYPE)-$(ARCH).tar.xz
-	scp -p $(TARNAME)-$(OSTYPE)-$(ARCH).tar.xz $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-$(OSTYPE)-$(ARCH).tar.xz
-	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-$(OSTYPE)-$(ARCH).tar.xz.done"
+	chmod 664 $(TARNAME)-$(OSTYPE)-$(ARCH).$(TAR).xz
+	scp -p $(TARNAME)-$(OSTYPE)-$(ARCH).$(TAR).xz $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-$(OSTYPE)-$(ARCH).$(TAR).xz
+	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-$(OSTYPE)-$(ARCH).$(TAR).xz.done"
+endif
+
+haswrk=$(shell which wrk > /dev/null 2>&1; echo $$?)
+wrk:
+ifneq ($(haswrk), 0)
+	@echo "please install wrk before proceeding. More information can be found in benchmark/README.md." >&2
+	@exit 1
 endif
 
 bench-net: all
