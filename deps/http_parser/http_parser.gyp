@@ -45,7 +45,8 @@
         ],
       }],
       ['OS == "zos"', {
-        'cflags!': [ '-Wall', '-Wextra', '-ftrapv', '-O0' ],
+        'cflags!': [  '-Wall', '-Wextra', '-ftrapv', '-O0' ],
+        'cflags' : [  '-fexec-charset=ISO8859-1' ], 
       }],
     ],
   },

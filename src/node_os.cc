@@ -253,6 +253,9 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
   }
 
   for (i = 0; i < count; i++) {
+#ifdef __MVS__
+    __e2a_s(interfaces[i].name);
+#endif
     const char* const raw_name = interfaces[i].name;
 
     // On Windows, the interface name is the UTF8-encoded friendly name and may

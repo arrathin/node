@@ -31,6 +31,9 @@
            '_XOPEN_SOURCE_EXTENDED',
            'HAVE_ARPA_INET_H'
           ],
+         'cflags': [
+          '-fexec-charset=ISO8859-1',
+          ],
         }],
         ['debug_nghttp2 == 1', {
           'defines': [ 'DEBUGBUILD=1' ]

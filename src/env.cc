@@ -130,8 +130,8 @@ void Environment::PrintSyncTrace() const {
 
   for (int i = 0; i < stack->GetFrameCount() - 1; i++) {
     Local<StackFrame> stack_frame = stack->GetFrame(i);
-    node::Utf8Value fn_name_s(isolate(), stack_frame->GetFunctionName());
-    node::Utf8Value script_name(isolate(), stack_frame->GetScriptName());
+    node::BufferValue fn_name_s(isolate(), stack_frame->GetFunctionName());
+    node::BufferValue script_name(isolate(), stack_frame->GetScriptName());
     const int line_number = stack_frame->GetLineNumber();
     const int column = stack_frame->GetColumn();
 
