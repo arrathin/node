@@ -295,7 +295,7 @@ int MAIN(int argc, char **argv)
             ASN1_TYPE *atmp;
             int typ;
             j = atoi(sk_OPENSSL_STRING_value(osk, i));
-            if (j == 0) {
+            if (j <= 0 || j >= tmplen) {
                 BIO_printf(bio_err, "\x27\x25\x73\x27\x20\x69\x73\x20\x61\x6e\x20\x69\x6e\x76\x61\x6c\x69\x64\x20\x6e\x75\x6d\x62\x65\x72\xa",
                            sk_OPENSSL_STRING_value(osk, i));
                 continue;
@@ -327,14 +327,14 @@ int MAIN(int argc, char **argv)
         num = tmplen;
     }
 
-    if (offset >= num) {
-        BIO_printf(bio_err, "\x45\x72\x72\x6f\x72\x3a\x20\x6f\x66\x66\x73\x65\x74\x20\x74\x6f\x6f\x20\x6c\x61\x72\x67\x65\xa");
+    if (offset < 0 || offset >= num) {
+        BIO_printf(bio_err, "\x45\x72\x72\x6f\x72\x3a\x20\x6f\x66\x66\x73\x65\x74\x20\x6f\x75\x74\x20\x6f\x66\x20\x72\x61\x6e\x67\x65\xa");
         goto end;
     }
 
     num -= offset;
 
-    if ((length == 0) || ((long)length > num))
+    if (length == 0 || length > (unsigned int)num)
         length = (unsigned int)num;
     if (derout) {
         if (BIO_write(derout, str + offset, length) != (int)length) {

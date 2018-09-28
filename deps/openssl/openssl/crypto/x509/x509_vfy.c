@@ -56,6 +56,7 @@
  * [including the GNU Public Licence.]
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>
@@ -1937,119 +1938,67 @@ int X509_cmp_current_time(const ASN1_TIME *ctm)
 
 int X509_cmp_time(const ASN1_TIME *ctm, time_t *cmp_time)
 {
-    char *str;
-    ASN1_TIME atm;
-    long offset;
-    char buff1[24], buff2[24], *p;
-    int i, j, remaining;
+    static const size_t utctime_length = sizeof("\x59\x59\x4d\x4d\x44\x44\x48\x48\x4d\x4d\x53\x53\x5a") - 1;
+    static const size_t generalizedtime_length = sizeof("\x59\x59\x4d\x4d\x44\x44\x48\x48\x4d\x4d\x53\x53\x5a") - 1;
+    ASN1_TIME *asn1_cmp_time = NULL;
+    int i, day, sec, ret = 0;
 
-    p = buff1;
-    remaining = ctm->length;
-    str = (char *)ctm->data;
     /*
-     * Note that the following (historical) code allows much more slack in the
-     * time format than RFC5280. In RFC5280, the representation is fixed:
+     * Note that ASN.1 allows much more slack in the time format than RFC5280.
+     * In RFC5280, the representation is fixed:
      * UTCTime: YYMMDDHHMMSSZ
      * GeneralizedTime: YYYYMMDDHHMMSSZ
+     *
+     * We do NOT currently enforce the following RFC 5280 requirement:
+     * "CAs conforming to this profile MUST always encode certificate
+     *  validity dates through the year 2049 as UTCTime; certificate validity
+     *  dates in 2050 or later MUST be encoded as GeneralizedTime."
      */
-    if (ctm->type == V_ASN1_UTCTIME) {
-        /* YYMMDDHHMM[SS]Z or YYMMDDHHMM[SS](+-)hhmm */
-        int min_length = sizeof("\x59\x59\x4d\x4d\x44\x44\x48\x48\x4d\x4d\x5a") - 1;
-        int max_length = sizeof("\x59\x59\x4d\x4d\x44\x44\x48\x48\x4d\x4d\x53\x53\x2b\x68\x68\x6d\x6d") - 1;
-        if (remaining < min_length || remaining > max_length)
+    switch (ctm->type) {
+    case V_ASN1_UTCTIME:
+        if (ctm->length != (int)(utctime_length))
             return 0;
-        memcpy(p, str, 10);
-        p += 10;
-        str += 10;
-        remaining -= 10;
-    } else {
-        /* YYYYMMDDHHMM[SS[.fff]]Z or YYYYMMDDHHMM[SS[.f[f[f]]]](+-)hhmm */
-        int min_length = sizeof("\x59\x59\x59\x59\x4d\x4d\x44\x44\x48\x48\x4d\x4d\x5a") - 1;
-        int max_length = sizeof("\x59\x59\x59\x59\x4d\x4d\x44\x44\x48\x48\x4d\x4d\x53\x53\x2e\x66\x66\x66\x2b\x68\x68\x6d\x6d") - 1;
-        if (remaining < min_length || remaining > max_length)
+        break;
+    case V_ASN1_GENERALIZEDTIME:
+        if (ctm->length != (int)(generalizedtime_length))
             return 0;
-        memcpy(p, str, 12);
-        p += 12;
-        str += 12;
-        remaining -= 12;
-    }
-
-    if ((*str == '\x5a') || (*str == '\x2d') || (*str == '\x2b')) {
-        *(p++) = '\x30';
-        *(p++) = '\x30';
-    } else {
-        /* SS (seconds) */
-        if (remaining < 2)
-            return 0;
-        *(p++) = *(str++);
-        *(p++) = *(str++);
-        remaining -= 2;
-        /*
-         * Skip any (up to three) fractional seconds...
-         * TODO(emilia): in RFC5280, fractional seconds are forbidden.
-         * Can we just kill them altogether?
-         */
-        if (remaining && *str == '\x2e') {
-            str++;
-            remaining--;
-            for (i = 0; i < 3 && remaining; i++, str++, remaining--) {
-                if (*str < '\x30' || *str > '\x39')
-                    break;
-            }
-        }
-
-    }
-    *(p++) = '\x5a';
-    *(p++) = '\x0';
-
-    /* We now need either a terminating 'Z' or an offset. */
-    if (!remaining)
+        break;
+    default:
         return 0;
-    if (*str == '\x5a') {
-        if (remaining != 1)
-            return 0;
-        offset = 0;
-    } else {
-        /* (+-)HHMM */
-        if ((*str != '\x2b') && (*str != '\x2d'))
-            return 0;
-        /* Historical behaviour: the (+-)hhmm offset is forbidden in RFC5280. */
-        if (remaining != 5)
-            return 0;
-        if (str[1] < '\x30' || str[1] > '\x39' || str[2] < '\x30' || str[2] > '\x39' ||
-            str[3] < '\x30' || str[3] > '\x39' || str[4] < '\x30' || str[4] > '\x39')
-            return 0;
-        offset = ((str[1] - '\x30') * 10 + (str[2] - '\x30')) * 60;
-        offset += (str[3] - '\x30') * 10 + (str[4] - '\x30');
-        if (*str == '\x2d')
-            offset = -offset;
     }
-    atm.type = ctm->type;
-    atm.flags = 0;
-    atm.length = sizeof(buff2);
-    atm.data = (unsigned char *)buff2;
 
-    if (X509_time_adj(&atm, offset * 60, cmp_time) == NULL)
+    /**
+     * Verify the format: the ASN.1 functions we use below allow a more
+     * flexible format than what's mandated by RFC 5280.
+     * Digit and date ranges will be verified in the conversion methods.
+     */
+    for (i = 0; i < ctm->length - 1; i++) {
+        if (!isdigit(ctm->data[i]))
+            return 0;
+    }
+    if (ctm->data[ctm->length - 1] != '\x5a')
         return 0;
 
-    if (ctm->type == V_ASN1_UTCTIME) {
-        i = (buff1[0] - '\x30') * 10 + (buff1[1] - '\x30');
-        if (i < 50)
-            i += 100;           /* cf. RFC 2459 */
-        j = (buff2[0] - '\x30') * 10 + (buff2[1] - '\x30');
-        if (j < 50)
-            j += 100;
+    /*
+     * There is ASN1_UTCTIME_cmp_time_t but no
+     * ASN1_GENERALIZEDTIME_cmp_time_t or ASN1_TIME_cmp_time_t,
+     * so we go through ASN.1
+     */
+    asn1_cmp_time = X509_time_adj(NULL, 0, cmp_time);
+    if (asn1_cmp_time == NULL)
+        goto err;
+    if (!ASN1_TIME_diff(&day, &sec, ctm, asn1_cmp_time))
+        goto err;
 
-        if (i < j)
-            return -1;
-        if (i > j)
-            return 1;
-    }
-    i = strcmp(buff1, buff2);
-    if (i == 0)                 /* wait a second then return younger :-) */
-        return -1;
-    else
-        return i;
+    /*
+     * X509_cmp_time comparison is <=.
+     * The return value 0 is reserved for errors.
+     */
+    ret = (day >= 0 && sec >= 0) ? -1 : 1;
+
+ err:
+    ASN1_TIME_free(asn1_cmp_time);
+    return ret;
 }
 
 ASN1_TIME *X509_gmtime_adj(ASN1_TIME *s, long adj)

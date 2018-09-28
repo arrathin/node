@@ -3,7 +3,7 @@
  * Written by Nils Larsch for the OpenSSL project.
  */
 /* ====================================================================
- * Copyright (c) 2000-2005 The OpenSSL Project.  All rights reserved.
+ * Copyright (c) 2000-2018 The OpenSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -137,7 +137,7 @@ int restore_rand(void)
         return 1;
 }
 
-static int fbytes_counter = 0;
+static int fbytes_counter = 0, use_fake = 0;
 static const char *numbers[8] = {
     "\x36\x35\x31\x30\x35\x36\x37\x37\x30\x39\x30\x36\x30\x31\x35\x30\x37\x36\x30\x35\x36\x38\x31\x30\x37\x36\x33\x34\x35\x36\x33\x35\x38\x35\x36\x37\x31\x39\x30\x31\x30\x30\x31\x35\x36\x36\x39\x35\x36\x31\x35\x36\x36\x35\x36\x35\x39",
     "\x36\x31\x34\x30\x35\x30\x37\x30\x36\x37\x30\x36\x35\x30\x30\x31\x30\x36\x33\x30\x36\x35\x30\x36\x35\x35\x36\x35\x36\x36\x37\x34\x30\x35\x35\x36\x30\x30\x30\x36\x31\x36\x31\x35\x35\x36\x35\x36\x35\x36\x36\x35\x36\x35\x36\x36\x35\x34",
@@ -157,6 +157,11 @@ int fbytes(unsigned char *buf, int num)
 {
     int ret;
     BIGNUM *tmp = NULL;
+
+    if (use_fake == 0)
+        return old_rand->bytes(buf, num);
+
+    use_fake = 0;
 
     if (fbytes_counter >= 8)
         return 0;
@@ -199,11 +204,13 @@ int x9_62_test_internal(BIO *out, int nid, const char *r_in, const char *s_in)
     /* create the key */
     if ((key = EC_KEY_new_by_curve_name(nid)) == NULL)
         goto x962_int_err;
+    use_fake = 1;
     if (!EC_KEY_generate_key(key))
         goto x962_int_err;
     BIO_printf(out, "\x2e");
     (void)BIO_flush(out);
     /* create the signature */
+    use_fake = 1;
     signature = ECDSA_do_sign(digest, 20, key);
     if (signature == NULL)
         goto x962_int_err;
