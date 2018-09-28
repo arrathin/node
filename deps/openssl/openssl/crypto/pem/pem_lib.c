@@ -487,12 +487,8 @@ int PEM_get_EVP_CIPHER_INFO(char *header, EVP_CIPHER_INFO *cipher)
     char **header_pp = &header;
 
     cipher->cipher = NULL;
-<<<<<<< HEAD
-    if ((header == NULL) || (*header == '\x0') || (*header == '\xa'))
-=======
     memset(cipher->iv, 0, sizeof(cipher->iv));
-    if ((header == NULL) || (*header == '\0') || (*header == '\n'))
->>>>>>> 1cb5aed5f596a9cb5b68e3a676222c0c35501a5e
+    if ((header == NULL) || (*header == '\x0') || (*header == '\xa'))
         return (1);
     if (strncmp(header, "\x50\x72\x6f\x63\x2d\x54\x79\x70\x65\x3a\x20", 11) != 0) {
         PEMerr(PEM_F_PEM_GET_EVP_CIPHER_INFO, PEM_R_NOT_PROC_TYPE);
