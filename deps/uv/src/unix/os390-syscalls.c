@@ -242,7 +242,7 @@ int epoll_ctl(uv__os390_epoll* lst,
   uv_mutex_lock(&global_epoll_lock);
 
   if (op == EPOLL_CTL_DEL) {
-    if (fd == lst->msg_queue) {
+    if (event->is_msg) {
       /* The user has deleted the System V message queue. Highly likely
        * because the process is being shut down. So stop listening to it.
        */
@@ -316,6 +316,11 @@ int epoll_wait(uv__os390_epoll* lst, struct epoll_event* events,
 
     ev.fd = pfd->fd;
     ev.events = pfd->revents;
+    if (i == lst->size - 1)
+      ev.is_msg = 1;
+    else
+      ev.is_msg = 0;
+
     if (pfd->revents & POLLIN && pfd->revents & POLLOUT)
       reventcount += 2;
     else if (pfd->revents & (POLLIN | POLLOUT))

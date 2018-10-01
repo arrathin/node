@@ -669,6 +669,9 @@ void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {
         events[i].fd = -1;
 
   /* Remove the file descriptor from the epoll. */
+  dummy.events = 0;
+  dummy.fd = fd;
+  dummy.is_msg = 0;
   if (loop->ep != NULL)
     epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, fd, &dummy);
 }
@@ -846,6 +849,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
 
     e.events = w->pevents;
     e.fd = w->fd;
+    e.is_msg = 0;
 
     if (w->events == 0)
       op = UV__EPOLL_CTL_ADD;
@@ -928,7 +932,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
         continue;
 
       ep = loop->ep;
-      if (fd == ep->msg_queue) {
+      if (pe->is_msg) {
         if (os390_message_queue_handler(ep) == -1) {
           /* The user has deleted the System V message queue. Highly likely
            * because the process is being shut down. So stop listening to it.
