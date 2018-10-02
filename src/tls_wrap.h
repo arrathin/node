@@ -133,6 +133,8 @@ class TLSWrap : public AsyncWrap,
   AsyncWrap* GetAsyncWrap() override;
   bool IsIPCPipe() override;
   uint32_t UpdateWriteQueueSize(uint32_t write_queue_size = 0);
+  bool IsTTY() override;
+  bool IsPipe() override;
 
   // Resource implementation
   static void OnAfterWriteImpl(WriteWrap* w, int status, void* ctx);
