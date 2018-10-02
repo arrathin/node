@@ -4780,10 +4780,10 @@ inline void PlatformInit() {
 #endif  // _WIN32
 #ifdef __MVS__
   //atexit(ReleaseResourcesOnExit);
-  //sigset_t set;
-  //sigfillset(&set);
-  //uv_thread_create(&signalHandlerThread, SignalHandlerThread, NULL);
-  //sigprocmask(SIG_BLOCK, &set, NULL);
+  sigset_t set;
+  sigfillset(&set);
+  uv_thread_create(&signalHandlerThread, SignalHandlerThread, NULL);
+  sigprocmask(SIG_BLOCK, &set, NULL);
 #endif
 }
 
@@ -5230,8 +5230,8 @@ int Start(int argc, char** argv) {
   // will never be fully cleaned up.
   v8_platform.Dispose();
 
-  //if (pthread_cancel(signalHandlerThread) == -1)
-  //  abort();
+  if (pthread_cancel(signalHandlerThread) == -1)
+    abort();
 
   //StopDebugSignalHandler(true);
 
