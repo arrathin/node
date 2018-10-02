@@ -59,6 +59,10 @@
 #ifndef HEADER_E_OS_H
 # define HEADER_E_OS_H
 
+# if defined(__MVS__)
+#  define __AE_BIMODAL
+# endif
+
 # include <openssl/opensslconf.h>
 
 # include <openssl/e_os2.h>
@@ -309,6 +313,22 @@ static __inline unsigned int _strlen31(const char *str)
 }
 #   endif
 #   include <malloc.h>
+#   if defined(__MVS__)
+#    define isalnum(x) __isalnum_a(x)
+#    define isalpha(x) __isalpha_a(x)
+#    define isblank(x) __isblank_a(x)
+#    define iscntrl(x) __iscntrl_a(x)
+#    define isdigit(x) __isdigit_a(x)
+#    define isgraph(x) __isgraph_a(x)
+#    define islower(x) __islower_a(x)
+#    define isprint(x) __isprint_a(x)
+#    define ispunct(x) __ispunct_a(x)
+#    define isspace(x) __isspace_a(x)
+#    define isupper(x) __isupper_a(x)
+#    define isxdigit(x) __isxdigit_a(x)
+#    define tolower(x) __tolower_a(x)
+#    define toupper(x) __toupper_a(x)
+#   endif
 #   if defined(_MSC_VER) && _MSC_VER<=1200 && defined(_MT) && defined(isspace)
        /* compensate for bug in VC6 ctype.h */
 #    undef isspace
@@ -461,6 +481,9 @@ extern int kbhit(void);
 
 #  else
      /* !defined VMS */
+#   ifdef OPENSSL_SYS_OS390
+#    define NO_SYS_PARAM_H
+#   endif
 #   ifdef OPENSSL_SYS_MPE
 #    define NO_SYS_PARAM_H
 #   endif

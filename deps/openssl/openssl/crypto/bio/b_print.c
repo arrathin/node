@@ -57,6 +57,11 @@
  */
 
 /* disable assert() unless BIO_DEBUG has been defined */
+
+# if defined(__MVS__)
+#  define __AE_BIMODAL
+# endif
+
 #ifndef BIO_DEBUG
 # ifndef NDEBUG
 #  define NDEBUG
@@ -164,6 +169,24 @@ static int _dopr(char **sbuffer, char **buffer,
 /* some handy macros */
 #define char_to_int(p) (p - '0')
 #define OSSL_MAX(p,q) ((p >= q) ? p : q)
+
+#if defined(__MVS__)
+# define isalnum(x) __isalnum_a(x)
+# define isalpha(x) __isalpha_a(x)
+# define isblank(x) __isblank_a(x)
+# define iscntrl(x) __iscntrl_a(x)
+# define isdigit(x) __isdigit_a(x)
+# define isgraph(x) __isgraph_a(x)
+# define islower(x) __islower_a(x)
+# define isprint(x) __isprint_a(x)
+# define ispunct(x) __ispunct_a(x)
+# define isspace(x) __isspace_a(x)
+# define isupper(x) __isupper_a(x)
+# define isxdigit(x) __isxdigit_a(x)
+# define tolower(x) __tolower_a(x)
+# define toupper(x) __toupper_a(x)
+#endif
+
 
 static int
 _dopr(char **sbuffer,

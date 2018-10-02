@@ -7,6 +7,7 @@
     'is_clang': 0,
     'gcc_version': 0,
     'openssl_no_asm%': 0,
+    'llvm_version%': 0,
     'xcode_version%': 0,
     'gas_version%': 0,
     'openssl_fips%': 'false',
@@ -158,6 +159,25 @@
         'defines': ['<@(openssl_default_defines_not_win)'],
         'cflags': ['-Wno-missing-field-initializers'],
         'conditions': [
+          ['OS=="zos"', {
+            'cflags': [
+              '-q64',
+              '-fexec-charset=ISO8859-1',
+              '-qlonglong',
+              '-qbitfields=signed',
+              '-qchars=signed',
+              '-qexportall',
+            ],
+            'defines': [
+              '_ZOS',
+              '_XOPEN_SOURCE_EXTENDED',
+              '_UNIX03_SOURCE',
+              'OPENSSL_NO_HW',
+              'NI_MAXHOST=1024',
+              'NI_MAXSERV=32',
+            ],
+          }, 
+          ],
           ['OS=="mac"', {
             'defines': ['<@(openssl_default_defines_mac)'],
           }, {

@@ -140,6 +140,8 @@
 # include "./archs/linux64-s390x/opensslconf.h"
 #elif defined(OPENSSL_LINUX) && defined(__s390__)
 # include "./archs/linux32-s390x/opensslconf.h"
+#elif defined(_ZOS)
+# include "./archs/linux64-s390x/opensslconf.h"
 #else
 # include "./archs/linux-elf/opensslconf.h"
 #endif

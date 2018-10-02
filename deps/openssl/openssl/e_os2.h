@@ -279,6 +279,12 @@ extern "C" {
 # endif
 # define OPENSSL_EXTERN OPENSSL_IMPORT
 
+# ifdef OPENSSL_SYS_UNIX
+#  if defined(__MVS__)
+#   define OPENSSL_SYS_OS390
+#  endif
+# endif
+
 /*-
  * Macros to allow global variables to be reached through function calls when
  * required (if a shared library version requires it, for example.

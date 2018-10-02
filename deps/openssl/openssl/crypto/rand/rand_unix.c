@@ -111,8 +111,16 @@
 #include <stdio.h>
 
 #define USE_SOCKETS
+
+#ifndef __MVS__
 #include "e_os.h"
 #include "cryptlib.h"
+#else
+#pragma convert("IBM-1047")
+#include "e_os.h"
+#include "cryptlib.h"
+#pragma convert(pop)
+#endif
 #include <openssl/rand.h>
 #include "rand_lcl.h"
 

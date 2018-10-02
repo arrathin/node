@@ -560,8 +560,13 @@ static int int_err_get_next_lib(void)
 }
 
 #ifndef OPENSSL_NO_ERR
-# define NUM_SYS_STR_REASONS 127
-# define LEN_SYS_STR_REASON 32
+# ifdef __MVS__
+#  define NUM_SYS_STR_REASONS 146
+#  define LEN_SYS_STR_REASON 48
+# else
+#  define NUM_SYS_STR_REASONS 127
+#  define LEN_SYS_STR_REASON 32
+# endif
 
 static ERR_STRING_DATA SYS_str_reasons[NUM_SYS_STR_REASONS + 1];
 /*
@@ -602,8 +607,11 @@ static void build_SYS_str_reasons(void)
             char (*dest)[LEN_SYS_STR_REASON] = &(strerror_tab[i - 1]);
             char *src = strerror(i);
             if (src != NULL) {
-                strncpy(*dest, src, sizeof(*dest));
-                (*dest)[sizeof(*dest) - 1] = '\0';
+                strncpy(*dest, src, sizeof *dest);
+                (*dest)[sizeof *dest - 1] = '\x0';
+#ifdef __MVS__
+                __e2a_s(*dest);
+#endif
                 str->string = *dest;
             }
         }
