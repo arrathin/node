@@ -10,7 +10,7 @@ const addon = require(`./build/${common.buildType}/test_general`);
 const path = require('path');
 
 // This test depends on a number of V8 tests.
-const v8TestsDir = path.resolve(__dirname, '..', '..', '..', 'deps', 'v8',
+const v8TestsDir = path.resolve(__dirname, '..', '..', '..', 'deps', 'v8z',
                                 'test', 'mjsunit');
 const v8TestsDirExists = fs.existsSync(v8TestsDir);
 

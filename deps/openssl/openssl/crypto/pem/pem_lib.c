@@ -82,51 +82,39 @@ static int load_iv(char **fromp, unsigned char *to, int num);
 static int check_pem(const char *nm, const char *name);
 int pem_check_suffix(const char *pem_str, const char *suffix);
 
-int PEM_def_callback(char *buf, int num, int w, void *key)
+int PEM_def_callback(char *buf, int num, int rwflag, void *userdata)
 {
-#ifdef OPENSSL_NO_FP_API
-    /*
-     * We should not ever call the default callback routine from windows.
-     */
-    PEMerr(PEM_F_PEM_DEF_CALLBACK, ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED);
-    return (-1);
-#else
-    int i, j;
+    int i, min_len;
     const char *prompt;
-    if (key) {
-        i = strlen(key);
+
+    /* We assume that the user passes a default password as userdata */
+    if (userdata) {
+        i = strlen(userdata);
         i = (i > num) ? num : i;
-        memcpy(buf, key, i);
-        return (i);
+        memcpy(buf, userdata, i);
+        return i;
     }
 
     prompt = EVP_get_pw_prompt();
     if (prompt == NULL)
         prompt = "\x45\x6e\x74\x65\x72\x20\x50\x45\x4d\x20\x70\x61\x73\x73\x20\x70\x68\x72\x61\x73\x65\x3a";
 
-    for (;;) {
-        /*
-         * We assume that w == 0 means decryption,
-         * while w == 1 means encryption
-         */
-        int min_len = w ? MIN_LENGTH : 0;
+    /*
+     * rwflag == 0 means decryption
+     * rwflag == 1 means encryption
+     *
+     * We assume that for encryption, we want a minimum length, while for
+     * decryption, we cannot know any minimum length, so we assume zero.
+     */
+    min_len = rwflag ? MIN_LENGTH : 0;
 
-        i = EVP_read_pw_string_min(buf, min_len, num, prompt, w);
-        if (i != 0) {
-            PEMerr(PEM_F_PEM_DEF_CALLBACK, PEM_R_PROBLEMS_GETTING_PASSWORD);
-            memset(buf, 0, (unsigned int)num);
-            return (-1);
-        }
-        j = strlen(buf);
-        if (min_len && j < min_len) {
-            fprintf(stderr,
-                    "\x70\x68\x72\x61\x73\x65\x20\x69\x73\x20\x74\x6f\x6f\x20\x73\x68\x6f\x72\x74\x2c\x20\x6e\x65\x65\x64\x73\x20\x74\x6f\x20\x62\x65\x20\x61\x74\x20\x6c\x65\x61\x73\x74\x20\x25\x64\x20\x63\x68\x61\x72\x73\xa",
-                    min_len);
-        } else
-            break;
+    i = EVP_read_pw_string_min(buf, min_len, num, prompt, rwflag);
+    if (i != 0) {
+        PEMerr(PEM_F_PEM_DEF_CALLBACK, PEM_R_PROBLEMS_GETTING_PASSWORD);
+        memset(buf, 0, (unsigned int)num);
+        return -1;
     }
-    return (j);
-#endif
+    return strlen(buf);
 }
 
 void PEM_proc_type(char *buf, int type)
@@ -459,7 +447,7 @@ int PEM_do_header(EVP_CIPHER_INFO *cipher, unsigned char *data, long *plen,
         klen = PEM_def_callback(buf, PEM_BUFSIZE, 0, u);
     else
         klen = callback(buf, PEM_BUFSIZE, 0, u);
-    if (klen <= 0) {
+    if (klen < 0) {
         PEMerr(PEM_F_PEM_DO_HEADER, PEM_R_BAD_PASSWORD_READ);
         return (0);
     }
@@ -499,6 +487,7 @@ int PEM_get_EVP_CIPHER_INFO(char *header, EVP_CIPHER_INFO *cipher)
     char **header_pp = &header;
 
     cipher->cipher = NULL;
+    memset(cipher->iv, 0, sizeof(cipher->iv));
     if ((header == NULL) || (*header == '\x0') || (*header == '\xa'))
         return (1);
     if (strncmp(header, "\x50\x72\x6f\x63\x2d\x54\x79\x70\x65\x3a\x20", 11) != 0) {

@@ -1176,10 +1176,13 @@ int MAIN(int argc, char **argv)
             if (j > 0) {
                 total_done++;
                 BIO_printf(bio_err, "\xa");
-                if (!BN_add_word(serial, 1))
+                if (!BN_add_word(serial, 1)) {
+                    X509_free(x);
                     goto err;
+                }
                 if (!sk_X509_push(cert_sk, x)) {
                     BIO_printf(bio_err, "\x4d\x65\x6d\x6f\x72\x79\x20\x61\x6c\x6c\x6f\x63\x61\x74\x69\x6f\x6e\x20\x66\x61\x69\x6c\x75\x72\x65\xa");
+                    X509_free(x);
                     goto err;
                 }
             }

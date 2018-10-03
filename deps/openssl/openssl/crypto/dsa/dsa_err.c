@@ -1,6 +1,6 @@
 /* crypto/dsa/dsa_err.c */
 /* ====================================================================
- * Copyright (c) 1999-2013 The OpenSSL Project.  All rights reserved.
+ * Copyright (c) 1999-2018 The OpenSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -95,6 +95,7 @@ static ERR_STRING_DATA DSA_str_functs[] = {
     {ERR_FUNC(DSA_F_I2D_DSA_SIG), "\x69\x32\x64\x5f\x44\x53\x41\x5f\x53\x49\x47"},
     {ERR_FUNC(DSA_F_OLD_DSA_PRIV_DECODE), "\x4f\x4c\x44\x5f\x44\x53\x41\x5f\x50\x52\x49\x56\x5f\x44\x45\x43\x4f\x44\x45"},
     {ERR_FUNC(DSA_F_PKEY_DSA_CTRL), "\x50\x4b\x45\x59\x5f\x44\x53\x41\x5f\x43\x54\x52\x4c"},
+    {ERR_FUNC(DSA_F_PKEY_DSA_CTRL_STR), "\x50\x4b\x45\x59\x5f\x44\x53\x41\x5f\x43\x54\x52\x4c\x5f\x53\x54\x52"},
     {ERR_FUNC(DSA_F_PKEY_DSA_KEYGEN), "\x50\x4b\x45\x59\x5f\x44\x53\x41\x5f\x4b\x45\x59\x47\x45\x4e"},
     {ERR_FUNC(DSA_F_SIG_CB), "\x53\x49\x47\x5f\x43\x42"},
     {0, NULL}

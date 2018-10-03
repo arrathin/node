@@ -4,7 +4,7 @@
  * project.
  */
 /* ====================================================================
- * Copyright (c) 2012 The OpenSSL Project.  All rights reserved.
+ * Copyright (c) 2012-2018 The OpenSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -645,6 +645,8 @@ static int ssl_print_extensions(BIO *bio, int indent, int server,
         BIO_puts(bio, "\x4e\x6f\x20\x45\x78\x74\x65\x6e\x73\x69\x6f\x6e\x73\xa");
         return 1;
     }
+    if (msglen < 2)
+        return 0;
     extslen = (msg[0] << 8) | msg[1];
     if (extslen != msglen - 2)
         return 0;
@@ -1021,6 +1023,8 @@ static int ssl_print_cert_request(BIO *bio, int indent, SSL *s,
     msglen -= xlen + 2;
 
  skip_sig:
+    if (msglen < 2)
+        return 0;
     xlen = (msg[0] << 8) | msg[1];
     BIO_indent(bio, indent, 80);
     if (msglen < xlen + 2)
@@ -1209,7 +1213,15 @@ void SSL_trace(int write_p, int version, int content_type,
     switch (content_type) {
     case SSL3_RT_HEADER:
         {
-            int hvers = msg[1] << 8 | msg[2];
+            int hvers;
+
+            /* avoid overlapping with length at the end of buffer */
+            if (msglen < (SSL_IS_DTLS(ssl) ? 13 : 5)) {
+                        BIO_puts(bio, write_p ? "\x53\x65\x6e\x74" : "\x52\x65\x63\x65\x69\x76\x65\x64");
+                        ssl_print_hex(bio, 0, "\x20\x74\x6f\x6f\x20\x73\x68\x6f\x72\x74\x20\x6d\x65\x73\x73\x61\x67\x65", msg, msglen);
+                        break;
+                    }
+            hvers = msg[1] << 8 | msg[2];
             BIO_puts(bio, write_p ? "\x53\x65\x6e\x74" : "\x52\x65\x63\x65\x69\x76\x65\x64");
             BIO_printf(bio, "\x20\x52\x65\x63\x6f\x72\x64\xa\x48\x65\x61\x64\x65\x72\x3a\xa\x20\x20\x56\x65\x72\x73\x69\x6f\x6e\x20\x3d\x20\x25\x73\x20\x28\x30\x78\x25\x78\x29\xa",
                        ssl_trace_str(hvers, ssl_version_tbl), hvers);

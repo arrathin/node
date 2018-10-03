@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#ifdef __MVS__
+# include <unistd.h>
+#endif
 #include "uv.h"
 #include "node_api.h"
 #include "node_internals.h"
@@ -158,13 +161,13 @@ struct napi_env__ {
     if ((size_of_element) > 1) {                                               \
       THROW_RANGE_ERROR_IF_FALSE(                                              \
           (env), (byte_offset) % (size_of_element) == 0,                       \
-          "ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT",                             \
-          "start offset of "#type" should be a multiple of "#size_of_element); \
+          u8"ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT",                           \
+          u8"start offset of "#type" should be a multiple of "#size_of_element); \
     }                                                                          \
     THROW_RANGE_ERROR_IF_FALSE((env), (length) * (size_of_element) +           \
         (byte_offset) <= buffer->ByteLength(),                                 \
-        "ERR_NAPI_INVALID_TYPEDARRAY_LENGTH",                                  \
-        "Invalid typed array length");                                         \
+        u8"ERR_NAPI_INVALID_TYPEDARRAY_LENGTH",                                  \
+        u8"Invalid typed array length");                                         \
     (out) = v8::type::New((buffer), (byte_offset), (length));                  \
   } while (0)
 
@@ -902,7 +905,7 @@ void napi_module_register_cb(v8::Local<v8::Object> exports,
   if (_exports != nullptr &&
       _exports != v8impl::JsValueFromV8LocalValue(exports)) {
     napi_value _module = v8impl::JsValueFromV8LocalValue(module);
-    napi_set_named_property(env, _module, "exports", _exports);
+    napi_set_named_property(env, _module, u8"exports", _exports);
   }
 }
 
@@ -925,20 +928,20 @@ void napi_module_register(napi_module* mod) {
 // Warning: Keep in-sync with napi_status enum
 static
 const char* error_messages[] = {nullptr,
-                                "Invalid argument",
-                                "An object was expected",
-                                "A string was expected",
-                                "A string or symbol was expected",
-                                "A function was expected",
-                                "A number was expected",
-                                "A boolean was expected",
-                                "An array was expected",
-                                "Unknown failure",
-                                "An exception is pending",
-                                "The async work item was cancelled",
-                                "napi_escape_handle already called on scope",
-                                "Invalid handle scope usage",
-                                "Invalid callback scope usage"};
+                                u8"Invalid argument",
+                                u8"An object was expected",
+                                u8"A string was expected",
+                                u8"A string or symbol was expected",
+                                u8"A function was expected",
+                                u8"A number was expected",
+                                u8"A boolean was expected",
+                                u8"An array was expected",
+                                u8"Unknown failure",
+                                u8"An exception is pending",
+                                u8"The async work item was cancelled",
+                                u8"napi_escape_handle already called on scope",
+                                u8"Invalid handle scope usage",
+                                u8"Invalid callback scope usage"};
 
 static inline napi_status napi_clear_last_error(napi_env env) {
   env->last_error.error_code = napi_ok;
@@ -970,7 +973,7 @@ napi_status napi_get_last_error_info(napi_env env,
   // change each time a message was added.
   static_assert(
       node::arraysize(error_messages) == napi_callback_scope_mismatch + 1,
-      "Count of error messages must match count of error values");
+      u8"Count of error messages must match count of error values");
   CHECK_LE(env->last_error.error_code, napi_callback_scope_mismatch);
 
   // Wait until someone requests the last error information to fetch the error
@@ -1774,7 +1777,7 @@ static napi_status set_error_code(napi_env env,
     }
 
     v8::Local<v8::Name> code_key;
-    CHECK_NEW_FROM_UTF8(env, code_key, "code");
+    CHECK_NEW_FROM_UTF8(env, code_key, u8"code");
 
     v8::Maybe<bool> set_maybe = err_object->Set(context, code_key, code_value);
     RETURN_STATUS_IF_FALSE(env,
@@ -1786,7 +1789,7 @@ static napi_status set_error_code(napi_env env,
     v8::Local<v8::String> name_string;
     CHECK_NEW_FROM_UTF8(env, name_string, "");
     v8::Local<v8::Name> name_key;
-    CHECK_NEW_FROM_UTF8(env, name_key, "name");
+    CHECK_NEW_FROM_UTF8(env, name_key, u8"name");
 
     auto maybe_name = err_object->Get(context, name_key);
     if (!maybe_name.IsEmpty()) {
@@ -1796,10 +1799,10 @@ static napi_status set_error_code(napi_env env,
       }
     }
     name_string = v8::String::Concat(name_string,
-                                     FIXED_ONE_BYTE_STRING(isolate, " ["));
+                                     FIXED_ONE_BYTE_STRING(isolate, u8" ["));
     name_string = v8::String::Concat(name_string, code_value.As<v8::String>());
     name_string = v8::String::Concat(name_string,
-                                     FIXED_ONE_BYTE_STRING(isolate, "]"));
+                                     FIXED_ONE_BYTE_STRING(isolate, u8"]"));
 
     set_maybe = err_object->Set(context, name_key, name_string);
     RETURN_STATUS_IF_FALSE(env,
@@ -2764,8 +2767,8 @@ napi_status napi_instanceof(napi_env env,
 
   if (!ctor->IsFunction()) {
     napi_throw_type_error(env,
-                          "ERR_NAPI_CONS_FUNCTION",
-                          "Constructor must be a function");
+                          u8"ERR_NAPI_CONS_FUNCTION",
+                          u8"Constructor must be a function");
 
     return napi_set_last_error(env, napi_function_expected);
   }
@@ -2779,14 +2782,14 @@ napi_status napi_instanceof(napi_env env,
     if (env->has_instance.IsEmpty()) {
       status = napi_get_global(env, &value);
       if (status != napi_ok) return status;
-      status = napi_get_named_property(env, value, "Symbol", &value);
+      status = napi_get_named_property(env, value, u8"Symbol", &value);
       if (status != napi_ok) return status;
       status = napi_typeof(env, value, &value_type);
       if (status != napi_ok) return status;
 
       // Get "hasInstance" from Symbol
       if (value_type == napi_function) {
-        status = napi_get_named_property(env, value, "hasInstance", &value);
+        status = napi_get_named_property(env, value, u8"hasInstance", &value);
         if (status != napi_ok) return status;
         status = napi_typeof(env, value, &value_type);
         if (status != napi_ok) return status;
@@ -2826,7 +2829,7 @@ napi_status napi_instanceof(napi_env env,
   // a traditional instanceof (early Node.js 6.x).
 
   v8::Local<v8::String> prototype_string;
-  CHECK_NEW_FROM_UTF8(env, prototype_string, "prototype");
+  CHECK_NEW_FROM_UTF8(env, prototype_string, u8"prototype");
 
   auto maybe_prototype = ctor->Get(context, prototype_string);
   CHECK_MAYBE_EMPTY(env, maybe_prototype, napi_generic_failure);
@@ -2835,8 +2838,8 @@ napi_status napi_instanceof(napi_env env,
   if (!prototype_property->IsObject()) {
     napi_throw_type_error(
         env,
-        "ERR_NAPI_CONS_PROTOTYPE_OBJECT",
-        "Constructor.prototype must be an object");
+        u8"ERR_NAPI_CONS_PROTOTYPE_OBJECT",
+        u8"Constructor.prototype must be an object");
 
     return napi_set_last_error(env, napi_object_expected);
   }
@@ -3322,9 +3325,9 @@ napi_status napi_create_dataview(napi_env env,
   if (byte_length + byte_offset > buffer->ByteLength()) {
     napi_throw_range_error(
         env,
-        "ERR_NAPI_INVALID_DATAVIEW_ARGS",
-        "byte_offset + byte_length should be less than or "
-        "equal to the size in bytes of the array passed in");
+        u8"ERR_NAPI_INVALID_DATAVIEW_ARGS",
+        u8"byte_offset + byte_length should be less than or "
+        u8"equal to the size in bytes of the array passed in");
     return napi_set_last_error(env, napi_pending_exception);
   }
   v8::Local<v8::DataView> DataView = v8::DataView::New(buffer, byte_offset,

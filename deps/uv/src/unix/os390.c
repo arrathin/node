@@ -445,10 +445,10 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
   uv_interface_address_t* address;
   int sockfd;
   int maxsize;
+  int i;
   __net_ifconf6header_t ifc;
   __net_ifconf6entry_t* ifr;
   __net_ifconf6entry_t* p;
-  __net_ifconf6entry_t flg;
 
   *count = 0;
   /* Assume maximum buffer size allowable */
@@ -505,17 +505,18 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
 
     /* All conditions above must match count loop */
 
-    address->name = uv__strdup(p->__nif6e_name);
-
-    if (p->__nif6e_addr.sin6_family == AF_INET6)
-      address->address.address6 = *((struct sockaddr_in6*) &p->__nif6e_addr);
-    else
-      address->address.address4 = *((struct sockaddr_in*) &p->__nif6e_addr);
+    i = 0;
+    while (i < sizeof(p->__nif6e_name) / sizeof(char) && p->__nif6e_name[i] != ' ')
+      ++i;
+    address->name = uv__malloc(i + 1);
+    if (address->name) {
+      memcpy(address->name, p->__nif6e_name, i);
+      address->name[i] = '\0';
+    }
 
     /* TODO: Retrieve netmask using SIOCGIFNETMASK ioctl */
-
-    address->is_internal = flg.__nif6e_flags & _NIF6E_FLAGS_LOOPBACK ? 1 : 0;
-
+    address->address.address6 = *((struct sockaddr_in6*) &p->__nif6e_addr);
+    address->is_internal = p->__nif6e_flags & _NIF6E_FLAGS_LOOPBACK ? 1 : 0;
     address++;
   }
 
@@ -528,6 +529,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
   uv_interface_address_t* address;
   int sockfd;
   int maxsize;
+  int i;
   struct ifconf ifc;
   struct ifreq flg;
   struct ifreq* ifr;
@@ -618,14 +620,17 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
 
     /* All conditions above must match count loop */
 
-    address->name = uv__strdup(p->ifr_name);
-
-    if (p->ifr_addr.sa_family == AF_INET6) {
-      address->address.address6 = *((struct sockaddr_in6*) &p->ifr_addr);
-    } else {
-      address->address.address4 = *((struct sockaddr_in*) &p->ifr_addr);
+    i = 0;
+    while (i < sizeof(p->ifr_name) / sizeof(char) && p->ifr_name[i] != ' ')
+      ++i;
+    address->name = uv__malloc(i + 1);
+    if (address->name) {
+      memcpy(address->name, p->ifr_name, i);
+      address->name[i] = '\0';
     }
 
+
+    address->address.address4 = *((struct sockaddr_in*) &p->ifr_addr);
     address->is_internal = flg.ifr_flags & IFF_LOOPBACK ? 1 : 0;
     address++;
   }
@@ -664,6 +669,9 @@ void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {
         events[i].fd = -1;
 
   /* Remove the file descriptor from the epoll. */
+  dummy.events = 0;
+  dummy.fd = fd;
+  dummy.is_msg = 0;
   if (loop->ep != NULL)
     epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, fd, &dummy);
 }
@@ -841,6 +849,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
 
     e.events = w->pevents;
     e.fd = w->fd;
+    e.is_msg = 0;
 
     if (w->events == 0)
       op = UV__EPOLL_CTL_ADD;
@@ -923,7 +932,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
         continue;
 
       ep = loop->ep;
-      if (fd == ep->msg_queue) {
+      if (pe->is_msg) {
         if (os390_message_queue_handler(ep) == -1) {
           /* The user has deleted the System V message queue. Highly likely
            * because the process is being shut down. So stop listening to it.

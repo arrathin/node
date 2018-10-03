@@ -7,7 +7,7 @@ const net = require('net');
 const host = '*'.repeat(256);
 
 let errCode = 'ENOTFOUND';
-if (common.isOpenBSD)
+if (common.isOpenBSD || common.isZos)
   errCode = 'EAI_FAIL';
 
 function do_not_call() {

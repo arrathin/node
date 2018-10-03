@@ -242,7 +242,7 @@ int epoll_ctl(uv__os390_epoll* lst,
   uv_mutex_lock(&global_epoll_lock);
 
   if (op == EPOLL_CTL_DEL) {
-    if (fd == lst->msg_queue) {
+    if (event->is_msg) {
       /* The user has deleted the System V message queue. Highly likely
        * because the process is being shut down. So stop listening to it.
        */
@@ -316,6 +316,11 @@ int epoll_wait(uv__os390_epoll* lst, struct epoll_event* events,
 
     ev.fd = pfd->fd;
     ev.events = pfd->revents;
+    if (i == lst->size - 1)
+      ev.is_msg = 1;
+    else
+      ev.is_msg = 0;
+
     if (pfd->revents & POLLIN && pfd->revents & POLLOUT)
       reventcount += 2;
     else if (pfd->revents & (POLLIN | POLLOUT))
@@ -451,6 +456,27 @@ char* mkdtemp(char* path) {
 }
 
 
+char* os390_realpath(const char* path, char* buf) {
+  char *tmpbuf;
+  char *ret;
+  int len;
+  if (*path != '$')
+    return realpath(path, buf);
+
+  len = strlen(path);
+  tmpbuf = uv__malloc(len + 2);
+  if (tmpbuf == NULL) {
+    errno = ENOMEM;
+    return NULL;
+  }
+
+  tmpbuf[0] = '/';
+  strcpy(tmpbuf + 1, path);
+  ret = realpath(tmpbuf, buf);
+  uv__free(tmpbuf);
+  return ret;
+}
+
 ssize_t os390_readlink(const char* path, char* buf, size_t len) {
   ssize_t rlen;
   ssize_t vlen;
@@ -472,7 +498,7 @@ ssize_t os390_readlink(const char* path, char* buf, size_t len) {
     return rlen;
   }
 
-  if (rlen < 3 || strncmp("/$", tmpbuf, 2) != 0) {
+  if (rlen < 3 || (strncmp("/$", tmpbuf, 2) != 0 && strncmp("$", tmpbuf, 1) != 0)) {
     /* Straightforward readlink. */
     memcpy(buf, tmpbuf, rlen);
     uv__free(tmpbuf);
@@ -492,7 +518,7 @@ ssize_t os390_readlink(const char* path, char* buf, size_t len) {
   /* Read real path of the variable. */
   old_delim = *delimiter;
   *delimiter = '\0';
-  if (realpath(tmpbuf, realpathstr) == NULL) {
+  if (os390_realpath(tmpbuf, realpathstr) == NULL) {
     uv__free(tmpbuf);
     return -1;
   }
