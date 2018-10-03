@@ -1939,7 +1939,7 @@ int X509_cmp_current_time(const ASN1_TIME *ctm)
 int X509_cmp_time(const ASN1_TIME *ctm, time_t *cmp_time)
 {
     static const size_t utctime_length = sizeof("\x59\x59\x4d\x4d\x44\x44\x48\x48\x4d\x4d\x53\x53\x5a") - 1;
-    static const size_t generalizedtime_length = sizeof("\x59\x59\x4d\x4d\x44\x44\x48\x48\x4d\x4d\x53\x53\x5a") - 1;
+    static const size_t generalizedtime_length = sizeof("\x59\x59\x59\x59\x4d\x4d\x44\x44\x48\x48\x4d\x4d\x53\x53\x5a") - 1;
     ASN1_TIME *asn1_cmp_time = NULL;
     int i, day, sec, ret = 0;
 
@@ -1973,7 +1973,11 @@ int X509_cmp_time(const ASN1_TIME *ctm, time_t *cmp_time)
      * Digit and date ranges will be verified in the conversion methods.
      */
     for (i = 0; i < ctm->length - 1; i++) {
-        if (!isdigit(ctm->data[i]))
+       // Customize the following conditional with explicit ASCII test
+       // for valid digits 0-9 (0x30-0x39 in ASCII) for z/OS
+       // Originally:
+       //    if (!isdigit(ctm->data[i]))
+       if (ctm->data[i] < 0x30 || ctm->data[i] > 0x39)
             return 0;
     }
     if (ctm->data[ctm->length - 1] != '\x5a')
