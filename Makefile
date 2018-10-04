@@ -658,7 +658,7 @@ endif # ifeq ($(DISTTYPE),release)
 
 DISTTYPEDIR ?= $(DISTTYPE)
 RELEASE=$(shell sed -ne 's/\#define NODE_VERSION_IS_RELEASE \([01]\)/\1/p' src/node_version.h)
-PLATFORM=$(shell uname | tr '[:upper:]' '[:lower:]')
+PLATFORM=$(shell uname | tr '[:upper:]' '[:lower:]' | tr -d '/')
 NPMVERSION=v$(shell cat deps/npm/package.json | grep '"version"' | sed 's/^[^:]*: "\([^"]*\)",.*/\1/')
 
 UNAME_M=$(shell uname -m)
