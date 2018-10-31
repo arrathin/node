@@ -22,7 +22,7 @@
 #ifdef __MVS__
 #define _AE_BIMODAL
 #define snprintf __snprintf_a
-#define printf   __printf_a
+#define printf __printf_a
 #define fprintf  __fprintf_a
 #endif
 #include "node.h"
@@ -2887,48 +2887,53 @@ static void DLOpen(const FunctionCallbackInfo<Value>& args) {
   // coverity[leaked_storage]
 }
 
-
-static void ReleaseResourcesOnExit() {
+static void ReleaseResourcesOnExit(void * arg) {
   /* TODO: This might make all other ReleaseSystem... functions redundant */
   IPCQPROC bufptr;
   int token;
-  int foreignid;
-
+  int foreignmsgqid;
+  int foreignsemid;
   token = 0;
-  foreignid = 0;
+  foreignmsgqid = 0;
+  foreignsemid = 0;
+  int count = 0;
+  char ipctype[4];
   while (token != -1) {
     token = __getipc(token, &bufptr, sizeof(bufptr), IPCQALL);
-    if (memcmp(bufptr.common.ipcqtype, "IMSG", 4) == 0) {
+    memcpy(&ipctype,&bufptr.common.ipcqtype,4);
+    __e2a_l(ipctype,4);
+    if (memcmp(ipctype, "IMSG", 4) == 0) {
       if (bufptr.msg.ipcqpcp.uid != getuid() || bufptr.msg.ipcqlspid != getpid()) {
-        if (foreignid == 0)
-          foreignid = bufptr.msg.ipcqmid;
-        else if (foreignid == bufptr.msg.ipcqmid) /* have we rotated to the top */
+        if (foreignmsgqid == 0) {
+           foreignmsgqid = bufptr.msg.ipcqmid;
+        }
+        else if (foreignmsgqid == bufptr.msg.ipcqmid) /* have we rotated to the top */
           break;
+        else 
         continue;
       }
       msgctl(bufptr.msg.ipcqmid, IPC_RMID, NULL);
     }
-    else if (memcmp(bufptr.common.ipcqtype, "ISEM", 4) == 0) {
+    else if (memcmp(ipctype, "ISEM", 4) == 0) {
       if (bufptr.sem.ipcqpcp.uid != getuid() || bufptr.sem.ipcqlopid != getpid()) {
-        if (foreignid == 0)
-          foreignid = bufptr.sem.ipcqmid;
-        else if (foreignid == bufptr.sem.ipcqmid) /* have we rotated to the top */
+        if (foreignsemid == 0) {
+          foreignsemid = bufptr.sem.ipcqmid;
+        
+        }else if (foreignsemid == bufptr.sem.ipcqmid) /* have we rotated to the top */
           break;
+        else 
         continue;
       }
       semctl(bufptr.sem.ipcqmid, 1, IPC_RMID);
     }
+    else {
+    }
   }
 }
-
-
 #ifdef __MVS__
 void on_sigabrt (int signum)
 {
-//  V8::ReleaseSystemResources();
-//  debugger::Agent::ReleaseSystemResources();
-//  StopDebugSignalHandler(true);
- // ReleaseResourcesOnExit();
+  ReleaseResourcesOnExit(nullptr);
 }
 #endif
 
@@ -2940,11 +2945,8 @@ static void OnFatalError(const char* location, const char* message) {
     PrintErrorString("FATAL ERROR: %s\n", message);
   }
   fflush(stderr);
-//  V8::ReleaseSystemResources();
-//  debugger::Agent::ReleaseSystemResources();
-//  StopDebugSignalHandler(true);
-//  ReleaseResourcesOnExit();
- // ABORT();
+  ReleaseResourcesOnExit(nullptr);
+  ABORT();
 }
 
 
@@ -3981,10 +3983,7 @@ void SignalExit(int signo) {
   sa.sa_handler = SIG_DFL;
   CHECK_EQ(sigaction(signo, &sa, nullptr), 0);
 #endif
-  //V8::ReleaseSystemResources();
-  //debugger::Agent::ReleaseSystemResources();
-  //StopDebugSignalHandler(true);
-  //ReleaseResourcesOnExit();
+  ReleaseResourcesOnExit(nullptr);
   raise(signo);
 }
 
@@ -4779,7 +4778,6 @@ inline void PlatformInit() {
   }
 #endif  // _WIN32
 #ifdef __MVS__
-  //atexit(ReleaseResourcesOnExit);
   sigset_t set;
   sigfillset(&set);
   uv_thread_create(&signalHandlerThread, SignalHandlerThread, NULL);
@@ -5052,6 +5050,12 @@ void FreeEnvironment(Environment* env) {
 inline int Start(Isolate* isolate, IsolateData* isolate_data,
                  int argc, const char* const* argv,
                  int exec_argc, const char* const* exec_argv) {
+#ifdef __MVS__
+  signal(SIGABRT, &on_sigabrt);
+  signal(SIGABND, &on_sigabrt);
+  signal(SIGHUP, &on_sigabrt);
+#endif
+    
   HandleScope handle_scope(isolate);
   Local<Context> context = Context::New(isolate);
   Context::Scope context_scope(context);
