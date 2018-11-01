@@ -1822,7 +1822,7 @@ static void Query(const FunctionCallbackInfo<Value>& args) {
   Local<String> string = args[1].As<String>();
   Wrap* wrap = new Wrap(channel, req_wrap_obj);
 
-  node::Utf8Value name(env->isolate(), string);
+  node::NativeEncodingValue name(env->isolate(), string);
   channel->ModifyActivityQueryCount(1);
   int err = wrap->Send(*name);
   if (err) {

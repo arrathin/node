@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <unistd.h>
 #include <type_traits>  // std::remove_reference
 
 namespace node {
@@ -439,11 +439,16 @@ class E2A {
       return length_;
     };
 
-  private:
+  protected:
     size_t length_;
     char* str_;
 };
 
+class A2E : public E2A {
+ public:
+   explicit A2E(const char *val); 
+   explicit A2E(const char * val, unsigned length);
+};
 #define THROW_AND_RETURN_UNLESS_BUFFER(env, obj)                            \
   do {                                                                      \
     if (!Buffer::HasInstance(obj))                                          \

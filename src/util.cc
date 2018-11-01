@@ -115,6 +115,15 @@ E2A::E2A(const char* prefix, const char* val)
 #endif
 }
 
+A2E::A2E(const char * val) 
+  : E2A(val) {
+    __a2e_l(str_, length_);
+  }
+
+A2E::A2E(const char * val, unsigned length) 
+  : E2A(val, length) {
+    __a2e_l(str_, length_);
+  }
 TwoByteValue::TwoByteValue(Isolate* isolate, Local<Value> value) {
   if (value.IsEmpty()) {
     return;

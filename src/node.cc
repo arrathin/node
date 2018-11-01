@@ -1158,7 +1158,7 @@ bool SafeGetenv(const char* key, std::string* text) {
     goto fail;
 #endif
 
-  if (const char* value = getenv(key)) {
+  if (const char* value = getenv(*A2E(key))) {
     *text = value;
     return true;
   }
@@ -2887,6 +2887,7 @@ static void DLOpen(const FunctionCallbackInfo<Value>& args) {
   // coverity[leaked_storage]
 }
 
+//#pragma convert("IBM-1047")
 static void ReleaseResourcesOnExit(void * arg) {
   /* TODO: This might make all other ReleaseSystem... functions redundant */
   IPCQPROC bufptr;
@@ -2930,6 +2931,8 @@ static void ReleaseResourcesOnExit(void * arg) {
     }
   }
 }
+//pragma convert(pop)
+//#define printf __printf_a
 #ifdef __MVS__
 void on_sigabrt (int signum)
 {
@@ -3983,6 +3986,9 @@ void SignalExit(int signo) {
   sa.sa_handler = SIG_DFL;
   CHECK_EQ(sigaction(signo, &sa, nullptr), 0);
 #endif
+  //V8::ReleaseSystemResources();
+  //debugger::Agent::ReleaseSystemResources();
+  //StopDebugSignalHandler(true);
   ReleaseResourcesOnExit(nullptr);
   raise(signo);
 }
@@ -4778,6 +4784,7 @@ inline void PlatformInit() {
   }
 #endif  // _WIN32
 #ifdef __MVS__
+  //atexit(ReleaseResourcesOnExit);
   sigset_t set;
   sigfillset(&set);
   uv_thread_create(&signalHandlerThread, SignalHandlerThread, NULL);

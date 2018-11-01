@@ -83,7 +83,7 @@ static void GetHostname(const FunctionCallbackInfo<Value>& args) {
   }
   buf[sizeof(buf) - 1] = '\0';
 
-  args.GetReturnValue().Set(OneByteString(env->isolate(), buf));
+  args.GetReturnValue().Set(OneByteString(env->isolate(), *E2A(buf)));
 }
 
 
@@ -101,7 +101,7 @@ static void GetOSType(const FunctionCallbackInfo<Value>& args) {
   rval = "Windows_NT";
 #endif  // __POSIX__
 
-  args.GetReturnValue().Set(OneByteString(env->isolate(), rval));
+  args.GetReturnValue().Set(OneByteString(env->isolate(), *E2A(rval)));
 }
 
 
@@ -343,7 +343,7 @@ static void GetHomeDirectory(const FunctionCallbackInfo<Value>& args) {
   }
 
   Local<String> home = String::NewFromUtf8(env->isolate(),
-                                           buf,
+                                           *E2A(buf),
                                            String::kNormalString,
                                            len);
   args.GetReturnValue().Set(home);
