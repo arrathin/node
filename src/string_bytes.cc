@@ -736,6 +736,7 @@ MaybeLocal<Value> StringBytes::Encode(Isolate* isolate,
                                 *E2A(buf, buflen),
                                 String::kNormalString,
                                 buflen);
+      return val.ToLocalChecked()
       break;
 
     case UTF8:
