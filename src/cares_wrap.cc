@@ -1970,7 +1970,7 @@ void IsIPv6(const FunctionCallbackInfo<Value>& args) {
 
 void CanonicalizeIP(const FunctionCallbackInfo<Value>& args) {
   v8::Isolate* isolate = args.GetIsolate();
-  node::Utf8Value ip(isolate, args[0]);
+  node::NativeEncodingValue ip(isolate, args[0]);
   char address_buffer[sizeof(struct in6_addr)];
   char canonical_ip[INET6_ADDRSTRLEN];
 
@@ -1985,6 +1985,9 @@ void CanonicalizeIP(const FunctionCallbackInfo<Value>& args) {
   int err = uv_inet_ntop(af, address_buffer, canonical_ip,
                          sizeof(canonical_ip));
   CHECK_EQ(err, 0);
+#ifdef __MVS__
+        __e2a_s(canonical_ip);
+#endif
 
   args.GetReturnValue().Set(String::NewFromUtf8(isolate, canonical_ip));
 }
@@ -2147,7 +2150,7 @@ void SetServers(const FunctionCallbackInfo<Value>& args) {
 
     int fam = elm->Get(env->context(), 0)
         .ToLocalChecked()->Int32Value(env->context()).FromJust();
-    node::Utf8Value ip(env->isolate(),
+    node::NativeEncodingValue ip(env->isolate(),
                        elm->Get(env->context(), 1).ToLocalChecked());
     int port = elm->Get(env->context(), 2)
         .ToLocalChecked()->Int32Value(env->context()).FromJust();
