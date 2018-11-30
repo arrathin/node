@@ -162,9 +162,9 @@ static const bool use_inspector = false;
 #endif
 static bool use_debug_agent = false;
 static bool debug_wait_connect = false;
-static std::string debug_host;  // NOLINT(runtime/string)
+static std::string* debug_host;  // coverity[leaked_storage]
 static int debug_port = 5858;
-static std::string inspector_host;  // NOLINT(runtime/string)
+static std::string* inspector_host;  // coverity[leaked_storage]
 static int inspector_port = 9229;
 static const int v8_default_thread_pool_size = 4;
 static int v8_thread_pool_size = v8_default_thread_pool_size;
@@ -175,6 +175,9 @@ static node_module* modpending;
 static node_module* modlist_builtin;
 static node_module* modlist_linked;
 static node_module* modlist_addon;
+
+// Bit flag used to track security reverts (see node_revert.h)
+unsigned int reverted = 0;
 
 #if defined(NODE_HAVE_I18N_SUPPORT)
 // Path to ICU data (for i18n / Intl)
@@ -3640,11 +3643,11 @@ void SetupProcessObject(Environment* env,
   // --security-revert flags
 #define V(code, _, __)                                                        \
   do {                                                                        \
-    if (IsReverted(REVERT_ ## code)) {                                        \
+    if (IsReverted(SECURITY_REVERT_ ## code)) {                               \
       READONLY_PROPERTY(process, "\x52\x45\x56\x45\x52\x54\x5f" USTR(#code,) True(env->isolate()));      \
     }                                                                         \
   } while (0);
-  REVERSIONS(V)
+  SECURITY_REVERSIONS(V)
 #undef V
 
   size_t exec_path_len = 2 * PATH_MAX;
@@ -3902,7 +3905,7 @@ static bool ParseDebugOpt(const char* arg) {
     return true;
   }
 
-  std::string* const the_host = use_inspector ? &inspector_host : &debug_host;
+  std::string** const the_host = use_inspector ? &inspector_host : &debug_host;
   int* const the_port = use_inspector ? &inspector_port : &debug_port;
 
   // FIXME(bnoordhuis) Move IPv6 address parsing logic to lib/net.js.
@@ -3910,7 +3913,7 @@ static bool ParseDebugOpt(const char* arg) {
   // in net.Server#listen() and net.Socket#connect().
   const size_t port_len = strlen(port);
   if (port[0] == '\x5b' && port[port_len - 1] == '\x5d') {
-    the_host->assign(port + 1, port_len - 2);
+    *the_host = new std::string(port + 1, port_len - 2);
     return true;
   }
 
@@ -3920,13 +3923,13 @@ static bool ParseDebugOpt(const char* arg) {
     // if it's not all decimal digits, it's a host name.
     for (size_t n = 0; port[n] != '\x0'; n += 1) {
       if (port[n] < '\x30' || port[n] > '\x39') {
-        *the_host = port;
+        *the_host = new std::string(port);
         return true;
       }
     }
   } else {
     const bool skip = (colon > port && port[0] == '\x5b' && colon[-1] == '\x5d');
-    the_host->assign(port + skip, colon - skip);
+    *the_host = new std::string(port + skip, colon - skip);
   }
 
   char* endptr;
@@ -4342,14 +4345,16 @@ static void DispatchMessagesDebugAgentCallback(Environment* env) {
 static void StartDebug(Environment* env, const char* path, bool wait) {
   CHECK(!debugger_running);
   if (use_inspector) {
+    const char* host = inspector_host ? inspector_host->c_str() : "127.0.0.1";
     debugger_running = v8_platform.StartInspector(env, path,
-                                                  inspector_host.c_str(),
+                                                  host,
                                                   inspector_port, wait);
   } else {
     env->debugger_agent()->set_dispatch_handler(
           DispatchMessagesDebugAgentCallback);
+    const char* host = debug_host ? debug_host->c_str() : "127.0.0.1";
     debugger_running =
-        env->debugger_agent()->Start(debug_host, debug_port, wait);
+        env->debugger_agent()->Start(host, debug_port, wait);
     if (debugger_running == false) {
       PrintErrorString(u8"Starting debugger on %s:%d failed\n",
               debug_host.c_str(), debug_port);
