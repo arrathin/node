@@ -3644,7 +3644,7 @@ void SetupProcessObject(Environment* env,
 #define V(code, _, __)                                                        \
   do {                                                                        \
     if (IsReverted(SECURITY_REVERT_ ## code)) {                               \
-      READONLY_PROPERTY(process, "\x52\x45\x56\x45\x52\x54\x5f" USTR(#code,) True(env->isolate()));      \
+      READONLY_PROPERTY(process, "\x52\x45\x56\x45\x52\x54\x5f" USTR(#code), True(env->isolate()));      \
     }                                                                         \
   } while (0);
   SECURITY_REVERSIONS(V)
@@ -4357,7 +4357,7 @@ static void StartDebug(Environment* env, const char* path, bool wait) {
         env->debugger_agent()->Start(host, debug_port, wait);
     if (debugger_running == false) {
       PrintErrorString(u8"Starting debugger on %s:%d failed\n",
-              debug_host.c_str(), debug_port);
+              host, debug_port);
       fflush(stderr);
       return;
     }
