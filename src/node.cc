@@ -184,6 +184,8 @@ unsigned int reverted = 0;
 static std::string icu_data_dir;  // NOLINT(runtime/string)
 #endif
 
+uint64_t max_http_header_size = 8 * 1024;
+
 // used by C++ modules as well
 bool no_deprecation = false;
 
@@ -3969,6 +3971,8 @@ static void PrintHelp() {
          u8"  --trace-deprecation   show stack traces on deprecations\n"
          u8"  --throw-deprecation   throw an exception anytime a deprecated "
          u8"function is used\n"
+         u8"  --max-http-header-size     Specify the maximum size of HTTP\n"
+         u8"                             headers in bytes. Defaults to 8KB.\n"
          u8"  --no-warnings         silence all process warnings\n"
          u8"  --napi-modules        load N-API modules (no-op - option kept for\n"
          u8"                        compatibility)\n"
@@ -4101,6 +4105,7 @@ static void CheckIfAllowedInEnv(const char* exe, bool is_env,
     u8"--pending-deprecation",
     u8"--no-warnings",
     u8"--napi-modules",
+    u8"--max-http-header-size",
     u8"--trace-warnings",
     u8"--redirect-warnings",
     u8"--trace-sync-io",
@@ -4259,6 +4264,8 @@ static void ParseArgs(int* argc,
       new_v8_argc += 1;
     } else if (strncmp(arg, "\x2d\x2d\x76\x38\x2d\x70\x6f\x6f\x6c\x2d\x73\x69\x7a\x65\x3d", 15) == 0) {
       v8_thread_pool_size = atoi(arg + 15);
+    } else if (strncmp(arg, "--max-http-header-size=", 23) == 0) {
+      max_http_header_size = atoi(arg + 23);
 #if HAVE_OPENSSL
     } else if (strncmp(arg, "\x2d\x2d\x74\x6c\x73\x2d\x63\x69\x70\x68\x65\x72\x2d\x6c\x69\x73\x74\x3d", 18) == 0) {
       default_cipher_list = arg + 18;
