@@ -56,7 +56,7 @@ void InitConfig(Local<Object> target,
 
 
   READONLY_PROPERTY(target,
-                    "maxHTTPHeaderSize",
+                    "\x6d\x61\x78\x48\x54\x54\x50\x48\x65\x61\x64\x65\x72\x53\x69\x7a\x65",
                     Number::New(env->isolate(), max_http_header_size));
 
   if (!config_warning_file.empty()) {
