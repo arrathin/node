@@ -4263,16 +4263,30 @@ static void ParseArgs(int* argc,
       new_v8_argv[new_v8_argc] = "\x2d\x2d\x68\x65\x6c\x70";
       new_v8_argc += 1;
     } else if (strncmp(arg, "\x2d\x2d\x76\x38\x2d\x70\x6f\x6f\x6c\x2d\x73\x69\x7a\x65\x3d", 15) == 0) {
+#ifdef __MVS__
+      char* temp_arg = strdup(argv[index]);
+      __a2e_s(temp_arg);
+      v8_thread_pool_size = atoi(temp_arg + 15);
+      free(temp_arg);
+#else
       v8_thread_pool_size = atoi(arg + 15);
+#endif
     } else if (strncmp(arg, "\x2d\x2d\x6d\x61\x78\x2d\x68\x74\x74\x70\x2d\x68\x65\x61\x64\x65\x72\x2d\x73\x69\x7a\x65\x3d", 23) == 0) {
+#ifdef __MVS__
+      char* temp_arg = strdup(argv[index]);
+      __a2e_s(temp_arg);
+      max_http_header_size = atoi(temp_arg + 23);
+      free(temp_arg);
+#else
       max_http_header_size = atoi(arg + 23);
+#endif
 #if HAVE_OPENSSL
     } else if (strncmp(arg, "\x2d\x2d\x74\x6c\x73\x2d\x63\x69\x70\x68\x65\x72\x2d\x6c\x69\x73\x74\x3d", 18) == 0) {
       default_cipher_list = arg + 18;
-    } else if (strncmp(arg, "\x2d\x2d\x75\x73\x65\x2d\x6f\x70\x65\x6e\x73\x73\x6c\x2d\x63\x61", 16) == 0) {
+    } else if (strncmp(arg, u8"--use-openssl-ca", 16) == 0) {
       ssl_openssl_cert_store = true;
       use_openssl_ca = true;
-    } else if (strncmp(arg, "\x2d\x2d\x75\x73\x65\x2d\x62\x75\x6e\x64\x6c\x65\x64\x2d\x63\x61", 16) == 0) {
+    } else if (strncmp(arg, u8"--use-bundled-ca", 16) == 0) {
       use_bundled_ca = true;
       ssl_openssl_cert_store = false;
 #if NODE_FIPS_MODE
