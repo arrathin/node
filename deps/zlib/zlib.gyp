@@ -53,6 +53,11 @@
               'cflags!': [ '-ansi' ],
               'defines': [ 'Z_HAVE_UNISTD_H', 'HAVE_HIDDEN' ],
             }],
+            ['OS=="zos"', {
+             'cflags': [
+              '-fexec-charset=ISO8859-1',
+              ],
+            }],
             ['OS=="mac" or OS=="ios" or OS=="freebsd" or OS=="android"', {
               # Mac, Android and the BSDs don't have fopen64, ftello64, or
               # fseeko64. We use fopen, ftell, and fseek instead on these
