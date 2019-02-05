@@ -33,7 +33,11 @@ if (process.argv[2] === 'fork') {
 } else if (process.argv[2] === 'child') {
   fork(__filename, ['fork']);
 } else {
-  const execArgv = ['--stack-size=256'];
+  if (common.isZOS)
+    var execArgv = ['--stack-size=2048'];
+  else
+    var execArgv = ['--stack-size=256'];
+
   const args = [__filename, 'child', 'arg0'];
 
   const child = spawn(process.execPath, execArgv.concat(args));

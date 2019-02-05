@@ -23,8 +23,8 @@
 #define snprintf __snprintf_a
 #define printf   __printf_a
 #define fprintf  __fprintf_a
+#include "zos.h"
 #endif
-
 #include "util.h"
 #include "string_bytes.h"
 #include "node_buffer.h"
@@ -187,7 +187,7 @@ std::string GetHumanReadableProcessName() {
 void GetHumanReadableProcessName(char (*name)[1024]) {
   char title[1024] = "Node.js";
   uv_get_process_title(title, sizeof(title));
-  snprintf(*name, sizeof(*name), "%s[%u]", title, uv_os_getpid());
+  AEWRAP_VOID(__snprintf_a(*name, sizeof(*name), "%s[%u]", title, uv_os_getpid()));
 }
 
 }  // namespace node

@@ -18,10 +18,6 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
-#ifdef __MVS__
-#define _AE_BIMODAL
-#define printf __printf_a
-#endif
 #include "stream_wrap.h"
 #include "stream_base-inl.h"
 

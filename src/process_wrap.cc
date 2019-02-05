@@ -19,6 +19,7 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#define _AE_BIMODAL
 #include "env-inl.h"
 #include "handle_wrap.h"
 #include "node_wrap.h"
@@ -27,7 +28,9 @@
 #include <string.h>
 #include <stdlib.h>
 #ifdef __MVS__
+#include <regex>
 #include <unistd.h> // e2a
+#include "zos.h"
 #endif
 
 namespace node {
@@ -91,6 +94,26 @@ class ProcessWrap : public HandleWrap {
                    AsyncWrap::PROVIDER_PROCESSWRAP) {
   }
 
+  static bool isAsciiPgm(const char *pgm) {
+#pragma convert("IBM-1047")
+    const char * AsciiPgms[] = { "git", "python2", "python", "make", "node", "npm" };
+
+    const char* baseProgram = strrchr(pgm, '/');
+    if (baseProgram == 0) {
+        baseProgram = pgm;
+    } else {
+        baseProgram++;
+    }
+ 
+    for (int pgId = 0 ; pgId < sizeof(AsciiPgms) / sizeof(const char*); pgId++) {
+       if (strcmp(baseProgram, AsciiPgms[pgId]) == 0) {
+           return true;
+       }
+    }
+    return false;
+#pragma convert(pop)
+  }
+
   static void ParseStdioOptions(Environment* env,
                                 Local<Object> js_options,
                                 uv_process_options_t* options) {
@@ -102,6 +125,8 @@ class ProcessWrap : public HandleWrap {
     uint32_t len = stdios->Length();
     options->stdio = new uv_stdio_container_t[len];
     options->stdio_count = len;
+
+    bool ascii_output = isAsciiPgm(options->file);
 
     for (uint32_t i = 0; i < len; i++) {
       Local<Object> stdio =
@@ -121,6 +146,10 @@ class ProcessWrap : public HandleWrap {
         options->stdio[i].data.stream =
             reinterpret_cast<uv_stream_t*>(
                 Unwrap<PipeWrap>(handle)->UVHandle());
+        if (ascii_output && i > 0)
+          options->stdio[i].data.stream->ascii = true;
+        else
+          options->stdio[i].data.stream->ascii = false;
       } else if (type->Equals(env->wrap_string())) {
         Local<String> handle_key = env->handle_string();
         Local<Object> handle =
@@ -130,6 +159,7 @@ class ProcessWrap : public HandleWrap {
 
         options->stdio[i].flags = UV_INHERIT_STREAM;
         options->stdio[i].data.stream = stream;
+        options->stdio[i].data.stream->ascii = false;
       } else {
         Local<String> fd_key = env->fd_string();
         int fd = static_cast<int>(

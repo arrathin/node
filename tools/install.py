@@ -149,6 +149,14 @@ def files(action):
   action(['deps/v8/tools/lldbinit'], 'share/doc/node/')
   action(['deps/v8/tools/lldb_commands.py'], 'share/doc/node/')
 
+ # conversion_tool files
+  if sys.platform.startswith('zos'):
+    if 'false' == variables.get('node_shared'):
+      action([
+        output_prefix + 'obj.target/lib' + output_file + '.x',
+        output_prefix + 'obj.target/lib' + output_file + '.so',
+      ], 'lib/')
+
   if 'freebsd' in sys.platform or 'openbsd' in sys.platform:
     action(['doc/node.1'], 'man/man1/')
   else:

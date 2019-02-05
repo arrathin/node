@@ -334,6 +334,7 @@ typedef struct {
   const char *new_path;                                                       \
   uv_file file;                                                               \
   int flags;                                                                  \
+  int newFile;                                                                \
   mode_t mode;                                                                \
   unsigned int nbufs;                                                         \
   uv_buf_t* bufs;                                                             \

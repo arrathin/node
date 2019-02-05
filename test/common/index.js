@@ -46,6 +46,7 @@ exports.isLinuxPPCBE = (process.platform === 'linux') &&
 exports.isSunOS = process.platform === 'sunos';
 exports.isFreeBSD = process.platform === 'freebsd';
 exports.isOpenBSD = process.platform === 'openbsd';
+exports.isZOS = process.platform === 'os390';
 exports.isLinux = process.platform === 'linux';
 exports.isOSX = process.platform === 'darwin';
 
@@ -283,8 +284,8 @@ exports.platformTimeout = function(ms) {
   if (global.__coverage__)
     ms = 4 * ms;
 
-  if (exports.isAIX)
-    return 2 * ms; // default localhost speed is slower on AIX
+  if (exports.isAIX || exports.isZOS)
+    return 2 * ms; // default localhost speed is slower on AIX and z/OS
 
   if (process.arch !== 'arm')
     return ms;

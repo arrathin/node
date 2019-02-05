@@ -18,6 +18,9 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
+#ifdef __MVS__
+#define _AE_BIMODAL
+#endif
 
 #define CARES_STATICLIB
 #include "ares.h"
@@ -1985,8 +1988,9 @@ void CanonicalizeIP(const FunctionCallbackInfo<Value>& args) {
   int err = uv_inet_ntop(af, address_buffer, canonical_ip,
                          sizeof(canonical_ip));
   CHECK_EQ(err, 0);
+
 #ifdef __MVS__
-        __e2a_s(canonical_ip);
+  __e2a_s(canonical_ip);
 #endif
 
   args.GetReturnValue().Set(String::NewFromUtf8(isolate, canonical_ip));

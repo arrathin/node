@@ -287,6 +287,9 @@ void UDPWrap::SetMulticastInterface(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[0]->IsString());
 
   Utf8Value iface(args.GetIsolate(), args[0]);
+#ifdef __MVS__
+  __a2e_s(&((*iface)[0]));
+#endif
 
   const char* iface_cstr = *iface;
 

@@ -94,6 +94,8 @@ def CalculateVariables(default_variables, params):
     default_variables.setdefault('OS', operating_system)
     if flavor == 'aix':
       default_variables.setdefault('SHARED_LIB_SUFFIX', '.a')
+    elif flavor == 'zos':
+      default_variables.setdefault('SHARED_LIB_SUFFIX', '.x')
     else:
       default_variables.setdefault('SHARED_LIB_SUFFIX', '.so')
     default_variables.setdefault('SHARED_LIB_DIR','$(builddir)/lib.$(TOOLSET)')
@@ -183,11 +185,10 @@ quiet_cmd_link = LINK($(TOOLSET)) $@
 cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(LD_INPUTS) $(LIBS)
 
 quiet_cmd_solink = SOLINK($(TOOLSET)) $@
-cmd_solink = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(LD_INPUTS) $(LIBS)
+cmd_solink = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -Wl,DLL -o $(patsubst %.x,%.so,$@) $(LD_INPUTS) $(LIBS) && /bin/cp $(notdir $@) $@
 
 quiet_cmd_solink_module = SOLINK_MODULE($(TOOLSET)) $@
 cmd_solink_module = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(filter-out FORCE_DO_CMD, $^) $(LIBS)
-
 """
 
 LINK_COMMANDS_MAC = """\
@@ -334,7 +335,7 @@ dirx = $(call unreplace_spaces,$(dir $(call replace_spaces,$1)))
 # so we can't end up with a broken dep file.
 depfile = $(depsdir)/$(call replace_spaces,$@).d
 ifeq ($(shell uname),OS/390)
-DEPFLAGS = -qmakedep=gcc -MF $(depfile).raw 
+DEPFLAGS = -qmakedep=gcc -MF $(depfile).raw
 else
 DEPFLAGS = -MMD -MF $(depfile).raw
 endif
@@ -392,7 +393,7 @@ cmd_touch = touch $@
 
 quiet_cmd_copy = COPY $@
 # send stderr to /dev/null to ignore messages when linking directories.
-cmd_copy = ln -f "$<" "$@" 2>/dev/null || (rm -rf "$@" && cp %(copy_archive_args)s "$<" "$@")
+cmd_copy = ln -f "$<" "$@" 2>/dev/null || (_UNIX03=YES rm -rf "$@" && cp %(copy_archive_args)s "$<" "$@")
 
 %(link_commands)s
 """
@@ -1376,6 +1377,8 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
       target_prefix = 'lib'
       if self.flavor == 'aix':
         target_ext = '.a'
+      elif self.flavor == 'zos':
+        target_ext = '.x'
       else:
         target_ext = '.so'
     elif self.type == 'none':
@@ -2068,8 +2071,10 @@ def GenerateOutput(target_list, target_dicts, data, params):
         'link_commands': LINK_COMMANDS_ANDROID,
     })
   elif flavor == 'zos':
+    copy_archive_arguments = '-pPRf'
     header_params.update({
         'link_commands': LINK_COMMANDS_ZOS,
+        'copy_archive_args': copy_archive_arguments,
     })
   elif flavor == 'solaris':
     header_params.update({

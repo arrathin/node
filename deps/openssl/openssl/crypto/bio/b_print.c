@@ -59,7 +59,7 @@
 /* disable assert() unless BIO_DEBUG has been defined */
 
 # if defined(__MVS__)
-#  define __AE_BIMODAL
+#  define _AE_BIMODAL
 # endif
 
 #ifndef BIO_DEBUG

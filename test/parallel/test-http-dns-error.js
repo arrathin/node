@@ -33,8 +33,10 @@ const host = '*'.repeat(256);
 const MAX_TRIES = 5;
 
 let errCode = 'ENOTFOUND';
-if (common.isOpenBSD)
+if (common.isOpenBSD || common.isZOS)
   errCode = 'EAI_FAIL';
+
+console.log(process.platform)
 
 function tryGet(mod, tries) {
   // Bad host name should not throw an uncatchable exception.

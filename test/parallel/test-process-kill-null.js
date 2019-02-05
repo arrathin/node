@@ -24,7 +24,11 @@ const { mustCall } = require('../common');
 const assert = require('assert');
 const { spawn } = require('child_process');
 
-const cat = spawn('cat');
+if (process.platform === 'os390')
+    var cat = spawn('cat', ['-u']);
+else
+    var cat = spawn('cat');
+
 
 assert.ok(process.kill(cat.pid, 0));
 

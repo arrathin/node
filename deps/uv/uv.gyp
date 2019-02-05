@@ -28,7 +28,7 @@
               '_AE_BIMODAL',
               'PATH_MAX=255'
             ],
-            'cflags': [ '-qxplink','-qenum=int' ],
+            'cflags': [ '-qexportall', '-qenum=int' ],
             'ldflags': [ '-qxplink' ],
           }]
         ],
@@ -175,6 +175,7 @@
               }],
               [ 'OS=="zos" and uv_library=="shared_library"', {
                 'ldflags': [ '-Wl,DLL' ],
+                'cflags': [ '-qexportall' ],
               }],
               ['OS != "solaris" and OS != "android" and OS != "zos"', {
                 'ldflags': [ '-pthread' ],
@@ -338,6 +339,7 @@
           'defines': [ 'BUILDING_UV_SHARED=1' ]
         }],
         ['OS=="zos"', {
+          'dependencies': [ '../../deps/zoslib/zoslib.gyp:zoslib' ],
           'sources': [
             'src/unix/pthread-fixes.c',
             'src/unix/os390.c',

@@ -1,8 +1,6 @@
 #ifdef __MVS__
 #define _AE_BIMODAL
-#define snprintf __snprintf_a
-#define printf __printf_a
-#define fprintf __fprintf_a
+#include "zos.h"
 #endif
 #include "node_url.h"
 #include "node_internals.h"
@@ -974,7 +972,7 @@ std::string URLHost::ToString() const {
       uint32_t value = value_.ipv4;
       for (int n = 0; n < 4; n++) {
         char buf[4];
-        snprintf(buf, sizeof(buf), "%d", value % 256);
+        AEWRAP_VOID(__snprintf_a(buf, sizeof(buf), "%d", value % 256));
         dest.insert(0, buf);
         if (n < 3)
           dest.insert(0, 1, '.');
@@ -1001,7 +999,7 @@ std::string URLHost::ToString() const {
           continue;
         }
         char buf[5];
-        snprintf(buf, sizeof(buf), "%x", *piece);
+        AEWRAP_VOID(__snprintf_a(buf, sizeof(buf), "%x", *piece));
         dest += buf;
         if (n < 7)
           dest += ':';

@@ -18,12 +18,10 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+ 
 #ifdef __MVS__
 #define _AE_BIMODAL
-#define snprintf __snprintf_a
-#define printf __printf_a
-#define fprintf  __fprintf_a
+#include "zos.h"
 #endif
 #include "node.h"
 #include "node_buffer.h"
@@ -350,8 +348,10 @@ static struct {
   }
 
   void StartTracingAgent() {
+#pragma convert("IBM-1047")
     fprintf(stderr, "Node compiled with NODE_USE_V8_PLATFORM=0, "
                     "so event tracing is not available.\n");
+#pragma convert(pop)
   }
   void StopTracingAgent() {}
 #endif  // !NODE_USE_V8_PLATFORM
@@ -383,7 +383,7 @@ static void PrintString(FILE* out, const char* format, va_list ap) {
   if (stderr_handle == INVALID_HANDLE_VALUE ||
       stderr_handle == nullptr ||
       uv_guess_handle(_fileno(stderr)) != UV_TTY) {
-    vfprintf(out, format, ap);
+    AEWRAP_VOID(vfprintf(out, format, ap));
     va_end(ap);
     return;
   }
@@ -403,12 +403,11 @@ static void PrintString(FILE* out, const char* format, va_list ap) {
   CHECK_GT(n, 0);
   WriteConsoleW(stderr_handle, wbuf.data(), n - 1, nullptr, nullptr);
 #elif defined(__MVS__)
-  int size = __vsnprintf_a(NULL, 0, format, ap);
+  int size;
+  AEWRAP(size, __vsnprintf_a(NULL, 0, format, ap));
   char buf[size+1];
-  __vsnprintf_a(buf, size + 1, format, ap);
-  __a2e_s(buf);
-  fprintf(out, "%s", buf);
-
+  AEWRAP_VOID(__vsnprintf_a(buf, size + 1, format, ap));
+  AEWRAP_VOID(__fprintf_a(out, "%s", buf));
 #else
   vfprintf(, format, ap);
 #endif
@@ -442,28 +441,6 @@ static void IdleImmediateDummy(uv_idle_t* handle) {
   // TODO(bnoordhuis) Maybe make libuv accept nullptr idle callbacks.
 }
 */
-inline const uint8_t& Ascii2Ebcdic(const char letter) {
-  static unsigned char a2e[256] = {
-  0,1,2,3,55,45,46,47,22,5,21,11,12,13,14,15,
-  16,17,18,19,60,61,50,38,24,25,63,39,28,29,30,31,
-  64,79,127,123,91,108,80,125,77,93,92,78,107,96,75,97,
-  240,241,242,243,244,245,246,247,248,249,122,94,76,126,110,111,
-  124,193,194,195,196,197,198,199,200,201,209,210,211,212,213,214,
-  215,216,217,226,227,228,229,230,231,232,233,74,224,90,95,109,
-  121,129,130,131,132,133,134,135,136,137,145,146,147,148,149,150,
-  151,152,153,162,163,164,165,166,167,168,169,192,106,208,161,7,
-  32,33,34,35,36,21,6,23,40,41,42,43,44,9,10,27,
-  48,49,26,51,52,53,54,8,56,57,58,59,4,20,62,225,
-  65,66,67,68,69,70,71,72,73,81,82,83,84,85,86,87,
-  88,89,98,99,100,101,102,103,104,105,112,113,114,115,116,117,
-  118,119,120,128,138,139,140,141,142,143,144,154,155,156,157,158,
-  159,160,170,171,172,173,174,175,176,177,178,179,180,181,182,183,
-  184,185,186,187,188,189,190,191,202,203,204,205,206,207,218,219,
-  220,221,222,223,234,235,236,237,238,239,250,251,252,253,254,255
-  };
-  return a2e[letter];
-}
-
 
 inline int GetFirstFlagFrom(const char* format_e, int start = 0) {
   int flag_pos = start;
@@ -471,68 +448,6 @@ inline int GetFirstFlagFrom(const char* format_e, int start = 0) {
   return flag_pos;
 }
 
-
-#ifdef __MVS__
-int VSNPrintFASCII(char* out, int length, const char* format_a, ...) {
-  va_list args;
-  va_start(args, format_a);
-
-  int bytes_written = 0, bytes_remain = length;
-  size_t format_len = strlen(format_a);
-  char buffer_e[format_len + 1];
-  char * format_e = buffer_e;
-  memcpy(format_e, format_a, format_len + 1);
-  __a2e_s(format_e);
-  int first_flag = GetFirstFlagFrom(format_e);
-  if (first_flag > 0) {
-    int size = snprintf(out, length, "%.*s", first_flag, format_e);
-    CHECK(size >= 0);
-    bytes_written += size;
-    bytes_remain = length - bytes_written;
-  }
-  format_e += first_flag;
-  if (format_e[0] == '\x0') return bytes_written;
-
-  do {
-    int next_flag = GetFirstFlagFrom(format_e, 2);
-    char tmp = format_e[next_flag];
-    int ret = 0;
-    format_e[next_flag] = '\x0';
-    char flag = format_e[1];
-    if (flag == '\x73') {
-      // convert arg
-      char * str = va_arg(args, char *);
-      size_t str_len = strlen(str);
-      char str_e[str_len + 1];
-      memcpy(str_e, str, str_len + 1);
-      __a2e_s(str_e);
-      ret = snprintf(out + bytes_written, bytes_remain, format_e, str_e);
-    } else if (flag == '\x63') {
-      ret = snprintf(out + bytes_written, bytes_remain, format_e, Ascii2Ebcdic(va_arg(args, char)));
-    } else {
-      ret = snprintf(out + bytes_written, bytes_remain, format_e, args);
-    }
-    CHECK(ret >= 0);
-    bytes_written += ret;
-    bytes_remain = length - bytes_written;
-    format_e[next_flag] = tmp;
-    format_e += next_flag;
-    bytes_remain = length - bytes_written;
-  } while (format_e[0] != '\x0' || bytes_remain <= 0);
-
-  __e2a_s(out);
-  return bytes_written;
-}
-
-
-int SNPrintFASCII(char * out, int length, const char* format_a, ...) {
-  va_list args;
-  va_start(args, format_a);
-  int ret = VSNPrintFASCII(out, length, format_a, args);
-  va_end(args);
-  return ret;
-}
-#endif
 
 static inline const char *errno_string(int errorno) {
 #define ERRNO_CASE(e)  case e: return #e;
@@ -1948,12 +1863,14 @@ void AppendExceptionLine(Environment* env,
   char arrow[1024];
   int max_off = sizeof(arrow) - 2;
 
-  int off = snprintf(arrow,
+  int off;
+
+  off = __snprintf_a(arrow,
                      sizeof(arrow),
                      "%s:%i\n%s\n",
-                     filename_string,
+                     *E2A(filename_string),
                      linenum,
-                     sourceline_string);
+                     *E2A(sourceline_string));
   CHECK_GE(off, 0);
   if (off > max_off) {
     off = max_off;
@@ -1978,10 +1895,6 @@ void AppendExceptionLine(Environment* env,
   arrow[off] = '\n';
   arrow[off + 1] = '\0';
 
-#ifdef __MVS__
-  __e2a_s(arrow);
-#endif
-  
   Local<String> arrow_str = String::NewFromUtf8(env->isolate(), arrow);
 
   const bool can_set_arrow = !arrow_str.IsEmpty() && !err_obj.IsEmpty();
@@ -2193,8 +2106,8 @@ NO_RETURN void Assert(const char* const (*args)[4]) {
   char name[1024];
   GetHumanReadableProcessName(&name);
 
-  fprintf(stderr, "%s: %s:%s:%s%s Assertion `%s' failed.\n",
-          name, filename, linenum, function, *function ? ":" : "", message);
+  AEWRAP_VOID(__fprintf_a(stderr, "%s: %s:%s:%s%s Assertion `%s' failed.\n",
+          *E2A(name), *E2A(filename), linenum, *E2A(function), *(*E2A(function)) ? ":" : "", *E2A(message)));
   fflush(stderr);
 
   Abort();
@@ -2853,7 +2766,7 @@ static void DLOpen(const FunctionCallbackInfo<Value>& args) {
              "\nNODE_MODULE_VERSION %d. Please try re-compiling or "
              "re-installing\nthe module (for instance, using `npm rebuild` "
              "or `npm install`).",
-             *filename, mp->nm_version, NODE_MODULE_VERSION);
+             *E2A(*filename), mp->nm_version, NODE_MODULE_VERSION);
     // NOTE: `mp` is allocated inside of the shared library's memory, calling
     // `uv_dlclose` will deallocate it
     uv_dlclose(&lib);
@@ -2937,6 +2850,7 @@ static void ReleaseResourcesOnExit(void * arg) {
 void on_sigabrt (int signum)
 {
   ReleaseResourcesOnExit(nullptr);
+  raise(signum);
 }
 #endif
 
@@ -3103,10 +3017,10 @@ static Local<Object> InitModule(Environment* env,
 
 static void ThrowIfNoSuchModule(Environment* env, const char* module_v) {
   char errmsg[1024];
-  snprintf(errmsg,
+  AEWRAP_VOID(__snprintf_a(errmsg,
            sizeof(errmsg),
            "No such module: %s",
-           module_v);
+           module_v));
   env->ThrowError(errmsg);
 }
 
@@ -3168,7 +3082,7 @@ static void InternalBinding(const FunctionCallbackInfo<Value>& args) {
   // Append a string to process.moduleLoadList
   char buf[1024];
   node::Utf8Value module_v(env->isolate(), module);
-  snprintf(buf, sizeof(buf), "Internal Binding %s", *module_v);
+  __snprintf_a(buf, sizeof(buf), "Internal Binding %s", *module_v);
 
   Local<Array> modules = env->module_load_list_array();
   uint32_t l = modules->Length();
@@ -4084,6 +3998,7 @@ void LoadEnvironment(Environment* env) {
 static void PrintHelp() {
   // XXX: If you add an option here, please also add it to doc/node.1 and
   // doc/api/cli.md
+#pragma convert("IBM-1047")
   printf("Usage: node [options] [ -e script | script.js | - ] [arguments]\n"
          "       node inspect script.js [arguments]\n"
          "\n"
@@ -4202,6 +4117,7 @@ static void PrintHelp() {
          "OPENSSL_CONF                 load OpenSSL configuration from file\n"
          "\n"
          "Documentation can be found at https://nodejs.org/\n");
+#pragma convert(pop)
 }
 
 
@@ -4351,7 +4267,7 @@ static void ParseArgs(int* argc,
         args_consumed += 1;
         eval_string = argv[index + 1];
         if (eval_string == nullptr) {
-          fprintf(stderr, "%s: %s requires an argument\n", argv[0], arg);
+          AEWRAP_VOID(__fprintf_a(stderr, "%s: %s requires an argument\n", argv[0], arg));
           exit(9);
         }
       } else if ((index + 1 < nargs) &&
@@ -4398,7 +4314,7 @@ static void ParseArgs(int* argc,
     } else if (strcmp(arg, "--trace-event-categories") == 0) {
       const char* categories = argv[index + 1];
       if (categories == nullptr) {
-        fprintf(stderr, "%s: %s requires an argument\n", argv[0], arg);
+        AEWRAP_VOID(__fprintf_a(stderr, "%s: %s requires an argument\n", argv[0], arg));
         exit(9);
       }
       args_consumed += 1;
@@ -4417,12 +4333,12 @@ static void ParseArgs(int* argc,
     }  else if (strcmp(arg, "--loader") == 0) {
       const char* module = argv[index + 1];
       if (!config_experimental_modules) {
-        fprintf(stderr, "%s: %s requires --experimental-modules be enabled\n",
-            argv[0], arg);
+        AEWRAP_VOID(__fprintf_a(stderr, "%s: %s requires --experimental-modules be enabled\n",
+            argv[0], arg));
         exit(9);
       }
       if (module == nullptr) {
-        fprintf(stderr, "%s: %s requires an argument\n", argv[0], arg);
+        AEWRAP_VOID(__fprintf_a(stderr, "%s: %s requires an argument\n", argv[0], arg));
         exit(9);
       }
       args_consumed += 1;
@@ -4494,17 +4410,17 @@ static void ParseArgs(int* argc,
 
 #if HAVE_OPENSSL
   if (use_openssl_ca && use_bundled_ca) {
-    fprintf(stderr,
+    AEWRAP_VOID(__fprintf_a(stderr,
             "%s: either --use-openssl-ca or --use-bundled-ca can be used, "
             "not both\n",
-            argv[0]);
+            argv[0]));
     exit(9);
   }
 #endif
 
   if (eval_string != nullptr && syntax_check_only) {
-    fprintf(stderr,
-            "%s: either --check or --eval can be used, not both\n", argv[0]);
+    AEWRAP_VOID(__fprintf_a(stderr,
+            "%s: either --check or --eval can be used, not both\n", argv[0]));
     exit(9);
   }
 
@@ -4880,8 +4796,15 @@ void Init(int* argc,
         SafeGetenv("NODE_PRESERVE_SYMLINKS", &text) && text[0] == '1';
   }
 
-  if (config_warning_file.empty())
+  if (config_warning_file.empty()) {
     SafeGetenv("NODE_REDIRECT_WARNINGS", &config_warning_file);
+    #ifdef __MVS__
+        transform(config_warning_file.begin(), config_warning_file.end(), config_warning_file.begin(), [](char c) -> char {
+          __e2a_l(&c, 1);
+          return c;
+        });
+    #endif
+  }
 
 #if HAVE_OPENSSL
   if (openssl_config.empty())
@@ -5054,13 +4977,20 @@ void FreeEnvironment(Environment* env) {
 }
 
 
-inline int Start(Isolate* isolate, IsolateData* isolate_data,
+int Start(Isolate* isolate, IsolateData* isolate_data,
                  int argc, const char* const* argv,
                  int exec_argc, const char* const* exec_argv) {
 #ifdef __MVS__
   signal(SIGABRT, &on_sigabrt);
   signal(SIGABND, &on_sigabrt);
   signal(SIGHUP, &on_sigabrt);
+  struct sigaction action;
+  memset(&action, 0, sizeof(action));
+  action.sa_flags = SA_RESETHAND;
+  action.sa_handler = &on_sigabrt;
+  sigaction(SIGABRT, &action, NULL);
+  sigaction(SIGABND, &action, NULL);
+  sigaction(SIGHUP, &action, NULL);
 #endif
     
   HandleScope handle_scope(isolate);
@@ -5129,7 +5059,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
   return exit_code;
 }
 
-inline int Start(uv_loop_t* event_loop,
+int Start(uv_loop_t* event_loop,
                  int argc, const char* const* argv,
                  int exec_argc, const char* const* exec_argv) {
   Isolate::CreateParams params;
@@ -5218,8 +5148,8 @@ int Start(int argc, char** argv) {
   v8_platform.Initialize(v8_thread_pool_size, uv_default_loop());
   // Enable tracing when argv has --trace-events-enabled.
   if (trace_enabled) {
-    fprintf(stderr, "Warning: Trace event is an experimental feature "
-            "and could change at any time.\n");
+    AEWRAP_VOID(__fprintf_a(stderr, "Warning: Trace event is an experimental feature "
+            "and could change at any time.\n"));
     v8_platform.StartTracingAgent();
   }
   V8::Initialize();
@@ -5267,3 +5197,4 @@ void InitEmptyBindings() {}
 
 NODE_BUILTIN_MODULE_CONTEXT_AWARE(inspector, InitEmptyBindings)
 #endif  // !HAVE_INSPECTOR
+

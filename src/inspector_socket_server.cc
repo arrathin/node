@@ -165,6 +165,9 @@ int GetSocketHost(uv_tcp_t* socket, std::string* out_host) {
   if (err != 0)
     return err;
   *out_host = ip;
+#ifdef __MVS__
+  __e2a_s(ip);
+#endif
   return err;
 }
 }  // namespace

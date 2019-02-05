@@ -416,7 +416,8 @@ class NativeEncodingValue : public MaybeStackBuffer<char> {
   explicit NativeEncodingValue(v8::Isolate* isolate, v8::Local<v8::Value> value);
 };
 
-
+#ifdef __MVS__
+ 
 class E2A {
   public:
     explicit E2A(const char* val);
@@ -449,6 +450,9 @@ class A2E : public E2A {
    explicit A2E(const char *val); 
    explicit A2E(const char * val, unsigned length);
 };
+
+#endif
+
 #define THROW_AND_RETURN_UNLESS_BUFFER(env, obj)                            \
   do {                                                                      \
     if (!Buffer::HasInstance(obj))                                          \

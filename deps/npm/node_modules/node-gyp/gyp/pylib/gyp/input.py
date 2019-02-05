@@ -12,7 +12,6 @@ from compiler.ast import Stmt
 import compiler
 import gyp.common
 import gyp.simple_copy
-import multiprocessing
 import optparse
 import os.path
 import re
@@ -20,12 +19,16 @@ import shlex
 import signal
 import subprocess
 import sys
-import threading
 import time
 import traceback
 from gyp.common import GypError
 from gyp.common import OrderedSet
 
+if not sys.platform.startswith('zos'):
+  import multiprocessing
+  import threading
+else:
+  import dummy_threading as threading
 
 # A list of types that are treated as linkable.
 linkable_types = [

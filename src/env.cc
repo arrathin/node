@@ -1,10 +1,6 @@
 #ifdef __MVS__
-#define _AE_BIMODAL
-#define snprintf __snprintf_a
-#define printf   __printf_a
-#define fprintf  __fprintf_a
+#include "zos.h"
 #endif
-
 #include "node_internals.h"
 #include "async_wrap.h"
 #include "v8-profiler.h"
@@ -125,7 +121,7 @@ void Environment::PrintSyncTrace() const {
   Local<v8::StackTrace> stack =
       StackTrace::CurrentStackTrace(isolate(), 10, StackTrace::kDetailed);
 
-  fprintf(stderr, "(node:%u) WARNING: Detected use of sync API\n",
+  fprintf(stderr, *A2E("(node:%u) WARNING: Detected use of sync API\n"),
           uv_os_getpid());
 
   for (int i = 0; i < stack->GetFrameCount() - 1; i++) {
@@ -137,10 +133,10 @@ void Environment::PrintSyncTrace() const {
 
     if (stack_frame->IsEval()) {
       if (stack_frame->GetScriptId() == Message::kNoScriptIdInfo) {
-        fprintf(stderr, "    at [eval]:%i:%i\n", line_number, column);
+        fprintf(stderr, *A2E("    at [eval]:%i:%i\n"), line_number, column);
       } else {
         fprintf(stderr,
-                "    at [eval] (%s:%i:%i)\n",
+                *A2E("    at [eval] (%s:%i:%i)\n"),
                 *script_name,
                 line_number,
                 column);
@@ -149,10 +145,10 @@ void Environment::PrintSyncTrace() const {
     }
 
     if (fn_name_s.length() == 0) {
-      fprintf(stderr, "    at %s:%i:%i\n", *script_name, line_number, column);
+      fprintf(stderr, *A2E("    at %s:%i:%i\n"), *script_name, line_number, column);
     } else {
       fprintf(stderr,
-              "    at %s (%s:%i:%i)\n",
+              *A2E("    at %s (%s:%i:%i)\n"),
               *fn_name_s,
               *script_name,
               line_number,

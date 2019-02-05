@@ -21,6 +21,10 @@
 
 'use strict';
 const common = require('../common');
+if (common.isZOS) {
+  common.skip('Skipping test, no privileged port on zOS.');
+  return;
+}
 if (common.isWindows)
   common.skip('not reliable on Windows');
 

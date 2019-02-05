@@ -20,9 +20,7 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifdef __MVS__
 #define _AE_BIMODAL
-#define snprintf __snprintf_a
-#define printf   __printf_a
-#define fprintf  __fprintf_a
+#include "zos.h"
 #endif
 #include "node_internals.h"
 #include "string_bytes.h"
@@ -274,7 +272,7 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
       ret->Set(name, ifarr);
     }
 
-    snprintf(mac,
+    AEWRAP_VOID(__snprintf_a(mac,
              18,
              "%02x:%02x:%02x:%02x:%02x:%02x",
              static_cast<unsigned char>(interfaces[i].phys_addr[0]),
@@ -282,7 +280,7 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
              static_cast<unsigned char>(interfaces[i].phys_addr[2]),
              static_cast<unsigned char>(interfaces[i].phys_addr[3]),
              static_cast<unsigned char>(interfaces[i].phys_addr[4]),
-             static_cast<unsigned char>(interfaces[i].phys_addr[5]));
+             static_cast<unsigned char>(interfaces[i].phys_addr[5])));
 
     if (interfaces[i].address.address4.sin_family == AF_INET) {
       uv_ip4_name(&interfaces[i].address.address4, ip, sizeof(ip));
@@ -302,10 +300,8 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
       strncpy(ip, "<unknown sa family>", INET6_ADDRSTRLEN);
       family = env->unknown_string();
     }
-
 #ifdef __MVS__
     __e2a_s(netmask);
-    __e2a_s(mac);
 #endif
     o = Object::New(env->isolate());
     o->Set(env->address_string(), OneByteString(env->isolate(), ip));

@@ -73,6 +73,7 @@
       uv__req_init(loop, req, UV_FS);                                         \
     req->fs_type = UV_FS_ ## subtype;                                         \
     req->result = 0;                                                          \
+    req->newFile = 0;                                                         \
     req->ptr = NULL;                                                          \
     req->loop = loop;                                                         \
     req->path = NULL;                                                         \
@@ -265,7 +266,6 @@ static ssize_t uv__fs_mkdtemp(uv_fs_t* req) {
   return mkdtemp((char*) req->path) ? 0 : -1;
 }
 
-
 static ssize_t uv__fs_open(uv_fs_t* req) {
   static int no_cloexec_support;
   int r;
@@ -285,6 +285,11 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
   if (req->cb != NULL)
     uv_rwlock_rdlock(&req->loop->cloexec_lock);
 
+#ifdef __MVS__
+  struct stat buffer;   
+  int fileAlreadyExists = (stat(req->path, &buffer) == 0);
+  req->newFile = !fileAlreadyExists;
+#endif
   r = open(req->path, req->flags, req->mode);
 
   /* In case of failure `uv__cloexec` will leave error in `errno`,
@@ -299,6 +304,12 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
 
   if (req->cb != NULL)
     uv_rwlock_rdunlock(&req->loop->cloexec_lock);
+    
+#ifdef __MVS__
+  // Tag new files as 819
+  if (req->newFile)
+    __chgfdccsid(r, 819);
+#endif
 
   return r;
 }
@@ -734,9 +745,11 @@ static ssize_t uv__fs_write(uv_fs_t* req) {
      )
     doconvert = 1;
 
-  if (doconvert)
+  if (doconvert) {
     for (int idx = 0; idx < req->nbufs; idx++)
       __a2e_l(req->bufs[idx].base, req->bufs[idx].len);
+    }
+
 #endif
 
 #if defined(__linux__)

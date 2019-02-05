@@ -1,7 +1,7 @@
 'use strict';
 const common = require('../../common');
-if (common.isWOW64)
-  common.skip('doesn\'t work on WOW64');
+if (common.isWOW64 || common.isZOS)
+  common.skip('doesn\'t work on WOW64 or ZOS');
 
 const fs = require('fs');
 const path = require('path');

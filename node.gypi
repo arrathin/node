@@ -236,11 +236,9 @@
         '-fexec-charset=ISO8859-1',
         '-qlonglong',
         '-qenum=int',
+        '-qexportall',
       ],
-      'ldflags': [
-        '-q64',
-        '-Wl,DLL',
-      ],
+      'dependencies': [ 'deps/zoslib/zoslib.gyp:zoslib' ],
       'conditions': [
         [ 'v8_enable_i18n_support==1', {
           'libraries': [
