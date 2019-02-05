@@ -96,8 +96,10 @@ bool DebugOptions::ParseOption(const char* argv0, const std::string& option) {
   } else if (option_name == "--debug-port" ||
              option_name == "--inspect-port") {
     if (!has_argument) {
+#pragma convert("IBM-1047")
       fprintf(stderr, "%s: %s requires an argument\n",
-              argv0, option.c_str());
+              *A2E(argv0), *A2E(option.c_str()));
+#pragma convert(pop)
       exit(9);
     }
   } else {

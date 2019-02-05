@@ -6122,9 +6122,11 @@ void InitCryptoOnce() {
         CONF_MFLAGS_DEFAULT_SECTION);
     int err = ERR_get_error();
     if (0 != err) {
+#pragma convert("IBM-1047")
       fprintf(stderr,
               "openssl config failed: %s\n",
               ERR_error_string(err, nullptr));
+#pragma convert(pop)
       CHECK_NE(err, 0);
     }
   }

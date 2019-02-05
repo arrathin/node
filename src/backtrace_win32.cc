@@ -15,6 +15,7 @@ void DumpBacktrace(FILE* fp) {
   SYMBOL_INFO* info = reinterpret_cast<SYMBOL_INFO*>(info_buf);
   char demangled[MAX_SYM_NAME];
 
+#pragma convert("IBM-1047")
   for (int i = 1; i < size; i += 1) {
     void* frame = frames[i];
     fprintf(fp, "%2d: ", i);
@@ -34,6 +35,7 @@ void DumpBacktrace(FILE* fp) {
     }
     fprintf(fp, "\n");
   }
+#pragma convert(pop)
   (void)SymCleanup(process);
 }
 

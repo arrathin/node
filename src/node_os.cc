@@ -272,7 +272,7 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
       ret->Set(name, ifarr);
     }
 
-    AEWRAP_VOID(__snprintf_a(mac,
+    __snprintf_a(mac,
              18,
              "%02x:%02x:%02x:%02x:%02x:%02x",
              static_cast<unsigned char>(interfaces[i].phys_addr[0]),
@@ -280,7 +280,7 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
              static_cast<unsigned char>(interfaces[i].phys_addr[2]),
              static_cast<unsigned char>(interfaces[i].phys_addr[3]),
              static_cast<unsigned char>(interfaces[i].phys_addr[4]),
-             static_cast<unsigned char>(interfaces[i].phys_addr[5])));
+             static_cast<unsigned char>(interfaces[i].phys_addr[5]));
 
     if (interfaces[i].address.address4.sin_family == AF_INET) {
       uv_ip4_name(&interfaces[i].address.address4, ip, sizeof(ip));

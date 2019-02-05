@@ -383,7 +383,7 @@ static void PrintString(FILE* out, const char* format, va_list ap) {
   if (stderr_handle == INVALID_HANDLE_VALUE ||
       stderr_handle == nullptr ||
       uv_guess_handle(_fileno(stderr)) != UV_TTY) {
-    AEWRAP_VOID(vfprintf(out, format, ap));
+    vfprintf(out, format, ap));
     va_end(ap);
     return;
   }
@@ -403,11 +403,13 @@ static void PrintString(FILE* out, const char* format, va_list ap) {
   CHECK_GT(n, 0);
   WriteConsoleW(stderr_handle, wbuf.data(), n - 1, nullptr, nullptr);
 #elif defined(__MVS__)
-  int size;
-  AEWRAP(size, __vsnprintf_a(NULL, 0, format, ap));
+  int size = __vsnprintf_a(NULL, 0, format, ap);
   char buf[size+1];
-  AEWRAP_VOID(__vsnprintf_a(buf, size + 1, format, ap));
-  AEWRAP_VOID(__fprintf_a(out, "%s", buf));
+  __vsnprintf_a(buf, size + 1, format, ap);
+  __a2e_s(buf);
+#pragma convert("IBM-1047")
+  fprintf(out, "%s", buf);
+#pragma convert(pop)
 #else
   vfprintf(, format, ap);
 #endif
@@ -2106,8 +2108,10 @@ NO_RETURN void Assert(const char* const (*args)[4]) {
   char name[1024];
   GetHumanReadableProcessName(&name);
 
-  AEWRAP_VOID(__fprintf_a(stderr, "%s: %s:%s:%s%s Assertion `%s' failed.\n",
-          *E2A(name), *E2A(filename), linenum, *E2A(function), *(*E2A(function)) ? ":" : "", *E2A(message)));
+#pragma convert("IBM-1047")
+  fprintf(stderr, "%s: %s:%s:%s%s Assertion `%s' failed.\n",
+          name, filename, linenum, function, *function ? ":" : "", message);
+#pragma convert(pop)
   fflush(stderr);
 
   Abort();
@@ -2844,8 +2848,6 @@ static void ReleaseResourcesOnExit(void * arg) {
     }
   }
 }
-//pragma convert(pop)
-//#define printf __printf_a
 #ifdef __MVS__
 void on_sigabrt (int signum)
 {
@@ -4267,7 +4269,7 @@ static void ParseArgs(int* argc,
         args_consumed += 1;
         eval_string = argv[index + 1];
         if (eval_string == nullptr) {
-          AEWRAP_VOID(__fprintf_a(stderr, "%s: %s requires an argument\n", argv[0], arg));
+          PrintErrorString("%s: %s requires an argument\n", argv[0], arg);
           exit(9);
         }
       } else if ((index + 1 < nargs) &&
@@ -4314,7 +4316,7 @@ static void ParseArgs(int* argc,
     } else if (strcmp(arg, "--trace-event-categories") == 0) {
       const char* categories = argv[index + 1];
       if (categories == nullptr) {
-        AEWRAP_VOID(__fprintf_a(stderr, "%s: %s requires an argument\n", argv[0], arg));
+        PrintErrorString("%s: %s requires an argument\n", argv[0], arg);
         exit(9);
       }
       args_consumed += 1;
@@ -4333,12 +4335,12 @@ static void ParseArgs(int* argc,
     }  else if (strcmp(arg, "--loader") == 0) {
       const char* module = argv[index + 1];
       if (!config_experimental_modules) {
-        AEWRAP_VOID(__fprintf_a(stderr, "%s: %s requires --experimental-modules be enabled\n",
-            argv[0], arg));
+        PrintErrorString("%s: %s requires --experimental-modules be enabled\n",
+            argv[0], arg);
         exit(9);
       }
       if (module == nullptr) {
-        AEWRAP_VOID(__fprintf_a(stderr, "%s: %s requires an argument\n", argv[0], arg));
+        PrintErrorString("%s: %s requires an argument\n", argv[0], arg);
         exit(9);
       }
       args_consumed += 1;
@@ -4410,17 +4412,17 @@ static void ParseArgs(int* argc,
 
 #if HAVE_OPENSSL
   if (use_openssl_ca && use_bundled_ca) {
-    AEWRAP_VOID(__fprintf_a(stderr,
+    PrintErrorString(
             "%s: either --use-openssl-ca or --use-bundled-ca can be used, "
             "not both\n",
-            argv[0]));
+            argv[0]);
     exit(9);
   }
 #endif
 
   if (eval_string != nullptr && syntax_check_only) {
-    AEWRAP_VOID(__fprintf_a(stderr,
-            "%s: either --check or --eval can be used, not both\n", argv[0]));
+    PrintErrorString(
+            "%s: either --check or --eval can be used, not both\n", argv[0]);
     exit(9);
   }
 
@@ -5148,8 +5150,8 @@ int Start(int argc, char** argv) {
   v8_platform.Initialize(v8_thread_pool_size, uv_default_loop());
   // Enable tracing when argv has --trace-events-enabled.
   if (trace_enabled) {
-    AEWRAP_VOID(__fprintf_a(stderr, "Warning: Trace event is an experimental feature "
-            "and could change at any time.\n"));
+    PrintErrorString("Warning: Trace event is an experimental feature "
+            "and could change at any time.\n");
     v8_platform.StartTracingAgent();
   }
   V8::Initialize();

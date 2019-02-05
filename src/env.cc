@@ -121,7 +121,8 @@ void Environment::PrintSyncTrace() const {
   Local<v8::StackTrace> stack =
       StackTrace::CurrentStackTrace(isolate(), 10, StackTrace::kDetailed);
 
-  fprintf(stderr, *A2E("(node:%u) WARNING: Detected use of sync API\n"),
+#pragma convert("IBM-1047")
+  fprintf(stderr, "(node:%u) WARNING: Detected use of sync API\n",
           uv_os_getpid());
 
   for (int i = 0; i < stack->GetFrameCount() - 1; i++) {
@@ -133,10 +134,10 @@ void Environment::PrintSyncTrace() const {
 
     if (stack_frame->IsEval()) {
       if (stack_frame->GetScriptId() == Message::kNoScriptIdInfo) {
-        fprintf(stderr, *A2E("    at [eval]:%i:%i\n"), line_number, column);
+        fprintf(stderr, "    at [eval]:%i:%i\n", line_number, column);
       } else {
         fprintf(stderr,
-                *A2E("    at [eval] (%s:%i:%i)\n"),
+                "    at [eval] (%s:%i:%i)\n",
                 *script_name,
                 line_number,
                 column);
@@ -145,16 +146,17 @@ void Environment::PrintSyncTrace() const {
     }
 
     if (fn_name_s.length() == 0) {
-      fprintf(stderr, *A2E("    at %s:%i:%i\n"), *script_name, line_number, column);
+      fprintf(stderr, "    at %s:%i:%i\n", *script_name, line_number, column);
     } else {
       fprintf(stderr,
-              *A2E("    at %s (%s:%i:%i)\n"),
+              "    at %s (%s:%i:%i)\n",
               *fn_name_s,
               *script_name,
               line_number,
               column);
     }
   }
+#pragma convert(pop)
   fflush(stderr);
 }
 

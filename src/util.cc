@@ -20,9 +20,6 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifdef __MVS__
 #define _AE_BIMODAL
-#define snprintf __snprintf_a
-#define printf   __printf_a
-#define fprintf  __fprintf_a
 #include "zos.h"
 #endif
 #include "util.h"
@@ -115,14 +112,26 @@ E2A::E2A(const char* prefix, const char* val)
 #endif
 }
 
-A2E::A2E(const char * val) 
-  : E2A(val) {
+A2E::A2E(const char * val)
+  : length_(strlen(val)) {
+    str_ = (char *)malloc(sizeof(char) * length_ + 1);
+    assert(str_ != NULL);
+    memcpy(str_, val, length_);
+    str_[length_] = NULL;
+#ifdef __MVS__
     __a2e_l(str_, length_);
+#endif
   }
 
-A2E::A2E(const char * val, unsigned length) 
-  : E2A(val, length) {
+A2E::A2E(const char * val, unsigned len) 
+  : length_(len) {
+    str_ = (char *)malloc(sizeof(char) * length_ + 1);
+    assert(str_ != NULL);
+    memcpy(str_, val, length_);
+    str_[length_] = NULL;
+#ifdef __MVS__
     __a2e_l(str_, length_);
+#endif
   }
 TwoByteValue::TwoByteValue(Isolate* isolate, Local<Value> value) {
   if (value.IsEmpty()) {
@@ -187,7 +196,7 @@ std::string GetHumanReadableProcessName() {
 void GetHumanReadableProcessName(char (*name)[1024]) {
   char title[1024] = "Node.js";
   uv_get_process_title(title, sizeof(title));
-  AEWRAP_VOID(__snprintf_a(*name, sizeof(*name), "%s[%u]", title, uv_os_getpid()));
+  __snprintf_a(*name, sizeof(*name), "%s[%u]", title, uv_os_getpid());
 }
 
 }  // namespace node

@@ -24,6 +24,7 @@ namespace node {
 
 void DumpBacktrace(FILE* fp) {
 #if HAVE_EXECINFO_H
+#pragma convert("IBM-1047")
   void* frames[256];
   const int size = backtrace(frames, arraysize(frames));
   if (size <= 0) {
@@ -47,6 +48,7 @@ void DumpBacktrace(FILE* fp) {
     }
     fprintf(fp, "\n");
   }
+#pragma convert(pop)
 #endif  // HAVE_EXECINFO_H
 }
 

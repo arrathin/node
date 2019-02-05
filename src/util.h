@@ -445,10 +445,30 @@ class E2A {
     char* str_;
 };
 
-class A2E : public E2A {
+class A2E {
  public:
    explicit A2E(const char *val); 
    explicit A2E(const char * val, unsigned length);
+
+    ~A2E() {
+        free(str_);
+    }
+
+    char* operator*() {
+      return str_;
+    };
+
+    const char* operator*() const {
+      return str_;
+    };
+
+    size_t length() const {
+      return length_;
+    };
+
+  protected:
+    size_t length_;
+    char* str_;
 };
 
 #endif

@@ -96,7 +96,7 @@ class ProcessWrap : public HandleWrap {
 
   static bool isAsciiPgm(const char *pgm) {
 #pragma convert("IBM-1047")
-    const char * AsciiPgms[] = { "git", "python2", "python", "make", "node", "npm" };
+    const char * AsciiPgms[] = { "git", "python2", "python", "make" };
 
     const char* baseProgram = strrchr(pgm, '/');
     if (baseProgram == 0) {

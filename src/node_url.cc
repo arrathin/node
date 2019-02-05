@@ -972,7 +972,7 @@ std::string URLHost::ToString() const {
       uint32_t value = value_.ipv4;
       for (int n = 0; n < 4; n++) {
         char buf[4];
-        AEWRAP_VOID(__snprintf_a(buf, sizeof(buf), "%d", value % 256));
+        __snprintf_a(buf, sizeof(buf), "%d", value % 256);
         dest.insert(0, buf);
         if (n < 3)
           dest.insert(0, 1, '.');
@@ -999,7 +999,7 @@ std::string URLHost::ToString() const {
           continue;
         }
         char buf[5];
-        AEWRAP_VOID(__snprintf_a(buf, sizeof(buf), "%x", *piece));
+        __snprintf_a(buf, sizeof(buf), "%x", *piece);
         dest += buf;
         if (n < 7)
           dest += ':';
