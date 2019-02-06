@@ -592,7 +592,7 @@ exports.nodeProcessAborted = function nodeProcessAborted(exitCode, signal) {
   // greater than 256, and thus the exit code emitted with the 'exit'
   // event is null and the signal is set to either SIGILL, SIGTRAP,
   // or SIGABRT (depending on the compiler).
-  const expectedSignals = ['SIGILL', 'SIGTRAP', 'SIGABRT'];
+  let expectedSignals = ['SIGILL', 'SIGTRAP', 'SIGABRT'];
 
   // On Windows, 'aborts' are of 2 types, depending on the context:
   // (i) Forced access violation, if --abort-on-uncaught-exception is on
@@ -601,6 +601,10 @@ exports.nodeProcessAborted = function nodeProcessAborted(exitCode, signal) {
   // which corresponds to exit code 3.
   if (exports.isWindows)
     expectedExitCodes = [3221225477, 3];
+  else if (process.platform === 'os390') {
+    expectedExitCodes = [131];
+    expectedSignals = ['SIGABRT'];
+  }
 
   // When using --abort-on-uncaught-exception, V8 will use
   // base::OS::Abort to terminate the process.
