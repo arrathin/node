@@ -306,9 +306,14 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
     uv_rwlock_rdunlock(&req->loop->cloexec_lock);
     
 #ifdef __MVS__
-  // Tag new files as 819
-  if (req->newFile)
+  int old_errno = errno;
+  int doesFileExist = (stat(req->path, &buffer) == 0);
+  // Tag newly written files as 819 which does not exit prior to the open
+  if (req->newFile && doesFileExist)
     __chgfdccsid(r, 819);
+  
+  // restore errno from open
+  errno = old_errno;
 #endif
 
   return r;
