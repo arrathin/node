@@ -151,6 +151,7 @@ int main(int argc, char *argv[]) {
   __xfer_env();
   __chgfdccsid(STDOUT_FILENO, 1047);
   __chgfdccsid(STDERR_FILENO, 1047);
+  __debug_mode = 1;
 #endif
   // Disable stdio buffering, it interacts poorly with printf()
   // calls elsewhere in the program (e.g., any logging from V8.)

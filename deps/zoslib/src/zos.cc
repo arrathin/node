@@ -221,12 +221,8 @@ extern "C" void __xfer_env(void) {
     if (i < len) {
       int rc = __setenv_a(a_str, a_str + i + 1, 1);
       if (rc != 0) {
-        int caller_ebcdic = (!__isASCII());
-        if (caller_ebcdic)
-          __ae_thread_swapmode(__AE_ASCII_MODE);
+        __auto_ascii _a;
         __printf_a("__setenv_a %s=%s failed rc=%d\n", a_str, a_str + i + 1, rc);
-        if (caller_ebcdic)
-          __ae_thread_swapmode(__AE_EBCDIC_MODE);
       }
     }
     ++start;
@@ -242,12 +238,8 @@ extern "C" int __chgfdccsid(int fd, unsigned short ccsid) {
   return __fchattr(fd, &attr, sizeof(attr));
 }
 static void ledump(const char *title) {
-  int caller_ebcdic = (!__isASCII());
-  if (caller_ebcdic)
-    __ae_thread_swapmode(__AE_ASCII_MODE);
+  __auto_ascii _a;
   __cdump_a((char *)title);
-  if (caller_ebcdic)
-    __ae_thread_swapmode(__AE_EBCDIC_MODE);
 }
 extern "C" size_t __e2a_l(char *bufptr, size_t szLen) {
   int ccsid;
@@ -262,7 +254,7 @@ extern "C" size_t __e2a_l(char *bufptr, size_t szLen) {
       dprintf(2, "Attempt convert from ASCII to ASCII\n");
       ledump((char *)"Attempt convert from ASCII to ASCII");
     }
-    return szLen;
+    return szLen; // restore to convert
   }
 
   __convert_one_to_one(__ibm1047_iso88591, bufptr, szLen, bufptr);
@@ -281,7 +273,7 @@ extern "C" size_t __a2e_l(char *bufptr, size_t szLen) {
       dprintf(2, "Attempt convert from EBCDIC to EBCDIC\n");
       ledump((char *)"Attempt convert from EBCDIC to EBCDIC");
     }
-    return szLen;
+    return szLen; //restore to convert
   }
   __convert_one_to_one(__iso88591_ibm1047, bufptr, szLen, bufptr);
   return szLen;
@@ -310,9 +302,7 @@ extern "C" int dprintf(int fd, const char *fmt, ...) {
   va_copy(ap1, ap);
   va_copy(ap2, ap);
   int bytes;
-  int caller_ebcdic = (!__isASCII());
-  if (caller_ebcdic)
-    __ae_thread_swapmode(__AE_ASCII_MODE);
+  __auto_ascii _a;
   bytes = __vsnprintf_a(0, 0, fmt, ap1);
   buf = (char *)alloca(bytes + 1);
   len = __vsnprintf_a(buf, bytes + 1, fmt, ap2);
@@ -323,7 +313,113 @@ extern "C" int dprintf(int fd, const char *fmt, ...) {
     goto quit;
   len = write(fd, buf, len);
 quit:
-  if (caller_ebcdic)
-    __ae_thread_swapmode(__AE_EBCDIC_MODE);
   return len;
+}
+extern void __dump(int fd, const void *addr, size_t len, size_t bw) {
+  static const unsigned char *atbl = (unsigned char *)"................"
+                                                      "................"
+                                                      " !\"#$%&'()*+,-./"
+                                                      "0123456789:;<=>?"
+                                                      "@ABCDEFGHIJKLMNO"
+                                                      "PQRSTUVWXYZ[\\]^_"
+                                                      "`abcdefghijklmno"
+                                                      "pqrstuvwxyz{|}~."
+                                                      "................"
+                                                      "................"
+                                                      "................"
+                                                      "................"
+                                                      "................"
+                                                      "................"
+                                                      "................"
+                                                      "................";
+  static const unsigned char *etbl = (unsigned char *)"................"
+                                                      "................"
+                                                      "................"
+                                                      "................"
+                                                      " ...........<(+|"
+                                                      "&.........!$*);^"
+                                                      "-/.........,%_>?"
+                                                      ".........`:#@'=\""
+                                                      ".abcdefghi......"
+                                                      ".jklmnopqr......"
+                                                      ".~stuvwxyz...[.."
+                                                      ".............].."
+                                                      "{ABCDEFGHI......"
+                                                      "}JKLMNOPQR......"
+                                                      "\\.STUVWXYZ......"
+                                                      "0123456789......";
+  const unsigned char *p = (const unsigned char *)addr;
+  dprintf(fd, "Dump: \"Address: Content in Hexdecimal, ASCII, EBCDIC\"\n");
+  if (bw < 16 && bw > 64) {
+    bw = 16;
+  }
+  unsigned char line[2048];
+  const unsigned char *buffer;
+  long offset = 0;
+  long sz = 0;
+  long b = 0;
+  long i, j;
+  int c;
+  __auto_ascii _a;
+  while (len > 0) {
+    sz = (len > (bw - 1)) ? bw : len;
+    buffer = p + offset;
+    b = 0;
+    b += __snprintf_a((char *)line + b, 2048 - b, "%*p:", 16, buffer);
+    for (i = 0; i < sz; ++i) {
+      if ((i & 3) == 0)
+        line[b++] = ' ';
+      c = buffer[i];
+      line[b++] = "0123456789abcdef"[(0xf0 & c) >> 4];
+      line[b++] = "0123456789abcdef"[(0x0f & c)];
+    }
+    for (; i < bw; ++i) {
+      if ((i & 3) == 0)
+        line[b++] = ' ';
+      line[b++] = ' ';
+      line[b++] = ' ';
+    }
+    line[b++] = ' ';
+    line[b++] = '|';
+    for (i = 0; i < sz; ++i) {
+      c = buffer[i];
+      if (c == -1) {
+        line[b++] = '*';
+      } else {
+        line[b++] = atbl[c];
+      }
+    }
+    for (; i < bw; ++i) {
+      line[b++] = ' ';
+    }
+    line[b++] = '|';
+    line[b++] = ' ';
+    line[b++] = '|';
+    for (i = 0; i < sz; ++i) {
+      c = buffer[i];
+      if (c == -1) {
+        line[b++] = '*';
+      } else {
+        line[b++] = etbl[c];
+      }
+    }
+    for (; i < bw; ++i) {
+      line[b++] = ' ';
+    }
+    line[b++] = '|';
+    line[b++] = 0;
+    dprintf(fd, "%-.*s\n", b, line);
+    offset += sz;
+    len -= sz;
+  }
+}
+
+__auto_ascii::__auto_ascii(void) {
+  ascii_mode = __isASCII();
+  if (ascii_mode == 0)
+    __ae_thread_swapmode(__AE_ASCII_MODE);
+}
+__auto_ascii::~__auto_ascii(void) {
+  if (ascii_mode == 0)
+    __ae_thread_swapmode(__AE_EBCDIC_MODE);
 }
