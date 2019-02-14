@@ -25,6 +25,7 @@ extern size_t __a2e_s(char *string);
 extern int dprintf(int fd, const char *, ...);
 extern void __xfer_env(void);
 extern int __chgfdccsid(int fd, unsigned short ccsid);
+extern void __dump(int fd, const void *addr, size_t len, size_t bw);
 
 #ifdef __cplusplus
 }
@@ -47,5 +48,15 @@ extern int __chgfdccsid(int fd, unsigned short ccsid);
   (__isASCII() ? ((_x), 0)                                                     \
                : (__ae_thread_swapmode(__AE_ASCII_MODE), (_x),                 \
                   __ae_thread_swapmode(__AE_EBCDIC_MODE), 1))
+
+#ifdef __cplusplus
+class __auto_ascii {
+  int ascii_mode;
+public:
+  __auto_ascii();
+  ~__auto_ascii();
+};
+
+#endif
 
 #endif
