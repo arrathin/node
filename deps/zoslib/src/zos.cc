@@ -254,7 +254,7 @@ extern "C" size_t __e2a_l(char *bufptr, size_t szLen) {
       dprintf(2, "Attempt convert from ASCII to ASCII\n");
       ledump((char *)"Attempt convert from ASCII to ASCII");
     }
-    return szLen; // restore to convert
+    // return szLen; restore to convert
   }
 
   __convert_one_to_one(__ibm1047_iso88591, bufptr, szLen, bufptr);
@@ -273,7 +273,7 @@ extern "C" size_t __a2e_l(char *bufptr, size_t szLen) {
       dprintf(2, "Attempt convert from EBCDIC to EBCDIC\n");
       ledump((char *)"Attempt convert from EBCDIC to EBCDIC");
     }
-    return szLen; //restore to convert
+    // return szLen; restore to convert
   }
   __convert_one_to_one(__iso88591_ibm1047, bufptr, szLen, bufptr);
   return szLen;
