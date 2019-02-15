@@ -56,6 +56,7 @@
             ['OS=="zos"', {
              'cflags': [
               '-fexec-charset=ISO8859-1',
+              '-qexportall',
               ],
             }],
             ['OS=="mac" or OS=="ios" or OS=="freebsd" or OS=="android"', {
