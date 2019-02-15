@@ -395,8 +395,9 @@ done:
           buf.st_tag.ft_ccsid == FT_BINARY
         )
      )
-    for (int idx = 0; idx < req->nbufs; idx++)
-      __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
+    for (int idx = 0; idx < req->nbufs; idx++) {
+        __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
+    }
 #endif
   return result;
 }
@@ -734,6 +735,36 @@ static ssize_t uv__fs_utime(uv_fs_t* req) {
 }
 
 
+#ifdef __MVS__
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+
+ssize_t __writev(int fd, const struct iovec *vector, int count) {
+  size_t bytes = 0;
+
+  for (int i = 0; i < count; ++i) {
+    if ((SSIZE_MAX - bytes) < vector[i].iov_len) {
+          errno = EINVAL;
+          return -1;
+    }
+    bytes += vector[i].iov_len;
+  }
+
+  char *buffer = (char *) __alloca(bytes);
+
+  size_t copy_bytes = bytes;
+  char *bp = buffer;
+  for (int i = 0; i < count; ++i) {
+      size_t copy = MIN(vector[i].iov_len, copy_bytes);
+      bp = memcpy ((void *)bp, (void *)vector[i].iov_base, copy) + copy;
+      copy_bytes -= copy;
+      if (copy_bytes == 0)
+        break;
+  }
+  ssize_t num_bytes = write(fd, buffer, bytes);
+  return num_bytes;
+}
+#endif
+
 static ssize_t uv__fs_write(uv_fs_t* req) {
 #if defined(__MVS__)
   int doconvert;
@@ -751,9 +782,10 @@ static ssize_t uv__fs_write(uv_fs_t* req) {
     doconvert = 1;
 
   if (doconvert) {
-    for (int idx = 0; idx < req->nbufs; idx++)
-      __a2e_l(req->bufs[idx].base, req->bufs[idx].len);
+    for (int idx = 0; idx < req->nbufs; idx++) {
+        __a2e_l(req->bufs[idx].base, req->bufs[idx].len);
     }
+  }
 
 #endif
 
@@ -776,8 +808,13 @@ static ssize_t uv__fs_write(uv_fs_t* req) {
   if (req->off < 0) {
     if (req->nbufs == 1)
       r = write(req->file, req->bufs[0].base, req->bufs[0].len);
-    else
+    else {
+#if defined(__MVS__)
+      r = __writev(req->file, (struct iovec*) req->bufs, req->nbufs);
+#else
       r = writev(req->file, (struct iovec*) req->bufs, req->nbufs);
+#endif
+    }
   } else {
     if (req->nbufs == 1) {
       r = pwrite(req->file, req->bufs[0].base, req->bufs[0].len, req->off);
@@ -832,8 +869,9 @@ done:
 #endif
 #if defined(__MVS__)
   if (doconvert)
-    for (int idx = 0; idx < req->nbufs; idx++)
+    for (int idx = 0; idx < req->nbufs; idx++) {
       __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
+    }
 #endif
 
   return r;
