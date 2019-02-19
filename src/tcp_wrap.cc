@@ -248,7 +248,7 @@ void TCPWrap::Bind6(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&wrap,
                           args.Holder(),
                           args.GetReturnValue().Set(UV_EBADF));
-  node::Utf8Value ip6_address(args.GetIsolate(), args[0]);
+  node::NativeEncodingValue ip6_address(args.GetIsolate(), args[0]);
   int port = args[1]->Int32Value();
   sockaddr_in6 addr;
   int err = uv_ip6_addr(*ip6_address, port, &addr);
