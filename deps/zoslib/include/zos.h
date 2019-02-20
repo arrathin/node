@@ -26,6 +26,9 @@ extern int dprintf(int fd, const char *, ...);
 extern void __xfer_env(void);
 extern int __chgfdccsid(int fd, unsigned short ccsid);
 extern void __dump(int fd, const void *addr, size_t len, size_t bw);
+extern int backtrace(void **buffer, int size);
+extern char **backtrace_symbols(void *const *buffer, int size);
+extern void backtrace_symbols_fd(void *const *buffer, int size, int fd);
 
 #ifdef __cplusplus
 }
@@ -52,6 +55,7 @@ extern void __dump(int fd, const void *addr, size_t len, size_t bw);
 #ifdef __cplusplus
 class __auto_ascii {
   int ascii_mode;
+
 public:
   __auto_ascii();
   ~__auto_ascii();
