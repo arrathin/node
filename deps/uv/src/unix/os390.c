@@ -342,7 +342,7 @@ uint64_t uv_get_free_memory(void) {
   data_area_ptr rcep = {0};
   cvt.assign = *(data_area_ptr_assign_type*)(CVT_PTR);
   rcep.assign = *(data_area_ptr_assign_type*)(cvt.deref + CVTRCEP_OFFSET);
-  freeram = *((uint64_t*)(rcep.deref + RCEAFC_OFFSET)) * 4;
+  freeram = *((uint32_t*)(rcep.deref + RCEAFC_OFFSET)) * 4;
   return freeram;
 }
 
@@ -354,7 +354,7 @@ uint64_t uv_get_total_memory(void) {
   data_area_ptr rcep = {0};
   cvt.assign = *(data_area_ptr_assign_type*)(CVT_PTR);
   rcep.assign = *(data_area_ptr_assign_type*)(cvt.deref + CVTRCEP_OFFSET);
-  totalram = *((uint64_t*)(rcep.deref + RCEPOOL_OFFSET)) * 4;
+  totalram = *((uint32_t*)(rcep.deref + RCEPOOL_OFFSET)) * 4;
   return totalram;
 }
 
