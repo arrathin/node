@@ -41,7 +41,7 @@
 #define GETNAMEINFO_TYPE_ARG7 int
 
 /* Specifies the number of arguments to getservbyport_r */
-#define GETSERVBYPORT_R_ARGS 4
+// #define GETSERVBYPORT_R_ARGS 4
 
 /* Specifies the size of the buffer to pass to getservbyport_r */
 #define GETSERVBYPORT_R_BUFSIZE sizeof(struct servent_data)
@@ -116,7 +116,7 @@
 #define HAVE_GETNAMEINFO 1
 
 /* Define to 1 if you have the getservbyport_r function. */
-#define HAVE_GETSERVBYPORT_R 1
+// #define HAVE_GETSERVBYPORT_R 1
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #define HAVE_GETTIMEOFDAY 1
