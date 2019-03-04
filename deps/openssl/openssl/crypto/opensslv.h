@@ -30,7 +30,7 @@ extern "C" {
  * (Prior to 0.9.5a beta1, a different scheme was used: MMNNFFRBB for
  *  major minor fix final patch/beta)
  */
-# define OPENSSL_VERSION_NUMBER  0x1000211fL
+# define OPENSSL_VERSION_NUMBER  0x1000212fL
 # ifdef OPENSSL_FIPS
 #  define OPENSSL_VERSION_TEXT    "\x4f\x70\x65\x6e\x53\x53\x4c\x20\x31\x2e\x30\x2e\x32\x70\x2d\x66\x69\x70\x73\x20\x20\x31\x34\x20\x41\x75\x67\x20\x32\x30\x31\x38"
 # else

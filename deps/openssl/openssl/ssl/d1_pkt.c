@@ -1309,6 +1309,7 @@ int dtls1_read_bytes(SSL *s, int type, unsigned char *buf, int len, int peek)
             ERR_add_error_data(2, "\x53\x53\x4c\x20\x61\x6c\x65\x72\x74\x20\x6e\x75\x6d\x62\x65\x72\x20", tmp);
             s->shutdown |= SSL_RECEIVED_SHUTDOWN;
             SSL_CTX_remove_session(s->session_ctx, s->session);
+            s->state = SSL_ST_ERR;
             return (0);
         } else {
             al = SSL_AD_ILLEGAL_PARAMETER;
