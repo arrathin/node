@@ -38,8 +38,8 @@ extern void backtrace_symbols_fd(void *const *buffer, int size, int fd);
   ({                                                                           \
     const char *src = (const char *)(_str);                                    \
     int len = strlen(src) + 1;                                                 \
-    char *tgt = alloca(len);                                                   \
-    _convert_e2a(tgt, src, len);                                               \
+    char *tgt = (char *) alloca(len);                                          \
+    (char *)_convert_e2a(tgt, src, len);                                       \
   })
 
 #define AEWRAP(_rc, _x)                                                        \
