@@ -303,10 +303,20 @@ extern "C" int dprintf(int fd, const char *fmt, ...) {
   va_copy(ap1, ap);
   va_copy(ap2, ap);
   int bytes;
-  __auto_ascii _a;
-  bytes = __vsnprintf_a(0, 0, fmt, ap1);
-  buf = (char *)alloca(bytes + 1);
-  len = __vsnprintf_a(buf, bytes + 1, fmt, ap2);
+  int ccsid;
+  strlen_ae((const unsigned char *)fmt, &ccsid, strlen(fmt) + 1);
+  int mode;
+  if (ccsid == 819) {
+    mode = __ae_thread_swapmode(__AE_ASCII_MODE);
+    bytes = __vsnprintf_a(0, 0, fmt, ap1);
+    buf = (char *)alloca(bytes + 1);
+    len = __vsnprintf_a(buf, bytes + 1, fmt, ap2);
+  } else {
+    mode = __ae_thread_swapmode(__AE_EBCDIC_MODE);
+    bytes = __vsnprintf_e(0, 0, fmt, ap1);
+    buf = (char *)alloca(bytes + 1);
+    len = __vsnprintf_e(buf, bytes + 1, fmt, ap2);
+  }
   va_end(ap2);
   va_end(ap1);
   va_end(ap);
@@ -314,6 +324,7 @@ extern "C" int dprintf(int fd, const char *fmt, ...) {
     goto quit;
   len = write(fd, buf, len);
 quit:
+  __ae_thread_swapmode(mode);
   return len;
 }
 extern void __dump(int fd, const void *addr, size_t len, size_t bw) {
