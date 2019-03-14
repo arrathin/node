@@ -4422,7 +4422,7 @@ static void ParseArgs(int* argc,
       new_v8_argv[new_v8_argc] = "--help";
       new_v8_argc += 1;
     } else if (strncmp(arg, "--v8-pool-size=", 15) == 0) {
-      v8_thread_pool_size = atoi(arg + 15);
+      v8_thread_pool_size = atoi(*A2E(arg + 15));
 #if HAVE_OPENSSL
     } else if (strncmp(arg, "--tls-cipher-list=", 18) == 0) {
       default_cipher_list = arg + 18;
