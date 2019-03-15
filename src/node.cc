@@ -1165,7 +1165,7 @@ bool SafeGetenv(const char* key, std::string* text) {
 #endif
 
   if (const char* value = getenv(*A2E(key))) {
-    *text = value;
+    *text = *E2A(value);
     return true;
   }
 
@@ -3043,11 +3043,17 @@ void SetupProcessObject(Environment* env,
                     FIXED_ONE_BYTE_STRING(env->isolate(), ZLIB_VERSION));
   READONLY_PROPERTY(versions,
                     "ares",
-                    FIXED_ONE_BYTE_STRING(env->isolate(), NODE_STRINGIFY(ARES_VERSION_STR)));
+                    FIXED_ONE_BYTE_STRING(env->isolate(), ARES_VERSION_STR));
 
   READONLY_PROPERTY(versions,
                     "nghttp2",
                     FIXED_ONE_BYTE_STRING(env->isolate(), NGHTTP2_VERSION));
+
+  const char node_modules_version[] = NODE_STRINGIFY(NODE_MODULE_VERSION);
+  READONLY_PROPERTY(
+      versions,
+      "modules",
+      FIXED_ONE_BYTE_STRING(env->isolate(), node_modules_version));
 
   const char node_napi_version[] = NODE_STRINGIFY(NAPI_VERSION);
   READONLY_PROPERTY(
@@ -3849,9 +3855,9 @@ static void ParseArgs(int* argc,
       new_v8_argv[new_v8_argc] = "--help";
       new_v8_argc += 1;
     } else if (strncmp(arg, "--v8-pool-size=", 15) == 0) {
-      v8_thread_pool_size = atoi(arg + 15);
+      v8_thread_pool_size = atoi(*A2E(arg + 15));
     } else if (strncmp(arg, "--max-http-header-size=", 23) == 0) {
-      max_http_header_size = atoi(arg + 23);
+      max_http_header_size = atoi(*A2E(arg + 23));
 #if HAVE_OPENSSL
     } else if (strncmp(arg, "--tls-cipher-list=", 18) == 0) {
       default_cipher_list = arg + 18;
@@ -4303,17 +4309,18 @@ void Init(int* argc,
 
   if (config_warning_file.empty()) {
     SafeGetenv("NODE_REDIRECT_WARNINGS", &config_warning_file);
-    #ifdef __MVS__
-        transform(config_warning_file.begin(), config_warning_file.end(), config_warning_file.begin(), [](char c) -> char {
-          __e2a_l(&c, 1);
-          return c;
-        });
-    #endif
   }
 
 #if HAVE_OPENSSL
-  if (openssl_config.empty())
+  if (openssl_config.empty()) {
     SafeGetenv("OPENSSL_CONF", &openssl_config);
+    #ifdef __MVS__
+      transform(openssl_config.begin(), openssl_config.end(), openssl_config.begin(), [](char c) -> char {
+        __a2e_l(&c, 1);
+        return c;
+      });
+    #endif 
+  }
 #endif
 
 #if !defined(NODE_WITHOUT_NODE_OPTIONS)
@@ -4328,9 +4335,6 @@ void Init(int* argc,
     argv_from_env[argc_from_env++] = argv[0];
 
     char* cstr = strdup(node_options.c_str());
-#ifdef __MVS__
-    __e2a_s(cstr);
-#endif
     char* initptr = cstr;
     char* token;
     while ((token = strtok(initptr, " "))) {  // NOLINT(runtime/threadsafe_fn)
