@@ -65,6 +65,9 @@ inline char* Calloc(size_t n);
 inline char* UncheckedMalloc(size_t n);
 inline char* UncheckedCalloc(size_t n);
 
+template <typename T>
+inline T MultiplyWithOverflowCheck(T a, T b);
+
 // Used by the allocation functions when allocation fails.
 // Thin wrapper around v8::Isolate::LowMemoryNotification() that checks
 // whether V8 is initialized.
@@ -159,6 +162,7 @@ class ListNode {
 
  private:
   template <typename U, ListNode<U> (U::*M)> friend class ListHead;
+  friend int GenDebugSymbols();
   ListNode* prev_;
   ListNode* next_;
   DISALLOW_COPY_AND_ASSIGN(ListNode);
@@ -190,6 +194,7 @@ class ListHead {
   inline Iterator end() const;
 
  private:
+  friend int GenDebugSymbols();
   ListNode<T> head_;
   DISALLOW_COPY_AND_ASSIGN(ListHead);
 };
@@ -219,7 +224,7 @@ inline v8::Local<TypeName> PersistentToLocal(
     v8::Isolate* isolate,
     const v8::Persistent<TypeName>& persistent);
 
-// Unchecked conversion from a non-weak Persistent<T> to Local<TLocal<T>,
+// Unchecked conversion from a non-weak Persistent<T> to Local<T>,
 // use with care!
 //
 // Do not call persistent.Reset() while the returned Local<T> is still in

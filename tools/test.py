@@ -55,6 +55,7 @@ skip_regex = re.compile(r'# SKIP\S*\s+(.*)', re.IGNORECASE)
 
 VERBOSE = False
 
+os.environ['NODE_OPTIONS'] = ''
 
 # ---------------------------------------------
 # --- P r o g r e s s   I n d i c a t o r s ---
@@ -255,11 +256,12 @@ class DotsProgressIndicator(SimpleProgressIndicator):
 
 class TapProgressIndicator(SimpleProgressIndicator):
 
-  def _printDiagnostic(self, traceback, severity):
-    logger.info('  severity: %s', severity)
+  def _printDiagnostic(self):
+    logger.info('  severity: %s', self.severity)
+    self.exitcode and logger.info('  exitcode: %s', self.exitcode)
     logger.info('  stack: |-')
 
-    for l in traceback.splitlines():
+    for l in self.traceback.splitlines():
       logger.info('    ' + l)
 
   def Starting(self):
@@ -274,6 +276,7 @@ class TapProgressIndicator(SimpleProgressIndicator):
     self._done += 1
     self.traceback = ''
     self.severity = 'ok'
+    self.exitcode = ''
 
     # Print test name as (for example) "parallel/test-assert".  Tests that are
     # scraped from the addons documentation are all named test.js, making it
@@ -285,6 +288,7 @@ class TapProgressIndicator(SimpleProgressIndicator):
     if output.UnexpectedOutput():
       status_line = 'not ok %i %s' % (self._done, command)
       self.severity = 'fail'
+      self.exitcode = output.output.exit_code
       self.traceback = output.output.stdout + output.output.stderr
 
       if FLAKY in output.test.outcomes and self.flaky_tests_mode == DONTCARE:
@@ -295,10 +299,8 @@ class TapProgressIndicator(SimpleProgressIndicator):
 
       if output.HasCrashed():
         self.severity = 'crashed'
-        exit_code = output.output.exit_code
-        self.traceback = "oh no!\nexit code: " + PrintCrashed(exit_code)
 
-      if output.HasTimedOut():
+      elif output.HasTimedOut():
         self.severity = 'fail'
 
     else:
@@ -330,8 +332,8 @@ class TapProgressIndicator(SimpleProgressIndicator):
       (total_seconds, duration.microseconds / 1000))
     if self.severity is not 'ok' or self.traceback is not '':
       if output.HasTimedOut():
-        self.traceback = 'timeout'
-      self._printDiagnostic(self.traceback, self.severity)
+        self.traceback = 'timeout\n' + output.output.stdout + output.output.stderr
+      self._printDiagnostic()
     logger.info('  ...')
 
   def Done(self):
@@ -579,8 +581,7 @@ class TestOutput(object):
       # Timed out tests will have exit_code -signal.SIGTERM.
       if self.output.timed_out:
         return False
-      return self.output.exit_code < 0 and \
-             self.output.exit_code != -signal.SIGABRT
+      return self.output.exit_code < 0
 
   def HasTimedOut(self):
     return self.output.timed_out;
@@ -1746,7 +1747,7 @@ def Main():
     timed_tests.sort(lambda a, b: a.CompareTime(b))
     index = 1
     for entry in timed_tests[:20]:
-      t = FormatTime(entry.duration)
+      t = FormatTime(entry.duration.total_seconds())
       sys.stderr.write("%4i (%s) %s\n" % (index, t, entry.GetLabel()))
       index += 1
 

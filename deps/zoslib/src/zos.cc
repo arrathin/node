@@ -293,6 +293,35 @@ extern "C" size_t __a2e_s(char *string) {
   }
   return __a2e_l(string, strlen(string));
 }
+extern "C" int vdprintf(int fd, const char *fmt, va_list ap) {
+  int ccsid;
+  strlen_ae((const unsigned char *)fmt, &ccsid, strlen(fmt) + 1);
+  int mode;
+  int len;
+  int bytes;
+  char *buf;
+  va_list ap1;
+  va_list ap2;
+  va_copy(ap1, ap);
+  va_copy(ap2, ap);
+  if (ccsid == 819) {
+    mode = __ae_thread_swapmode(__AE_ASCII_MODE);
+    bytes = __vsnprintf_a(0, 0, fmt, ap1);
+    buf = (char *)alloca(bytes + 1);
+    len = __vsnprintf_a(buf, bytes + 1, fmt, ap2);
+  } else {
+    mode = __ae_thread_swapmode(__AE_EBCDIC_MODE);
+    bytes = __vsnprintf_e(0, 0, fmt, ap1);
+    buf = (char *)alloca(bytes + 1);
+    len = __vsnprintf_e(buf, bytes + 1, fmt, ap2);
+  }
+  if (len == -1)
+    goto quit;
+  len = write(fd, buf, len);
+quit:
+  __ae_thread_swapmode(mode);
+  return len;
+}
 extern "C" int dprintf(int fd, const char *fmt, ...) {
   va_list ap;
   char *buf;

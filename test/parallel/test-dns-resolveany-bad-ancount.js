@@ -30,6 +30,9 @@ server.bind(0, common.mustCall(() => {
     assert.strictEqual(err.code, 'EBADRESP');
     assert.strictEqual(err.syscall, 'queryAny');
     assert.strictEqual(err.hostname, 'example.org');
+    const descriptor = Object.getOwnPropertyDescriptor(err, 'message');
+    // The error message should be non-enumerable.
+    assert.strictEqual(descriptor.enumerable, false);
     server.close();
   }));
 }));

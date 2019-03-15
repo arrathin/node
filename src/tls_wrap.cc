@@ -230,11 +230,11 @@ void TLSWrap::Receive(const FunctionCallbackInfo<Value>& args) {
 
   // Copy given buffer entirely or partiall if handle becomes closed
   while (len > 0 && wrap->IsAlive() && !wrap->IsClosing()) {
-    wrap->stream_->OnAlloc(len, &buf);
+    wrap->stream_->EmitAlloc(len, &buf);
     size_t copy = buf.len > len ? len : buf.len;
     memcpy(buf.base, data, copy);
     buf.len = copy;
-    wrap->stream_->OnRead(buf.len, &buf);
+    wrap->stream_->EmitRead(buf.len, &buf);
 
     data += copy;
     len -= copy;
@@ -443,11 +443,11 @@ void TLSWrap::ClearOut() {
       int avail = read;
 
       uv_buf_t buf;
-      OnAlloc(avail, &buf);
+      EmitAlloc(avail, &buf);
       if (static_cast<int>(buf.len) < avail)
         avail = buf.len;
       memcpy(buf.base, current, avail);
-      OnRead(avail, &buf);
+      EmitRead(avail, &buf);
 
       // Caveat emptor: OnRead() calls into JS land which can result in
       // the SSL context object being destroyed.  We have to carefully
@@ -463,7 +463,7 @@ void TLSWrap::ClearOut() {
   int flags = SSL_get_shutdown(ssl_);
   if (!eof_ && flags & SSL_RECEIVED_SHUTDOWN) {
     eof_ = true;
-    OnRead(UV_EOF, nullptr);
+    EmitRead(UV_EOF, nullptr);
   }
 
   // We need to check whether an error occurred or the connection was
@@ -611,7 +611,12 @@ int TLSWrap::DoWrite(WriteWrap* w,
                      size_t count,
                      uv_stream_t* send_handle) {
   CHECK_EQ(send_handle, nullptr);
-  CHECK_NE(ssl_, nullptr);
+
+  if (ssl_ == nullptr) {
+    ClearError();
+    error_ = "Write after DestroySSL";
+    return UV_EPROTO;
+  }
 
   bool empty = true;
 
@@ -650,12 +655,6 @@ int TLSWrap::DoWrite(WriteWrap* w,
     for (i = 0; i < count; i++)
       clear_in_->Write(bufs[i].base, bufs[i].len);
     return 0;
-  }
-
-  if (ssl_ == nullptr) {
-    ClearError();
-    error_ = "Write after DestroySSL";
-    return UV_EPROTO;
   }
 
   crypto::MarkPopErrorOnReturn mark_pop_error_on_return;
@@ -754,13 +753,13 @@ void TLSWrap::DoRead(ssize_t nread,
       eof_ = true;
     }
 
-    OnRead(nread, nullptr);
+    EmitRead(nread, nullptr);
     return;
   }
 
   // Only client connections can receive data
   if (ssl_ == nullptr) {
-    OnRead(UV_EPROTO, nullptr);
+    EmitRead(UV_EPROTO, nullptr);
     return;
   }
 

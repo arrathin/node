@@ -2,7 +2,7 @@
 
 <!--introduced_in=v7.10.0-->
 
-> Stability: 1 - Experimental
+> Stability: 2 - Stable
 
 N-API (pronounced N as in the letter, followed by API)
 is an API for building native Addons. It is independent from
@@ -55,7 +55,7 @@ there to be one or more C++ wrapper modules that provide an inlineable C++
 API. Binaries built with these wrapper modules will depend on the symbols
 for the N-API C based functions exported by Node.js. These wrappers are not
 part of N-API, nor will they be maintained as part of Node.js. One such
-example is: [node-api](https://github.com/nodejs/node-api).
+example is: [node-addon-api](https://github.com/nodejs/node-addon-api).
 
 In order to use the N-API functions, include the file
 [node_api.h](https://github.com/nodejs/node/blob/master/src/node_api.h)
@@ -88,7 +88,9 @@ typedef enum {
   napi_generic_failure,
   napi_pending_exception,
   napi_cancelled,
-  napi_status_last
+  napi_escape_called_twice,
+  napi_handle_scope_mismatch,
+  napi_callback_scope_mismatch
 } napi_status;
 ```
 If additional information is required upon an API returning a failed status,
@@ -610,7 +612,7 @@ that has a loop which iterates through the elements in a large array:
 ```C
 for (int i = 0; i < 1000000; i++) {
   napi_value result;
-  napi_status status = napi_get_element(e, object, i, &result);
+  napi_status status = napi_get_element(env, object, i, &result);
   if (status != napi_ok) {
     break;
   }
@@ -647,7 +649,7 @@ for (int i = 0; i < 1000000; i++) {
     break;
   }
   napi_value result;
-  status = napi_get_element(e, object, i, &result);
+  status = napi_get_element(env, object, i, &result);
   if (status != napi_ok) {
     break;
   }
@@ -902,6 +904,58 @@ Returns `napi_ok` if the API succeeded.
 If still valid, this API returns the `napi_value` representing the
 JavaScript Object associated with the `napi_ref`. Otherwise, result
 will be NULL.
+
+### Cleanup on exit of the current Node.js instance
+
+While a Node.js process typically releases all its resources when exiting,
+embedders of Node.js, or future Worker support, may require addons to register
+clean-up hooks that will be run once the current Node.js instance exits.
+
+N-API provides functions for registering and un-registering such callbacks.
+When those callbacks are run, all resources that are being held by the addon
+should be freed up.
+
+#### napi_add_env_cleanup_hook
+<!-- YAML
+added: v8.12.0
+-->
+```C
+NODE_EXTERN napi_status napi_add_env_cleanup_hook(napi_env env,
+                                                  void (*fun)(void* arg),
+                                                  void* arg);
+```
+
+Registers `fun` as a function to be run with the `arg` parameter once the
+current Node.js environment exits.
+
+A function can safely be specified multiple times with different
+`arg` values. In that case, it will be called multiple times as well.
+Providing the same `fun` and `arg` values multiple times is not allowed
+and will lead the process to abort.
+
+The hooks will be called in reverse order, i.e. the most recently added one
+will be called first.
+
+Removing this hook can be done by using `napi_remove_env_cleanup_hook`.
+Typically, that happens when the resource for which this hook was added
+is being torn down anyway.
+
+#### napi_remove_env_cleanup_hook
+<!-- YAML
+added: v8.12.0
+-->
+```C
+NAPI_EXTERN napi_status napi_remove_env_cleanup_hook(napi_env env,
+                                                     void (*fun)(void* arg),
+                                                     void* arg);
+```
+
+Unregisters `fun` as a function to be run with the `arg` parameter once the
+current Node.js environment exits. Both the argument and the function value
+need to be exact matches.
+
+The function must have originally been registered
+with `napi_add_env_cleanup_hook`, otherwise the process will abort.
 
 ## Module registration
 N-API modules are registered in a manner similar to other modules
@@ -2484,10 +2538,10 @@ performed using a N-API call).
 property to be a JavaScript function represented by `method`. If this is
 passed in, set `value`, `getter` and `setter` to `NULL` (since these members
 won't be used).
-- `data`: The callback data passed into `method`, `getter` and `setter` if
-this function is invoked.
 - `attributes`: The attributes associated with the particular property.
 See [`napi_property_attributes`](#n_api_napi_property_attributes).
+- `data`: The callback data passed into `method`, `getter` and `setter` if
+this function is invoked.
 
 ### Functions
 #### napi_get_property_names
@@ -3783,30 +3837,30 @@ NAPI_EXTERN napi_status napi_get_uv_event_loop(napi_env env,
 - `[in] env`: The environment that the API is invoked under.
 - `[out] loop`: The current libuv loop instance.
 
-[Promises]: #n_api_promises
-[Simple Asynchronous Operations]: #n_api_simple_asynchronous_operations
-[Custom Asynchronous Operations]: #n_api_custom_asynchronous_operations
 [Basic N-API Data Types]: #n_api_basic_n_api_data_types
+[Custom Asynchronous Operations]: #n_api_custom_asynchronous_operations
 [ECMAScript Language Specification]: https://tc39.github.io/ecma262/
 [Error Handling]: #n_api_error_handling
 [Module Registration]: #n_api_module_registration
 [Native Abstractions for Node.js]: https://github.com/nodejs/nan
 [Object Lifetime Management]: #n_api_object_lifetime_management
 [Object Wrap]: #n_api_object_wrap
+[Promises]: #n_api_promises
 [Script Execution]: #n_api_script_execution
-[Section 9.1.6]: https://tc39.github.io/ecma262/#sec-ordinary-object-internal-methods-and-internal-slots-defineownproperty-p-desc
 [Section 12.5.5]: https://tc39.github.io/ecma262/#sec-typeof-operator
 [Section 24.3]: https://tc39.github.io/ecma262/#sec-dataview-objects
 [Section 25.4]: https://tc39.github.io/ecma262/#sec-promise-objects
+[Section 9.1.6]: https://tc39.github.io/ecma262/#sec-ordinary-object-internal-methods-and-internal-slots-defineownproperty-p-desc
+[Simple Asynchronous Operations]: #n_api_simple_asynchronous_operations
 [Working with JavaScript Functions]: #n_api_working_with_javascript_functions
 [Working with JavaScript Properties]: #n_api_working_with_javascript_properties
-[Working with JavaScript Values]: #n_api_working_with_javascript_values
 [Working with JavaScript Values - Abstract Operations]: #n_api_working_with_javascript_values_abstract_operations
-
+[Working with JavaScript Values]: #n_api_working_with_javascript_values
+[`init` hooks]: async_hooks.html#async_hooks_init_asyncid_type_triggerasyncid_resource
 [`napi_async_init`]: #n_api_napi_async_init
 [`napi_cancel_async_work`]: #n_api_napi_cancel_async_work
-[`napi_close_escapable_handle_scope`]: #n_api_napi_close_escapable_handle_scope
 [`napi_close_callback_scope`]: #n_api_napi_close_callback_scope
+[`napi_close_escapable_handle_scope`]: #n_api_napi_close_escapable_handle_scope
 [`napi_close_handle_scope`]: #n_api_napi_close_handle_scope
 [`napi_create_async_work`]: #n_api_napi_create_async_work
 [`napi_create_error`]: #n_api_napi_create_error
@@ -3814,23 +3868,22 @@ NAPI_EXTERN napi_status napi_get_uv_event_loop(napi_env env,
 [`napi_create_range_error`]: #n_api_napi_create_range_error
 [`napi_create_reference`]: #n_api_napi_create_reference
 [`napi_create_type_error`]: #n_api_napi_create_type_error
-[`napi_delete_async_work`]: #n_api_napi_delete_async_work
 [`napi_define_class`]: #n_api_napi_define_class
+[`napi_delete_async_work`]: #n_api_napi_delete_async_work
 [`napi_delete_element`]: #n_api_napi_delete_element
 [`napi_delete_property`]: #n_api_napi_delete_property
 [`napi_delete_reference`]: #n_api_napi_delete_reference
 [`napi_escape_handle`]: #n_api_napi_escape_handle
+[`napi_get_and_clear_last_exception`]: #n_api_napi_get_and_clear_last_exception
 [`napi_get_array_length`]: #n_api_napi_get_array_length
 [`napi_get_element`]: #n_api_napi_get_element
+[`napi_get_last_error_info`]: #n_api_napi_get_last_error_info
 [`napi_get_property`]: #n_api_napi_get_property
-[`napi_has_property`]: #n_api_napi_has_property
-[`napi_has_own_property`]: #n_api_napi_has_own_property
-[`napi_set_property`]: #n_api_napi_set_property
 [`napi_get_reference_value`]: #n_api_napi_get_reference_value
+[`napi_has_own_property`]: #n_api_napi_has_own_property
+[`napi_has_property`]: #n_api_napi_has_property
 [`napi_is_error`]: #n_api_napi_is_error
 [`napi_is_exception_pending`]: #n_api_napi_is_exception_pending
-[`napi_get_last_error_info`]: #n_api_napi_get_last_error_info
-[`napi_get_and_clear_last_exception`]: #n_api_napi_get_and_clear_last_exception
 [`napi_make_callback`]: #n_api_napi_make_callback
 [`napi_open_callback_scope`]: #n_api_napi_open_callback_scope
 [`napi_open_escapable_handle_scope`]: #n_api_napi_open_escapable_handle_scope
@@ -3839,13 +3892,12 @@ NAPI_EXTERN napi_status napi_get_uv_event_loop(napi_env env,
 [`napi_queue_async_work`]: #n_api_napi_queue_async_work
 [`napi_reference_ref`]: #n_api_napi_reference_ref
 [`napi_reference_unref`]: #n_api_napi_reference_unref
-[`napi_throw`]: #n_api_napi_throw
+[`napi_set_property`]: #n_api_napi_set_property
 [`napi_throw_error`]: #n_api_napi_throw_error
 [`napi_throw_range_error`]: #n_api_napi_throw_range_error
 [`napi_throw_type_error`]: #n_api_napi_throw_type_error
+[`napi_throw`]: #n_api_napi_throw
 [`napi_unwrap`]: #n_api_napi_unwrap
 [`napi_wrap`]: #n_api_napi_wrap
-
 [`process.release`]: process.html#process_process_release
-[`init` hooks]: async_hooks.html#async_hooks_init_asyncid_type_triggerasyncid_resource
 [async_hooks `type`]: async_hooks.html#async_hooks_type

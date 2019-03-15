@@ -1,4 +1,7 @@
-#define _AE_BIMODAL
+#ifndef _AE_BIMODAL
+#define _AE_BIMODAL 1
+#endif
+
 #include "stream_base-inl.h"
 #include "stream_wrap.h"
 
@@ -193,6 +196,13 @@ int StreamBase::Writev(const FunctionCallbackInfo<Value>& args) {
       bufs[i].len = str_size;
       offset += str_size;
       bytes += str_size;
+    }
+
+    err = DoTryWrite(&buf_list, &count);
+    if (err != 0 || count == 0) {
+      req_wrap->Dispatched();
+      req_wrap->Dispose();
+      goto done;
     }
   }
 
@@ -412,7 +422,7 @@ void StreamBase::AfterWrite(WriteWrap* req_wrap, int status) {
   // Unref handle property
   Local<Object> req_wrap_obj = req_wrap->object();
   req_wrap_obj->Delete(env->context(), env->handle_string()).FromJust();
-  OnAfterWrite(req_wrap, status);
+  EmitAfterWrite(req_wrap, status);
 
   Local<Value> argv[] = {
     Integer::New(env->isolate(), status),

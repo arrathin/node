@@ -19,7 +19,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#define _AE_BIMODAL
+#ifndef _AE_BIMODAL
+#define _AE_BIMODAL 1
+#endif
 #include "env-inl.h"
 #include "handle_wrap.h"
 #include "node_wrap.h"

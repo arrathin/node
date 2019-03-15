@@ -8,8 +8,7 @@ const http2 = require('http2');
 const Countdown = require('../common/countdown');
 
 // Check that destroying the Http2ServerResponse stream produces
-// the expected result, including the ability to throw an error
-// which is emitted on server.streamError
+// the expected result.
 
 const errors = [
   'test-error',
@@ -59,7 +58,7 @@ server.listen(0, common.mustCall(() => {
     req.on('error', common.expectsError({
       code: 'ERR_HTTP2_STREAM_ERROR',
       type: Error,
-      message: 'Stream closed with error code 2'
+      message: 'Stream closed with error code NGHTTP2_INTERNAL_ERROR'
     }));
     req.on('close', common.mustCall(() => countdown.dec()));
 
@@ -74,7 +73,7 @@ server.listen(0, common.mustCall(() => {
     req.on('error', common.expectsError({
       code: 'ERR_HTTP2_STREAM_ERROR',
       type: Error,
-      message: 'Stream closed with error code 2'
+      message: 'Stream closed with error code NGHTTP2_INTERNAL_ERROR'
     }));
     req.on('close', common.mustCall(() => countdown.dec()));
 

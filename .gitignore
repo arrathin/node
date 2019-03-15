@@ -14,6 +14,7 @@
 !.mailmap
 !.nycrc
 !.remarkrc
+!.travis.yml
 
 core
 vgcore.*
@@ -106,8 +107,8 @@ deps/npm/node_modules/.bin/
 
 # test artifacts
 tools/faketime
-tools/remark-cli
-tools/remark-preset-lint-node
+tools/remark-cli/node_modules
+tools/remark-preset-lint-node/node_modules
 icu_config.gypi
 *.tap
 
@@ -128,3 +129,9 @@ deps/v8z
 install/
 v8z/
 
+# ignore VS compiler output unhandled by V8's .gitignore
+deps/v8/src/Debug/
+deps/v8/src/Release/
+deps/v8/src/inspector/Debug/
+deps/v8/src/inspector/Release/
+deps/v8/third_party/eu-strip/

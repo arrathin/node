@@ -8,6 +8,7 @@
 
 #include <fstream>  // NOLINT(readability/streams)
 #include <sstream>
+#include <unordered_map>
 
 #include "src/assembler-inl.h"
 #include "src/ast/ast-value-factory.h"
@@ -128,8 +129,6 @@ void ThreadLocalTop::Free() {
 base::Thread::LocalStorageKey Isolate::isolate_key_;
 base::Thread::LocalStorageKey Isolate::thread_id_key_;
 base::Thread::LocalStorageKey Isolate::per_isolate_thread_data_key_;
-base::LazyMutex Isolate::thread_data_table_mutex_ = LAZY_MUTEX_INITIALIZER;
-Isolate::ThreadDataTable* Isolate::thread_data_table_ = NULL;
 base::Atomic32 Isolate::isolate_counter_ = 0;
 #if DEBUG
 base::Atomic32 Isolate::isolate_key_created_ = 0;
@@ -140,13 +139,13 @@ Isolate::PerIsolateThreadData*
   ThreadId thread_id = ThreadId::Current();
   PerIsolateThreadData* per_thread = NULL;
   {
-    base::LockGuard<base::Mutex> lock_guard(thread_data_table_mutex_.Pointer());
-    per_thread = thread_data_table_->Lookup(this, thread_id);
+    base::LockGuard<base::Mutex> lock_guard(&thread_data_table_mutex_);
+    per_thread = thread_data_table_.Lookup(thread_id);
     if (per_thread == NULL) {
       per_thread = new PerIsolateThreadData(this, thread_id);
-      thread_data_table_->Insert(per_thread);
+      thread_data_table_.Insert(per_thread);
     }
-    DCHECK(thread_data_table_->Lookup(this, thread_id) == per_thread);
+    DCHECK(thread_data_table_.Lookup(thread_id) == per_thread);
   }
   return per_thread;
 }
@@ -157,12 +156,11 @@ void Isolate::DiscardPerThreadDataForThisThread() {
   if (thread_id_int) {
     ThreadId thread_id = ThreadId(thread_id_int);
     DCHECK(!thread_manager_->mutex_owner_.Equals(thread_id));
-    base::LockGuard<base::Mutex> lock_guard(thread_data_table_mutex_.Pointer());
-    PerIsolateThreadData* per_thread =
-        thread_data_table_->Lookup(this, thread_id);
+    base::LockGuard<base::Mutex> lock_guard(&thread_data_table_mutex_);
+    PerIsolateThreadData* per_thread = thread_data_table_.Lookup(thread_id);
     if (per_thread) {
       DCHECK(!per_thread->thread_state_);
-      thread_data_table_->Remove(per_thread);
+      thread_data_table_.Remove(per_thread);
     }
   }
 }
@@ -178,23 +176,20 @@ Isolate::PerIsolateThreadData* Isolate::FindPerThreadDataForThread(
     ThreadId thread_id) {
   PerIsolateThreadData* per_thread = NULL;
   {
-    base::LockGuard<base::Mutex> lock_guard(thread_data_table_mutex_.Pointer());
-    per_thread = thread_data_table_->Lookup(this, thread_id);
+    base::LockGuard<base::Mutex> lock_guard(&thread_data_table_mutex_);
+    per_thread = thread_data_table_.Lookup(thread_id);
   }
   return per_thread;
 }
 
 
 void Isolate::InitializeOncePerProcess() {
-  base::LockGuard<base::Mutex> lock_guard(thread_data_table_mutex_.Pointer());
-  CHECK(thread_data_table_ == NULL);
   isolate_key_ = base::Thread::CreateThreadLocalKey();
 #if DEBUG
   base::Relaxed_Store(&isolate_key_created_, 1);
 #endif
   thread_id_key_ = base::Thread::CreateThreadLocalKey();
   per_isolate_thread_data_key_ = base::Thread::CreateThreadLocalKey();
-  thread_data_table_ = new Isolate::ThreadDataTable();
 }
 
 Address Isolate::get_address_from_id(IsolateAddressId id) {
@@ -1537,9 +1532,17 @@ void Isolate::PrintCurrentStackTrace(FILE* out) {
 
     Handle<Object> receiver(frame->receiver(), this);
     Handle<JSFunction> function(frame->function(), this);
-    Handle<AbstractCode> code(AbstractCode::cast(frame->LookupCode()), this);
-    const int offset =
-        static_cast<int>(frame->pc() - code->instruction_start());
+    Handle<AbstractCode> code;
+    int offset;
+    if (frame->is_interpreted()) {
+      InterpretedFrame* interpreted_frame = reinterpret_cast<InterpretedFrame*>(frame);
+      code = handle(AbstractCode::cast(interpreted_frame->GetBytecodeArray()),
+                    this);
+      offset = interpreted_frame->GetBytecodeOffset();
+    } else {
+      code = handle(AbstractCode::cast(frame->LookupCode()), this);
+      offset = static_cast<int>(frame->pc() - code->instruction_start());
+    }
 
     JSStackFrame site(this, receiver, function, code, offset);
     Handle<String> line = site.ToString().ToHandleChecked();
@@ -2093,18 +2096,9 @@ char* Isolate::RestoreThread(char* from) {
   return from + sizeof(ThreadLocalTop);
 }
 
+Isolate::ThreadDataTable::ThreadDataTable() : table_() {}
 
-Isolate::ThreadDataTable::ThreadDataTable()
-    : list_(NULL) {
-}
-
-
-Isolate::ThreadDataTable::~ThreadDataTable() {
-  // TODO(svenpanne) The assertion below would fire if an embedder does not
-  // cleanly dispose all Isolates before disposing v8, so we are conservative
-  // and leave it out for now.
-  // DCHECK_NULL(list_);
-}
+Isolate::ThreadDataTable::~ThreadDataTable() {}
 
 void Isolate::ReleaseManagedObjects() {
   Isolate::ManagedObjectFinalizer* current =
@@ -2151,39 +2145,30 @@ Isolate::PerIsolateThreadData::~PerIsolateThreadData() {
 #endif
 }
 
-
-Isolate::PerIsolateThreadData*
-    Isolate::ThreadDataTable::Lookup(Isolate* isolate,
-                                     ThreadId thread_id) {
-  for (PerIsolateThreadData* data = list_; data != NULL; data = data->next_) {
-    if (data->Matches(isolate, thread_id)) return data;
-  }
-  return NULL;
+Isolate::PerIsolateThreadData* Isolate::ThreadDataTable::Lookup(
+    ThreadId thread_id) {
+  auto t = table_.find(thread_id);
+  if (t == table_.end()) return nullptr;
+  return t->second;
 }
 
 
 void Isolate::ThreadDataTable::Insert(Isolate::PerIsolateThreadData* data) {
-  if (list_ != NULL) list_->prev_ = data;
-  data->next_ = list_;
-  list_ = data;
+  bool inserted = table_.insert(std::make_pair(data->thread_id_, data)).second;
+  CHECK(inserted);
 }
 
 
 void Isolate::ThreadDataTable::Remove(PerIsolateThreadData* data) {
-  if (list_ == data) list_ = data->next_;
-  if (data->next_ != NULL) data->next_->prev_ = data->prev_;
-  if (data->prev_ != NULL) data->prev_->next_ = data->next_;
+  table_.erase(data->thread_id_);
   delete data;
 }
 
-
-void Isolate::ThreadDataTable::RemoveAllThreads(Isolate* isolate) {
-  PerIsolateThreadData* data = list_;
-  while (data != NULL) {
-    PerIsolateThreadData* next = data->next_;
-    if (data->isolate() == isolate) Remove(data);
-    data = next;
+void Isolate::ThreadDataTable::RemoveAllThreads() {
+  for (auto& x : table_) {
+    delete x.second;
   }
+  table_.clear();
 }
 
 
@@ -2360,10 +2345,6 @@ Isolate::Isolate(bool enable_serializer)
       wasm_compilation_manager_(new wasm::CompilationManager()),
       abort_on_uncaught_exception_callback_(NULL),
       total_regexp_code_generated_(0) {
-  {
-    base::LockGuard<base::Mutex> lock_guard(thread_data_table_mutex_.Pointer());
-    CHECK(thread_data_table_);
-  }
   id_ = base::Relaxed_AtomicIncrement(&isolate_counter_, 1);
   TRACE_ISOLATE(constructor);
 
@@ -2418,20 +2399,14 @@ void Isolate::TearDown() {
   Deinit();
 
   {
-    base::LockGuard<base::Mutex> lock_guard(thread_data_table_mutex_.Pointer());
-    thread_data_table_->RemoveAllThreads(this);
+    base::LockGuard<base::Mutex> lock_guard(&thread_data_table_mutex_);
+    thread_data_table_.RemoveAllThreads();
   }
 
   delete this;
 
   // Restore the previous current isolate.
   SetIsolateThreadLocals(saved_isolate, saved_data);
-}
-
-
-void Isolate::GlobalTearDown() {
-  delete thread_data_table_;
-  thread_data_table_ = NULL;
 }
 
 
@@ -2722,7 +2697,6 @@ bool Isolate::Init(StartupDeserializer* des) {
   call_descriptor_data_ =
       new CallInterfaceDescriptorData[CallDescriptors::NUMBER_OF_DESCRIPTORS];
   access_compiler_data_ = new AccessCompilerData();
-  cpu_profiler_ = new CpuProfiler(this);
   heap_profiler_ = new HeapProfiler(heap());
   interpreter_ = new interpreter::Interpreter(this);
   compiler_dispatcher_ =
@@ -2837,6 +2811,9 @@ bool Isolate::Init(StartupDeserializer* des) {
            Internals::kExternalMemoryOffset);
   CHECK_EQ(static_cast<int>(OFFSET_OF(Isolate, heap_.external_memory_limit_)),
            Internals::kExternalMemoryLimitOffset);
+  CHECK_EQ(static_cast<int>(
+               OFFSET_OF(Isolate, heap_.external_memory_at_last_mark_compact_)),
+           Internals::kExternalMemoryAtLastMarkCompactOffset);
 
   time_millis_at_init_ = heap_.MonotonicallyIncreasingTimeInMs();
 
@@ -2990,6 +2967,10 @@ bool Isolate::use_optimizer() {
   return FLAG_opt && !serializer_enabled_ &&
          CpuFeatures::SupportsCrankshaft() &&
          !is_precise_count_code_coverage() && !is_block_count_code_coverage();
+}
+
+bool Isolate::NeedsDetailedOptimizedCodeLineInfo() const {
+  return NeedsSourcePositionsForProfiling() || FLAG_detailed_line_info;
 }
 
 bool Isolate::NeedsSourcePositionsForProfiling() const {
@@ -3330,7 +3311,7 @@ MaybeHandle<JSPromise> NewRejectedPromise(Isolate* isolate,
 }  // namespace
 
 MaybeHandle<JSPromise> Isolate::RunHostImportModuleDynamicallyCallback(
-    Handle<String> source_url, Handle<Object> specifier) {
+    Handle<Script> referrer, Handle<Object> specifier) {
   v8::Local<v8::Context> api_context = v8::Utils::ToLocal(native_context());
 
   if (host_import_module_dynamically_callback_ == nullptr) {
@@ -3353,7 +3334,7 @@ MaybeHandle<JSPromise> Isolate::RunHostImportModuleDynamicallyCallback(
   ASSIGN_RETURN_ON_SCHEDULED_EXCEPTION_VALUE(
       this, promise,
       host_import_module_dynamically_callback_(
-          api_context, v8::Utils::ToLocal(source_url),
+          api_context, v8::Utils::ScriptOrModuleToLocal(referrer),
           v8::Utils::ToLocal(specifier_str)),
       MaybeHandle<JSPromise>());
   return v8::Utils::OpenHandle(*promise);
@@ -3714,6 +3695,13 @@ void Isolate::PrintWithTimestamp(const char* format, ...) {
   va_start(arguments, format);
   base::OS::VPrint(format, arguments);
   va_end(arguments);
+}
+
+CpuProfiler* Isolate::EnsureCpuProfiler() {
+  if (!cpu_profiler_) {
+    cpu_profiler_ = new CpuProfiler(this);
+  }
+  return cpu_profiler_;
 }
 
 bool StackLimitCheck::JsHasOverflowed(uintptr_t gap) const {

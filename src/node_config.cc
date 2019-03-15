@@ -85,6 +85,13 @@ static void InitConfig(Local<Object> target,
   if (config_expose_http2)
     READONLY_BOOLEAN_PROPERTY("exposeHTTP2");
 
+  if (env->abort_on_uncaught_exception())
+    READONLY_BOOLEAN_PROPERTY("shouldAbortOnUncaughtException");
+
+  READONLY_PROPERTY(target,
+                    "maxHTTPHeaderSize",
+                    Number::New(env->isolate(), max_http_header_size));
+
   READONLY_PROPERTY(target,
                     "bits",
                     Number::New(env->isolate(), 8 * sizeof(intptr_t)));

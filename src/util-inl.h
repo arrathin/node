@@ -155,12 +155,16 @@ typename ListHead<T, M>::Iterator ListHead<T, M>::end() const {
 }
 
 template <typename Inner, typename Outer>
+constexpr uintptr_t OffsetOf(Inner Outer::*field) {
+  return reinterpret_cast<uintptr_t>(&(static_cast<Outer*>(0)->*field));
+}
+
+template <typename Inner, typename Outer>
 ContainerOfHelper<Inner, Outer>::ContainerOfHelper(Inner Outer::*field,
                                                    Inner* pointer)
-    : pointer_(reinterpret_cast<Outer*>(
-          reinterpret_cast<uintptr_t>(pointer) -
-          reinterpret_cast<uintptr_t>(&(static_cast<Outer*>(0)->*field)))) {
-}
+    : pointer_(
+        reinterpret_cast<Outer*>(
+            reinterpret_cast<uintptr_t>(pointer) - OffsetOf(field))) {}
 
 template <typename Inner, typename Outer>
 template <typename TypeName>
@@ -341,8 +345,9 @@ bool StringEqualNoCaseN(const char* a, const char* b, size_t length) {
   return true;
 }
 
-inline size_t MultiplyWithOverflowCheck(size_t a, size_t b) {
-  size_t ret = a * b;
+template <typename T>
+inline T MultiplyWithOverflowCheck(T a, T b) {
+  auto ret = a * b;
   if (a != 0)
     CHECK_EQ(b, ret / a);
 

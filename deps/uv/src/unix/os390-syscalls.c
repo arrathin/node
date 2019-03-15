@@ -317,6 +317,7 @@ int epoll_wait(uv__os390_epoll* lst, struct epoll_event* events,
 
     ev.fd = pfd->fd;
     ev.events = pfd->revents;
+
     if (i == lst->size - 1)
       ev.is_msg = 1;
     else

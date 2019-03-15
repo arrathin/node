@@ -879,6 +879,8 @@ static Handle<SharedFunctionInfo> CompileScript(
   return Compiler::GetSharedFunctionInfoForScript(
       source, name, 0, 0, v8::ScriptOriginOptions(), Handle<Object>(),
       Handle<Context>(isolate->native_context()), NULL, cached_data, options,
+      // Backed out for ABI compatibility with V8 6.2
+      // NOT_NATIVES_CODE, Handle<FixedArray>());
       NOT_NATIVES_CODE);
 }
 
@@ -1728,6 +1730,9 @@ TEST(Regress503552) {
   Handle<SharedFunctionInfo> shared = Compiler::GetSharedFunctionInfoForScript(
       source, Handle<String>(), 0, 0, v8::ScriptOriginOptions(),
       Handle<Object>(), Handle<Context>(isolate->native_context()), NULL,
+      // Backed out for ABI compatibility with V8 6.2
+      // &script_data, v8::ScriptCompiler::kProduceCodeCache, NOT_NATIVES_CODE,
+      // Handle<FixedArray>());
       &script_data, v8::ScriptCompiler::kProduceCodeCache, NOT_NATIVES_CODE);
   delete script_data;
 
@@ -2460,7 +2465,8 @@ UNINITIALIZED_TEST(ReinitializeStringHashSeedNotRehashable) {
   v8::Isolate* isolate = v8::Isolate::New(create_params);
   {
     // Check that no rehashing has been performed.
-    CHECK_EQ(42, reinterpret_cast<i::Isolate*>(isolate)->heap()->HashSeed());
+    CHECK_EQ(static_cast<uint64_t>(42),
+             reinterpret_cast<i::Isolate*>(isolate)->heap()->HashSeed());
     v8::Isolate::Scope isolate_scope(isolate);
     v8::HandleScope handle_scope(isolate);
     v8::Local<v8::Context> context = v8::Context::New(isolate);

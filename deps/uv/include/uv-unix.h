@@ -18,7 +18,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-
+// FIXME ZOS delete or not?
+#error deleted in new
 #ifndef UV_UNIX_H
 #define UV_UNIX_H
 

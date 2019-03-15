@@ -52,8 +52,7 @@ Local<Object> PipeWrap::Instantiate(Environment* env,
                                     AsyncWrap* parent,
                                     PipeWrap::SocketType type) {
   EscapableHandleScope handle_scope(env->isolate());
-  AsyncHooks::DefaultTriggerAsyncIdScope trigger_scope(env,
-                                                       parent->get_async_id());
+  AsyncHooks::DefaultTriggerAsyncIdScope trigger_scope(parent);
   CHECK_EQ(false, env->pipe_constructor_template().IsEmpty());
   Local<Function> constructor = env->pipe_constructor_template()->GetFunction();
   CHECK_EQ(false, constructor.IsEmpty());
@@ -118,7 +117,7 @@ void PipeWrap::Initialize(Local<Object> target,
   NODE_DEFINE_CONSTANT(constants, SERVER);
   NODE_DEFINE_CONSTANT(constants, IPC);
   target->Set(context,
-              FIXED_ONE_BYTE_STRING(env->isolate(), "constants"),
+              env->constants_string(),
               constants).FromJust();
 }
 

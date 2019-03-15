@@ -48,7 +48,8 @@ exports.isFreeBSD = process.platform === 'freebsd';
 exports.isOpenBSD = process.platform === 'openbsd';
 exports.isZOS = process.platform === 'os390';
 exports.isLinux = process.platform === 'linux';
-exports.isOSX = process.platform === 'darwin';
+const isOSX = exports.isOSX = process.platform === 'darwin';
+exports.isOSXMojave = isOSX && (os.release().startsWith('18'));
 
 exports.enoughTestMem = os.totalmem() > 0x70000000; /* 1.75 Gb */
 const cpus = os.cpus();
@@ -513,7 +514,7 @@ exports.canCreateSymLink = function() {
     // whoami.exe needs to be the one from System32
     // If unix tools are in the path, they can shadow the one we want,
     // so use the full path while executing whoami
-    const whoamiPath = path.join(process.env['SystemRoot'],
+    const whoamiPath = path.join(process.env.SystemRoot,
                                  'System32', 'whoami.exe');
 
     let err = false;
@@ -696,7 +697,15 @@ exports.expectsError = function expectsError(fn, settings, exact) {
     fn = undefined;
   }
   function innerFn(error) {
+    if (arguments.length !== 1) {
+      // Do not use `assert.strictEqual()` to prevent `util.inspect` from
+      // always being called.
+      assert.fail(`Expected one argument, got ${util.inspect(arguments)}`);
+    }
     assert.strictEqual(error.code, settings.code);
+    const descriptor = Object.getOwnPropertyDescriptor(error, 'message');
+    assert.strictEqual(descriptor.enumerable,
+                       false, 'The error message should be non-enumerable');
     if ('type' in settings) {
       const type = settings.type;
       if (type !== Error && !Error.isPrototypeOf(type)) {
@@ -835,3 +844,9 @@ exports.firstInvalidFD = function firstInvalidFD() {
   } catch (e) {}
   return fd;
 };
+
+exports.isCPPSymbolsNotMapped = exports.isWindows ||
+                                exports.isSunOS ||
+                                exports.isAIX ||
+                                exports.isLinuxPPCBE ||
+                                exports.isFreeBSD;

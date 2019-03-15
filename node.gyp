@@ -164,9 +164,9 @@
       [ 'OS=="win" and '
         'node_use_openssl=="true" and '
         'node_shared_openssl=="false"', {
-        'use_openssl_def': 1,
+        'use_openssl_def%': 1,
       }, {
-        'use_openssl_def': 0,
+        'use_openssl_def%': 0,
       }],
       [ 'OS=="zos"', {
         'node_intermediate_lib_type': 'shared_library',
@@ -216,9 +216,9 @@
             },
           },
           'conditions': [
-            ['OS in "linux freebsd openbsd solaris android"', {
+            ['OS!="aix" and OS!="zos"', {
               'ldflags': [
-                '-Wl,--whole-archive,<(OBJ_DIR)/<(STATIC_LIB_PREFIX)'
+                '-Wl,--whole-archive,<(obj_dir)/<(STATIC_LIB_PREFIX)'
                     '<(node_core_target_name)<(STATIC_LIB_SUFFIX)',
                 '-Wl,--no-whole-archive',
               ],
@@ -239,6 +239,11 @@
               ],
             }],
           ],
+        }],
+        [ 'node_shared=="true"', {
+          'xcode_settings': {
+            'OTHER_LDFLAGS': [ '-Wl,-rpath,@loader_path', ],
+          },
         }],
         [ 'node_intermediate_lib_type=="shared_library" and OS=="win"', {
           # On Windows, having the same name for both executable and shared
@@ -273,6 +278,7 @@
 
       'sources': [
         'src/async_wrap.cc',
+        'src/bootstrapper.cc',
         'src/cares_wrap.cc',
         'src/connection_wrap.cc',
         'src/connect_wrap.cc',
@@ -290,12 +296,15 @@
         'src/node_constants.cc',
         'src/node_contextify.cc',
         'src/node_debug_options.cc',
+        'src/node_encoding.cc',
         'src/node_file.cc',
         'src/node_http2.cc',
         'src/node_http_parser.cc',
         'src/node_os.cc',
         'src/node_platform.cc',
         'src/node_perf.cc',
+        'src/node_postmortem_metadata.cc',
+        'src/node_process.cc',
         'src/node_serdes.cc',
         'src/node_trace_events.cc',
         'src/node_url.cc',
@@ -394,6 +403,10 @@
       'conditions': [
         [ 'node_shared=="true" and node_module_version!="" and OS!="win"', {
           'product_extension': '<(shlib_suffix)',
+          'xcode_settings': {
+            'LD_DYLIB_INSTALL_NAME':
+              '@rpath/lib<(node_core_target_name).<(shlib_suffix)'
+          },
         }],
         ['node_shared=="true" and OS=="aix"', {
           'product_name': 'node_base',
@@ -441,6 +454,10 @@
             'FD_SETSIZE=1024',
             # we need to use node's preferred "win32" rather than gyp's preferred "win"
             'NODE_PLATFORM="win32"',
+            # Stop <windows.h> from defining macros that conflict with
+            # std::min() and std::max().  We don't use <windows.h> (much)
+            # but we still inherit it from uv.h.
+            'NOMINMAX',
             '_UNICODE=1',
           ],
           'libraries': [ '-lpsapi.lib' ]
@@ -757,10 +774,10 @@
             {
               'action_name': 'node_dtrace_provider_o',
               'inputs': [
-                '<(OBJ_DIR)/<(node_lib_target_name)/src/node_dtrace.o',
+                '<(obj_dir)/<(node_lib_target_name)/src/node_dtrace.o',
               ],
               'outputs': [
-                '<(OBJ_DIR)/<(node_lib_target_name)/src/node_dtrace_provider.o'
+                '<(obj_dir)/<(node_lib_target_name)/src/node_dtrace_provider.o'
               ],
               'action': [ 'dtrace', '-G', '-xnolibs', '-s', 'src/node_provider.d',
                 '<@(_inputs)', '-o', '<@(_outputs)' ]
@@ -792,7 +809,7 @@
             {
               'action_name': 'node_dtrace_ustack_constants',
               'inputs': [
-                '<(V8_BASE)'
+                '<(v8_base)'
               ],
               'outputs': [
                 '<(SHARED_INTERMEDIATE_DIR)/v8constants.h'
@@ -810,7 +827,7 @@
                 '<(SHARED_INTERMEDIATE_DIR)/v8constants.h'
               ],
               'outputs': [
-                '<(OBJ_DIR)/<(node_lib_target_name)/src/node_dtrace_ustack.o'
+                '<(obj_dir)/<(node_lib_target_name)/src/node_dtrace_ustack.o'
               ],
               'conditions': [
                 [ 'target_arch=="ia32" or target_arch=="arm"', {
@@ -885,6 +902,70 @@
         } ],
       ]
     },
+    {
+      'target_name': 'cctest',
+      'type': 'executable',
+
+      'dependencies': [
+        '<(node_lib_target_name)',
+        'rename_node_bin_win',
+        'deps/gtest/gtest.gyp:gtest',
+        'node_js2c#host',
+        'node_dtrace_header',
+        'node_dtrace_ustack',
+        'node_dtrace_provider',
+      ],
+
+      'includes': [
+        'node.gypi'
+      ],
+
+      'include_dirs': [
+        'src',
+        'tools/msvs/genfiles',
+        'deps/v8/include',
+        'deps/cares/include',
+        'deps/uv/include',
+        '<(SHARED_INTERMEDIATE_DIR)', # for node_natives.h
+      ],
+
+      'defines': [ 'NODE_WANT_INTERNALS=1' ],
+
+      'sources': [
+        'test/cctest/node_test_fixture.cc',
+        'test/cctest/test_aliased_buffer.cc',
+        'test/cctest/test_base64.cc',
+        'test/cctest/test_node_postmortem_metadata.cc',
+        'test/cctest/test_environment.cc',
+        'test/cctest/test_util.cc',
+        'test/cctest/test_url.cc'
+      ],
+
+      'conditions': [
+        [ 'node_use_openssl=="true"', {
+          'defines': [
+            'HAVE_OPENSSL=1',
+          ],
+        }],
+        [ 'node_use_perfctr=="true"', {
+          'defines': [ 'HAVE_PERFCTR=1' ],
+        }],
+        ['v8_enable_inspector==1', {
+          'sources': [
+            'test/cctest/test_inspector_socket.cc',
+            'test/cctest/test_inspector_socket_server.cc'
+          ],
+          'defines': [
+            'HAVE_INSPECTOR=1',
+          ],
+        }, {
+          'defines': [ 'HAVE_INSPECTOR=0' ]
+        }],
+        ['OS=="solaris"', {
+          'ldflags': [ '-I<(SHARED_INTERMEDIATE_DIR)' ]
+        }],
+      ],
+    }
   ], # end targets
 
   'conditions': [
@@ -921,6 +1002,9 @@
             '<@(library_files)',
             'common.gypi',
           ],
+          'direct_dependent_settings': {
+            'ldflags': [ '-Wl,-brtl' ],
+          },
         },
       ]
     }], # end aix section

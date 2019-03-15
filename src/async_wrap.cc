@@ -24,7 +24,6 @@
 #include "env-inl.h"
 #include "util-inl.h"
 
-#include "uv.h"
 #include "v8.h"
 #include "v8-profiler.h"
 
@@ -255,13 +254,13 @@ void AsyncWrap::EmitAfter(Environment* env, double async_id) {
 class PromiseWrap : public AsyncWrap {
  public:
   PromiseWrap(Environment* env, Local<Object> object, bool silent)
-      : AsyncWrap(env, object, silent) {
+      : AsyncWrap(env, object, PROVIDER_PROMISE, -1, silent) {
     MakeWeak(this);
   }
   size_t self_size() const override { return sizeof(*this); }
 
   static constexpr int kPromiseField = 1;
-  static constexpr int kParentAsyncIdField = 2;
+  static constexpr int kIsChainedPromiseField = 2;
   static constexpr int kInternalFieldCount = 3;
 
   static PromiseWrap* New(Environment* env,
@@ -270,8 +269,8 @@ class PromiseWrap : public AsyncWrap {
                           bool silent);
   static void GetPromise(Local<String> property,
                          const PropertyCallbackInfo<Value>& info);
-  static void getParentAsyncId(Local<String> property,
-                          const PropertyCallbackInfo<Value>& info);
+  static void getIsChainedPromise(Local<String> property,
+                                  const PropertyCallbackInfo<Value>& info);
 };
 
 PromiseWrap* PromiseWrap::New(Environment* env,
@@ -281,11 +280,10 @@ PromiseWrap* PromiseWrap::New(Environment* env,
   Local<Object> object = env->promise_wrap_template()
                             ->NewInstance(env->context()).ToLocalChecked();
   object->SetInternalField(PromiseWrap::kPromiseField, promise);
-  if (parent_wrap != nullptr) {
-    object->SetInternalField(PromiseWrap::kParentAsyncIdField,
-                             Number::New(env->isolate(),
-                                         parent_wrap->get_async_id()));
-  }
+  object->SetInternalField(PromiseWrap::kIsChainedPromiseField,
+                           parent_wrap != nullptr ?
+                              v8::True(env->isolate()) :
+                              v8::False(env->isolate()));
   CHECK_EQ(promise->GetAlignedPointerFromInternalField(0), nullptr);
   promise->SetInternalField(0, object);
   return new PromiseWrap(env, object, silent);
@@ -296,25 +294,26 @@ void PromiseWrap::GetPromise(Local<String> property,
   info.GetReturnValue().Set(info.Holder()->GetInternalField(kPromiseField));
 }
 
-void PromiseWrap::getParentAsyncId(Local<String> property,
-                              const PropertyCallbackInfo<Value>& info) {
+void PromiseWrap::getIsChainedPromise(Local<String> property,
+                                      const PropertyCallbackInfo<Value>& info) {
   info.GetReturnValue().Set(
-    info.Holder()->GetInternalField(kParentAsyncIdField));
+    info.Holder()->GetInternalField(kIsChainedPromiseField));
+}
+
+static PromiseWrap* extractPromiseWrap(Local<Promise> promise) {
+  Local<Value> resource_object_value = promise->GetInternalField(0);
+  if (resource_object_value->IsObject()) {
+    return Unwrap<PromiseWrap>(resource_object_value.As<Object>());
+  }
+  return nullptr;
 }
 
 static void PromiseHook(PromiseHookType type, Local<Promise> promise,
                         Local<Value> parent, void* arg) {
   Environment* env = static_cast<Environment*>(arg);
-  Local<Value> resource_object_value = promise->GetInternalField(0);
-  PromiseWrap* wrap = nullptr;
-  if (resource_object_value->IsObject()) {
-    Local<Object> resource_object = resource_object_value.As<Object>();
-    wrap = Unwrap<PromiseWrap>(resource_object);
-  }
-
+  PromiseWrap* wrap = extractPromiseWrap(promise);
   if (type == PromiseHookType::kInit || wrap == nullptr) {
     bool silent = type != PromiseHookType::kInit;
-    PromiseWrap* parent_wrap = nullptr;
 
     // set parent promise's async Id as this promise's triggerAsyncId
     if (parent->IsPromise()) {
@@ -322,17 +321,12 @@ static void PromiseHook(PromiseHookType type, Local<Promise> promise,
       // is a chained promise, so we set parent promise's id as
       // current promise's triggerAsyncId
       Local<Promise> parent_promise = parent.As<Promise>();
-      Local<Value> parent_resource = parent_promise->GetInternalField(0);
-      if (parent_resource->IsObject()) {
-        parent_wrap = Unwrap<PromiseWrap>(parent_resource.As<Object>());
-      }
-
+      PromiseWrap* parent_wrap = extractPromiseWrap(parent_promise);
       if (parent_wrap == nullptr) {
         parent_wrap = PromiseWrap::New(env, parent_promise, nullptr, true);
       }
 
-      AsyncHooks::DefaultTriggerAsyncIdScope trigger_scope(
-        env, parent_wrap->get_async_id());
+      AsyncHooks::DefaultTriggerAsyncIdScope trigger_scope(parent_wrap);
       wrap = PromiseWrap::New(env, promise, parent_wrap, silent);
     } else {
       wrap = PromiseWrap::New(env, promise, nullptr, silent);
@@ -343,7 +337,7 @@ static void PromiseHook(PromiseHookType type, Local<Promise> promise,
   if (type == PromiseHookType::kBefore) {
     env->async_hooks()->push_async_ids(
       wrap->get_async_id(), wrap->get_trigger_async_id());
-      wrap->EmitTraceEventBefore();
+    wrap->EmitTraceEventBefore();
     AsyncWrap::EmitBefore(wrap->env(), wrap->get_async_id());
   } else if (type == PromiseHookType::kAfter) {
     wrap->EmitTraceEventAfter();
@@ -351,7 +345,7 @@ static void PromiseHook(PromiseHookType type, Local<Promise> promise,
     if (env->execution_async_id() == wrap->get_async_id()) {
       // This condition might not be true if async_hooks was enabled during
       // the promise callback execution.
-      // Popping it off the stack can be skipped in that case, because is is
+      // Popping it off the stack can be skipped in that case, because it is
       // known that it would correspond to exactly one call with
       // PromiseHookType::kBefore that was not witnessed by the PromiseHook.
       env->async_hooks()->pop_async_id(wrap->get_async_id());
@@ -399,8 +393,8 @@ static void SetupHooks(const FunctionCallbackInfo<Value>& args) {
         FIXED_ONE_BYTE_STRING(env->isolate(), "promise"),
         PromiseWrap::GetPromise);
     promise_wrap_template->SetAccessor(
-        FIXED_ONE_BYTE_STRING(env->isolate(), "parentId"),
-        PromiseWrap::getParentAsyncId);
+        FIXED_ONE_BYTE_STRING(env->isolate(), "isChainedPromise"),
+        PromiseWrap::getIsChainedPromise);
     env->set_promise_wrap_template(promise_wrap_template);
   }
 }
@@ -632,32 +626,24 @@ AsyncWrap::AsyncWrap(Environment* env,
                      Local<Object> object,
                      ProviderType provider,
                      double execution_async_id)
+    : AsyncWrap(env, object, provider, execution_async_id, false) {}
+
+AsyncWrap::AsyncWrap(Environment* env,
+                     Local<Object> object,
+                     ProviderType provider,
+                     double execution_async_id,
+                     bool silent)
     : BaseObject(env, object),
       provider_type_(provider) {
   CHECK_NE(provider, PROVIDER_NONE);
   CHECK_GE(object->InternalFieldCount(), 1);
 
   // Shift provider value over to prevent id collision.
-  persistent().SetWrapperClassId(NODE_ASYNC_ID_OFFSET + provider);
-
-  // Use AsyncReset() call to execute the init() callbacks.
-  AsyncReset(execution_async_id);
-}
-
-
-// This is specifically used by the PromiseWrap constructor.
-AsyncWrap::AsyncWrap(Environment* env,
-                     Local<Object> object,
-                     bool silent)
-    : BaseObject(env, object),
-      provider_type_(PROVIDER_PROMISE) {
-  CHECK_GE(object->InternalFieldCount(), 1);
-
-  // Shift provider value over to prevent id collision.
   persistent().SetWrapperClassId(NODE_ASYNC_ID_OFFSET + provider_type_);
 
+  async_id_ = -1;
   // Use AsyncReset() call to execute the init() callbacks.
-  AsyncReset(-1, silent);
+  AsyncReset(execution_async_id, silent);
 }
 
 
@@ -696,6 +682,14 @@ void AsyncWrap::EmitDestroy(Environment* env, double async_id) {
 // and reused over their lifetime. This way a new uid can be assigned when
 // the resource is pulled out of the pool and put back into use.
 void AsyncWrap::AsyncReset(double execution_async_id, bool silent) {
+  if (async_id_ != -1) {
+    // This instance was in use before, we have already emitted an init with
+    // its previous async_id and need to emit a matching destroy for that
+    // before generating a new async_id.
+    EmitDestroy(env(), async_id_);
+  }
+
+  // Now we can assign a new async_id_ to this instance.
   async_id_ =
     execution_async_id == -1 ? env()->new_async_id() : execution_async_id;
   trigger_async_id_ = env()->get_default_trigger_async_id();

@@ -39,7 +39,8 @@ in production.
 
 |  System      | Support type | Version                          | Architectures        | Notes            |
 |--------------|--------------|----------------------------------|----------------------|------------------|
-| GNU/Linux    | Tier 1       | kernel >= 2.6.32, glibc >= 2.12  | x86, x64, arm, arm64 |                  |
+| GNU/Linux    | Tier 1       | kernel >= 2.6.32, glibc >= 2.12  | x86, x64, arm        |                  |
+| GNU/Linux    | Tier 1       | kernel >= 3.10, glibc >= 2.17    | arm64                |                  |
 | macOS        | Tier 1       | >= 10.10                         | x64                  |                  |
 | Windows      | Tier 1       | >= Windows 7 / 2008 R2           | x86, x64             | vs2015 or vs2017 |
 | SmartOS      | Tier 2       | >= 15 < 16.4                     | x86, x64             | see note1        |
@@ -203,6 +204,15 @@ To read the documentation:
 ```console
 $ man doc/node.1
 ```
+
+If you prefer to read the documentation in a browser,
+run the following after `make doc` is finished:
+
+```console
+$ make docopen
+```
+
+This will open a browser with the documentation.
 
 To test if Node.js was built correctly:
 
@@ -432,3 +442,14 @@ To make `./myCustomModule.js` available via `require('myCustomModule')`.
 ```console
 > .\vcbuild link-module './myCustomModule.js'
 ```
+
+## Note for downstream distributors of Node.js
+
+The Node.js ecosystem is reliant on ABI compatibility within a major
+release. To maintain ABI compatibility it is required that production
+builds of Node.js will be built against the same version of dependencies as the
+project vendors. If Node.js is to be built against a different version of a
+dependency please create a custom `NODE_MODULE_VERSION` to ensure ecosystem
+compatibility. Please consult with the TSC by opening an issue at
+https://github.com/nodejs/tsc/issues if you decide to create a custom
+`NODE_MODULE_VERSION` so we can avoid duplication in the ecosystem.

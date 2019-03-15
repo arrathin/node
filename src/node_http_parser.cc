@@ -74,22 +74,6 @@ const uint32_t kOnMessageComplete = 3;
 const uint32_t kOnExecute = 4;
 
 
-#define HTTP_CB(name)                                                         \
-  static int name(http_parser* p_) {                                          \
-    Parser* self = ContainerOf(&Parser::parser_, p_);                         \
-    return self->name##_();                                                   \
-  }                                                                           \
-  int name##_()
-
-
-#define HTTP_DATA_CB(name)                                                    \
-  static int name(http_parser* p_, const char* at, size_t length) {           \
-    Parser* self = ContainerOf(&Parser::parser_, p_);                         \
-    return self->name##_(at, length);                                         \
-  }                                                                           \
-  int name##_(const char* at, size_t length)
-
-
 // helper class for the Parser
 struct StringPtr {
   StringPtr() {
@@ -184,7 +168,7 @@ class Parser : public AsyncWrap {
   }
 
 
-  HTTP_CB(on_message_begin) {
+  int on_message_begin() {
     num_fields_ = num_values_ = 0;
     url_.Reset();
     status_message_.Reset();
@@ -192,19 +176,19 @@ class Parser : public AsyncWrap {
   }
 
 
-  HTTP_DATA_CB(on_url) {
+  int on_url(const char* at, size_t length) {
     url_.Update(at, length);
     return 0;
   }
 
 
-  HTTP_DATA_CB(on_status) {
+  int on_status(const char* at, size_t length) {
     status_message_.Update(at, length);
     return 0;
   }
 
 
-  HTTP_DATA_CB(on_header_field) {
+  int on_header_field(const char* at, size_t length) {
     if (num_fields_ == num_values_) {
       // start of new field name
       num_fields_++;
@@ -226,7 +210,7 @@ class Parser : public AsyncWrap {
   }
 
 
-  HTTP_DATA_CB(on_header_value) {
+  int on_header_value(const char* at, size_t length) {
     if (num_values_ != num_fields_) {
       // start of new header value
       num_values_++;
@@ -242,7 +226,7 @@ class Parser : public AsyncWrap {
   }
 
 
-  HTTP_CB(on_headers_complete) {
+  int on_headers_complete() {
     // Arguments for the on-headers-complete javascript callback. This
     // list needs to be kept in sync with the actual argument list for
     // `parserOnHeadersComplete` in lib/_http_common.js.
@@ -319,7 +303,7 @@ class Parser : public AsyncWrap {
   }
 
 
-  HTTP_DATA_CB(on_body) {
+  int on_body(const char* at, size_t length) {
     EscapableHandleScope scope(env()->isolate());
 
     Local<Object> obj = object();
@@ -356,7 +340,7 @@ class Parser : public AsyncWrap {
   }
 
 
-  HTTP_CB(on_message_complete) {
+  int on_message_complete() {
     HandleScope scope(env()->isolate());
 
     if (num_fields_)
@@ -394,8 +378,7 @@ class Parser : public AsyncWrap {
     Parser* parser;
     ASSIGN_OR_RETURN_UNWRAP(&parser, args.Holder());
 
-    if (--parser->refcount_ == 0)
-      delete parser;
+    delete parser;
   }
 
 
@@ -481,6 +464,9 @@ class Parser : public AsyncWrap {
   static void Reinitialize(const FunctionCallbackInfo<Value>& args) {
     Environment* env = Environment::GetCurrent(args);
 
+    CHECK(args[0]->IsInt32());
+    CHECK(args[1]->IsBoolean());
+    bool isReused = args[1]->IsTrue();
     http_parser_type type =
         static_cast<http_parser_type>(args[0]->Int32Value());
 
@@ -489,8 +475,12 @@ class Parser : public AsyncWrap {
     ASSIGN_OR_RETURN_UNWRAP(&parser, args.Holder());
     // Should always be called from the same context.
     CHECK_EQ(env, parser->env());
-    // The parser is being reused. Reset the async id and call init() callbacks.
-    parser->AsyncReset();
+    // This parser has either just been created or it is being reused.
+    // We must only call AsyncReset for the latter case, because AsyncReset has
+    // already been called via the constructor for the former case.
+    if (isReused) {
+      parser->AsyncReset();
+    }
     parser->Init(type);
   }
 
@@ -561,22 +551,6 @@ class Parser : public AsyncWrap {
   }
 
  protected:
-  class ScopedRetainParser {
-   public:
-    explicit ScopedRetainParser(Parser* p) : p_(p) {
-      CHECK_GT(p_->refcount_, 0);
-      p_->refcount_++;
-    }
-
-    ~ScopedRetainParser() {
-      if (0 == --p_->refcount_)
-        delete p_;
-    }
-
-   private:
-    Parser* const p_;
-  };
-
   static const size_t kAllocBufferSize = 64 * 1024;
 
   static void OnAllocImpl(size_t suggested_size, uv_buf_t* buf, void* ctx) {
@@ -612,8 +586,6 @@ class Parser : public AsyncWrap {
     // Ignore, empty reads have special meaning in http parser
     if (nread == 0)
       return;
-
-    ScopedRetainParser retain(parser);
 
     parser->current_buffer_.Clear();
     Local<Value> ret = parser->Execute(buf->base, nread);
@@ -752,26 +724,40 @@ class Parser : public AsyncWrap {
   char* current_buffer_data_;
   StreamResource::Callback<StreamResource::AllocCb> prev_alloc_cb_;
   StreamResource::Callback<StreamResource::ReadCb> prev_read_cb_;
-  int refcount_ = 1;
-  static const struct http_parser_settings settings;
 
-  friend class ScopedRetainParser;
+  // These are helper functions for filling `http_parser_settings`, which turn
+  // a member function of Parser into a C-style HTTP parser callback.
+  template <typename Parser, Parser> struct Proxy;
+  template <typename Parser, typename ...Args, int (Parser::*Member)(Args...)>
+  struct Proxy<int (Parser::*)(Args...), Member> {
+    static int Raw(http_parser* p, Args ... args) {
+      Parser* parser = ContainerOf(&Parser::parser_, p);
+      return (parser->*Member)(std::forward<Args>(args)...);
+    }
+  };
+
+  typedef int (Parser::*Call)();
+  typedef int (Parser::*DataCall)(const char* at, size_t length);
+
+  static const struct http_parser_settings settings;
 };
 
-
 const struct http_parser_settings Parser::settings = {
-  Parser::on_message_begin,
-  Parser::on_url,
-  Parser::on_status,
-  Parser::on_header_field,
-  Parser::on_header_value,
-  Parser::on_headers_complete,
-  Parser::on_body,
-  Parser::on_message_complete,
+  Proxy<Call, &Parser::on_message_begin>::Raw,
+  Proxy<DataCall, &Parser::on_url>::Raw,
+  Proxy<DataCall, &Parser::on_status>::Raw,
+  Proxy<DataCall, &Parser::on_header_field>::Raw,
+  Proxy<DataCall, &Parser::on_header_value>::Raw,
+  Proxy<Call, &Parser::on_headers_complete>::Raw,
+  Proxy<DataCall, &Parser::on_body>::Raw,
+  Proxy<Call, &Parser::on_message_complete>::Raw,
   nullptr,  // on_chunk_header
   nullptr   // on_chunk_complete
 };
 
+void InitMaxHttpHeaderSizeOnce() {
+  http_parser_set_max_header_size(max_http_header_size);
+}
 
 void InitHttpParser(Local<Object> target,
                     Local<Value> unused,
@@ -818,6 +804,8 @@ void InitHttpParser(Local<Object> target,
 
   target->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "HTTPParser"),
               t->GetFunction());
+  static uv_once_t init_once = UV_ONCE_INIT;
+  uv_once(&init_once, InitMaxHttpHeaderSizeOnce);
 }
 
 }  // anonymous namespace

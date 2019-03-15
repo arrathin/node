@@ -125,7 +125,7 @@ int uv__platform_loop_init(uv_loop_t* loop) {
   loop->ep = ep;
   loop->backend_fd = ep->msg_queue;
   if (ep == NULL)
-    return -errno;
+    return UV__ERR(errno);
 
   return 0;
 }
@@ -262,12 +262,12 @@ int uv_exepath(char* buffer, size_t* size) {
   int pid;
 
   if (buffer == NULL || size == NULL || *size == 0)
-    return -EINVAL;
+    return UV_EINVAL;
 
   pid = getpid();
   res = getexe(pid, args, sizeof(args));
   if (res < 0)
-    return -EINVAL;
+    return UV_EINVAL;
 
   /*
    * Possibilities for args:
@@ -280,7 +280,7 @@ int uv_exepath(char* buffer, size_t* size) {
   /* Case i) and ii) absolute or relative paths */
   if (strchr(args, '/') != NULL) {
     if (realpath(args, abspath) != abspath)
-      return -errno;
+      return UV__ERR(errno);
 
     abspath_size = strlen(abspath);
 
@@ -300,11 +300,11 @@ int uv_exepath(char* buffer, size_t* size) {
     char* path = getenv("PATH");
 
     if (path == NULL)
-      return -EINVAL;
+      return UV_EINVAL;
 
     clonedpath = uv__strdup(path);
     if (clonedpath == NULL)
-      return -ENOMEM;
+      return UV_ENOMEM;
 
     token = strtok(clonedpath, ":");
     while (token != NULL) {
@@ -330,7 +330,7 @@ int uv_exepath(char* buffer, size_t* size) {
     uv__free(clonedpath);
 
     /* Out of tokens (path entries), and no match found */
-    return -EINVAL;
+    return UV_EINVAL;
   }
 }
 
@@ -410,7 +410,7 @@ int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
 
   *cpu_infos = uv__malloc(*count * sizeof(uv_cpu_info_t));
   if (!*cpu_infos)
-    return -ENOMEM;
+    return UV_ENOMEM;
 
   cpu_info = *cpu_infos;
   idx = 0;
@@ -455,7 +455,7 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
   maxsize = 16384;
 
   if (0 > (sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)))
-    return -errno;
+    return UV__ERR(errno);
 
   ifc.__nif6h_version = 1;
   ifc.__nif6h_buflen = maxsize;
@@ -463,7 +463,7 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
 
   if (ioctl(sockfd, SIOCGIFCONF6, &ifc) == -1) {
     uv__close(sockfd);
-    return -errno;
+    return UV__ERR(errno);
   }
 
 
@@ -487,7 +487,7 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
   *addresses = uv__malloc(*count * sizeof(uv_interface_address_t));
   if (!(*addresses)) {
     uv__close(sockfd);
-    return -ENOMEM;
+    return UV_ENOMEM;
   }
   address = *addresses;
 
@@ -519,6 +519,10 @@ static int uv__interface_addresses_v6(uv_interface_address_t** addresses,
     address->address.address6 = *((struct sockaddr_in6*) &p->__nif6e_addr);
     address->is_internal = p->__nif6e_flags & _NIF6E_FLAGS_LOOPBACK ? 1 : 0;
 
+#if FIXME_ZOS
+    address->is_internal = flg.__nif6e_flags & _NIF6E_FLAGS_LOOPBACK ? 1 : 0;
+    memset(address->phys_addr, 0, sizeof(address->phys_addr));
+#endif
     address++;
   }
 
@@ -550,13 +554,13 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
 
   sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
   if (0 > sockfd)
-    return -errno;
+    return UV__ERR(errno);
 
   ifc.ifc_req = uv__calloc(1, maxsize);
   ifc.ifc_len = maxsize;
   if (ioctl(sockfd, SIOCGIFCONF, &ifc) == -1) {
     uv__close(sockfd);
-    return -errno;
+    return UV__ERR(errno);
   }
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -576,7 +580,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
     memcpy(flg.ifr_name, p->ifr_name, sizeof(flg.ifr_name));
     if (ioctl(sockfd, SIOCGIFFLAGS, &flg) == -1) {
       uv__close(sockfd);
-      return -errno;
+      return UV__ERR(errno);
     }
 
     if (!(flg.ifr_flags & IFF_UP && flg.ifr_flags & IFF_RUNNING))
@@ -591,7 +595,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
 
   if (!(*addresses)) {
     uv__close(sockfd);
-    return -ENOMEM;
+    return UV_ENOMEM;
   }
   address = *addresses;
 
@@ -614,7 +618,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
     memcpy(flg.ifr_name, p->ifr_name, sizeof(flg.ifr_name));
     if (ioctl(sockfd, SIOCGIFFLAGS, &flg) == -1) {
       uv__close(sockfd);
-      return -ENOSYS;
+      return UV_ENOSYS;
     }
 
     if (!(flg.ifr_flags & IFF_UP && flg.ifr_flags & IFF_RUNNING))
@@ -634,6 +638,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
 
     address->address.address4 = *((struct sockaddr_in*) &p->ifr_addr);
     address->is_internal = flg.ifr_flags & IFF_LOOPBACK ? 1 : 0;
+    memset(address->phys_addr, 0, sizeof(address->phys_addr));
     address++;
   }
 
@@ -675,7 +680,7 @@ void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {
   dummy.fd = fd;
   dummy.is_msg = 0;
   if (loop->ep != NULL)
-    epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, fd, &dummy);
+    epoll_ctl(loop->ep, EPOLL_CTL_DEL, fd, &dummy);
 }
 
 
@@ -731,11 +736,11 @@ int uv_fs_event_start(uv_fs_event_t* handle, uv_fs_event_cb cb,
 
   path = uv__strdup(filename);
   if (path == NULL)
-    return -errno;
+    return UV_ENOMEM;
 
   rc = __w_pioctl(path, _IOCC_REGFILEINT, sizeof(reg_struct), &reg_struct);
   if (rc != 0)
-    return -errno;
+    return UV__ERR(errno);
 
   uv__handle_start(handle);
   handle->path = path;
@@ -854,9 +859,9 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
     e.is_msg = 0;
 
     if (w->events == 0)
-      op = UV__EPOLL_CTL_ADD;
+      op = EPOLL_CTL_ADD;
     else
-      op = UV__EPOLL_CTL_MOD;
+      op = EPOLL_CTL_MOD;
 
     /* XXX Future optimization: do EPOLL_CTL_MOD lazily if we stop watching
      * events, skip the syscall and squelch the events after epoll_wait().
@@ -865,10 +870,10 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
       if (errno != EEXIST)
         abort();
 
-      assert(op == UV__EPOLL_CTL_ADD);
+      assert(op == EPOLL_CTL_ADD);
 
       /* We've reactivated a file descriptor that's been watched before. */
-      if (epoll_ctl(loop->ep, UV__EPOLL_CTL_MOD, w->fd, &e))
+      if (epoll_ctl(loop->ep, EPOLL_CTL_MOD, w->fd, &e))
         abort();
     }
 
@@ -956,7 +961,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
          * Ignore all errors because we may be racing with another thread
          * when the file descriptor is closed.
          */
-        epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, fd, pe);
+        epoll_ctl(loop->ep, EPOLL_CTL_DEL, fd, pe);
         continue;
       }
 

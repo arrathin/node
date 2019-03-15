@@ -5,6 +5,7 @@
 // external interface:
 //
 #include <_Nascii.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -23,6 +24,7 @@ extern size_t __a2e_l(char *bufptr, size_t szLen);
 extern size_t __e2a_s(char *string);
 extern size_t __a2e_s(char *string);
 extern int dprintf(int fd, const char *, ...);
+extern int vdprintf(int fd, const char *, va_list ap);
 extern void __xfer_env(void);
 extern int __chgfdccsid(int fd, unsigned short ccsid);
 extern void __dump(int fd, const void *addr, size_t len, size_t bw);
@@ -38,7 +40,7 @@ extern void backtrace_symbols_fd(void *const *buffer, int size, int fd);
   ({                                                                           \
     const char *src = (const char *)(_str);                                    \
     int len = strlen(src) + 1;                                                 \
-    char *tgt = (char *) alloca(len);                                          \
+    char *tgt = (char *)alloca(len);                                           \
     (char *)_convert_e2a(tgt, src, len);                                       \
   })
 

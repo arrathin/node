@@ -25,6 +25,11 @@ if (common.isZOS) {
   common.skip('Skipping test, no privileged port on zOS.');
   return;
 }
+
+// Skip on OS X Mojave. https://github.com/nodejs/node/issues/21679
+if (common.isOSXMojave)
+  common.skip('bypass test for Mojave due to OSX issue');
+
 if (common.isWindows)
   common.skip('not reliable on Windows');
 

@@ -38,10 +38,10 @@
 #include "node_http2_state.h"
 
 #include <list>
-#include <map>
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 struct nghttp2_rcbuf;
 
@@ -219,11 +219,13 @@ class ModuleWrap;
   V(onnewsessiondone_string, "onnewsessiondone")                              \
   V(onocspresponse_string, "onocspresponse")                                  \
   V(ongoawaydata_string, "ongoawaydata")                                      \
+  V(onorigin_string, "onorigin")                                              \
   V(onpriority_string, "onpriority")                                          \
   V(onread_string, "onread")                                                  \
   V(onreadstart_string, "onreadstart")                                        \
   V(onreadstop_string, "onreadstop")                                          \
   V(onselect_string, "onselect")                                              \
+  V(onping_string, "onping")                                                  \
   V(onsettings_string, "onsettings")                                          \
   V(onshutdown_string, "onshutdown")                                          \
   V(onsignal_string, "onsignal")                                              \
@@ -316,6 +318,7 @@ class ModuleWrap;
   V(context, v8::Context)                                                     \
   V(domain_array, v8::Array)                                                  \
   V(domains_stack_array, v8::Array)                                           \
+  V(host_import_module_dynamically_callback, v8::Function)                    \
   V(http2ping_constructor_template, v8::ObjectTemplate)                       \
   V(http2stream_constructor_template, v8::ObjectTemplate)                     \
   V(http2settings_constructor_template, v8::ObjectTemplate)                   \
@@ -346,10 +349,13 @@ class Environment;
 
 class IsolateData {
  public:
-  inline IsolateData(v8::Isolate* isolate, uv_loop_t* event_loop,
-                     uint32_t* zero_fill_field = nullptr);
+  IsolateData(v8::Isolate* isolate, uv_loop_t* event_loop,
+              MultiIsolatePlatform* platform = nullptr,
+              uint32_t* zero_fill_field = nullptr);
+  ~IsolateData();
   inline uv_loop_t* event_loop() const;
   inline uint32_t* zero_fill_field() const;
+  inline MultiIsolatePlatform* platform() const;
 
 #define VP(PropertyName, StringValue) V(v8::Private, PropertyName)
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
@@ -362,6 +368,7 @@ class IsolateData {
 #undef VP
 
   std::unordered_map<nghttp2_rcbuf*, v8::Eternal<v8::String>> http2_static_strs;
+  inline v8::Isolate* isolate() const;
 
  private:
 #define VP(PropertyName, StringValue) V(v8::Private, PropertyName)
@@ -374,8 +381,10 @@ class IsolateData {
 #undef VS
 #undef VP
 
+  v8::Isolate* const isolate_;
   uv_loop_t* const event_loop_;
   uint32_t* const zero_fill_field_;
+  MultiIsolatePlatform* platform_;
 
   DISALLOW_COPY_AND_ASSIGN(IsolateData);
 };
@@ -426,6 +435,7 @@ class Environment {
       DefaultTriggerAsyncIdScope() = delete;
       explicit DefaultTriggerAsyncIdScope(Environment* env,
                                           double init_trigger_async_id);
+      explicit DefaultTriggerAsyncIdScope(AsyncWrap* async_wrap);
       ~DefaultTriggerAsyncIdScope();
 
      private:
@@ -541,8 +551,8 @@ class Environment {
   static inline Environment* GetCurrent(
       const v8::PropertyCallbackInfo<T>& info);
 
-  inline Environment(IsolateData* isolate_data, v8::Local<v8::Context> context);
-  inline ~Environment();
+  Environment(IsolateData* isolate_data, v8::Local<v8::Context> context);
+  ~Environment();
 
   void Start(int argc,
              const char* const* argv,
@@ -609,8 +619,8 @@ class Environment {
   inline char* http_parser_buffer() const;
   inline void set_http_parser_buffer(char* buffer);
 
-  inline http2::http2_state* http2_state() const;
-  inline void set_http2_state(std::unique_ptr<http2::http2_state> state);
+  inline http2::Http2State* http2_state() const;
+  inline void set_http2_state(std::unique_ptr<http2::Http2State> state);
 
   inline double* fs_stats_field_array() const;
   inline void set_fs_stats_field_array(double* fields);
@@ -618,7 +628,7 @@ class Environment {
   inline AliasedBuffer<uint32_t, v8::Uint32Array>& scheduled_immediate_count();
 
   inline performance::performance_state* performance_state();
-  inline std::map<std::string, uint64_t>* performance_marks();
+  inline std::unordered_map<std::string, uint64_t>* performance_marks();
 
   inline void ThrowError(const char* errmsg);
   inline void ThrowTypeError(const char* errmsg);
@@ -687,7 +697,6 @@ class Environment {
 
   void AddPromiseHook(promise_hook_func fn, void* arg);
   bool RemovePromiseHook(promise_hook_func fn, void* arg);
-  bool EmitNapiWarning();
 
   typedef void (*native_immediate_callback)(Environment* env, void* data);
   // cb will be called as cb(env, data) on the next event loop iteration.
@@ -699,6 +708,10 @@ class Environment {
   void ActivateImmediateCheck();
 
   static inline Environment* ForAsyncHooks(AsyncHooks* hooks);
+
+  inline void AddCleanupHook(void (*fn)(void*), void* arg);
+  inline void RemoveCleanupHook(void (*fn)(void*), void* arg);
+  void RunCleanup();
 
  private:
   inline void ThrowError(v8::Local<v8::Value> (*fun)(v8::Local<v8::String>),
@@ -719,19 +732,25 @@ class Environment {
   bool printed_error_;
   bool trace_sync_io_;
   bool abort_on_uncaught_exception_;
-  bool emit_napi_warning_;
   size_t makecallback_cntr_;
   std::vector<double> destroy_async_id_list_;
 
   AliasedBuffer<uint32_t, v8::Uint32Array> scheduled_immediate_count_;
 
   std::unique_ptr<performance::performance_state> performance_state_;
-  std::map<std::string, uint64_t> performance_marks_;
+  std::unordered_map<std::string, uint64_t> performance_marks_;
 
 #if HAVE_INSPECTOR
   std::unique_ptr<inspector::Agent> inspector_agent_;
 #endif
 
+  // handle_wrap_queue_ and req_wrap_queue_ needs to be at a fixed offset from
+  // the start of the class because it is used by
+  // src/node_postmortem_metadata.cc to calculate offsets and generate debug
+  // symbols for Environment, which assumes that the position of members in
+  // memory are predictable. For more information please refer to
+  // `doc/guides/node-postmortem-support.md`
+  friend int GenDebugSymbols();
   HandleWrapQueue handle_wrap_queue_;
   ReqWrapQueue req_wrap_queue_;
   ListHead<HandleCleanup,
@@ -742,7 +761,7 @@ class Environment {
   double* heap_space_statistics_buffer_ = nullptr;
 
   char* http_parser_buffer_;
-  std::unique_ptr<http2::http2_state> http2_state_;
+  std::unique_ptr<http2::Http2State> http2_state_;
 
   double* fs_stats_field_array_;
 
@@ -767,6 +786,32 @@ class Environment {
   std::vector<NativeImmediateCallback> native_immediate_callbacks_;
   void RunAndClearNativeImmediates();
   static void CheckImmediate(uv_check_t* handle);
+
+  struct CleanupHookCallback {
+    void (*fn_)(void*);
+    void* arg_;
+
+    // We keep track of the insertion order for these objects, so that we can
+    // call the callbacks in reverse order when we are cleaning up.
+    uint64_t insertion_order_counter_;
+
+    // Only hashes `arg_`, since that is usually enough to identify the hook.
+    struct Hash {
+      inline size_t operator()(const CleanupHookCallback& cb) const;
+    };
+
+    // Compares by `fn_` and `arg_` being equal.
+    struct Equal {
+      inline bool operator()(const CleanupHookCallback& a,
+                             const CleanupHookCallback& b) const;
+    };
+  };
+
+  // Use an unordered_set, so that we have efficient insertion and removal.
+  std::unordered_set<CleanupHookCallback,
+                     CleanupHookCallback::Hash,
+                     CleanupHookCallback::Equal> cleanup_hooks_;
+  uint64_t cleanup_hook_counter_ = 0;
 
   static void EnvPromiseHook(v8::PromiseHookType type,
                              v8::Local<v8::Promise> promise,

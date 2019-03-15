@@ -3,9 +3,6 @@
     <img alt="Node.js" src="https://nodejs.org/static/images/logo-light.svg" width="400"/>
   </a>
 </p>
-<p align="center">
-  <a title="CII Best Practices" href="https://bestpractices.coreinfrastructure.org/projects/29"><img src="https://bestpractices.coreinfrastructure.org/projects/29/badge"></a>
-</p>
 
 Node.js is a JavaScript runtime built on Chrome's V8 JavaScript engine. For
 more information on using Node.js, see the
@@ -47,12 +44,13 @@ When looking for support, please first search for your question in these venues:
 * [Node.js Website][]
 * [Node.js Help][]
 * [Open or closed issues in the Node.js GitHub organization](https://github.com/issues?utf8=%E2%9C%93&q=sort%3Aupdated-desc+org%3Anodejs+is%3Aissue)
+
+If you didn't find an answer in one of the official resources above, you can
+search these unofficial resources:
+
 * [Questions tagged 'node.js' on StackOverflow][]
-
-If you didn't find an answer in one of the venues above, you can:
-
-* Join the **unofficial** [#node.js channel on chat.freenode.net][]. See
-<http://nodeirc.info/> for more information.
+* [#node.js channel on chat.freenode.net][]. See <http://nodeirc.info/> for more
+  information.
 
 GitHub issues are meant for tracking enhancements and bugs, not general support.
 
@@ -205,9 +203,8 @@ us a report nonetheless.
 ### Private disclosure preferred
 
 - [CVE-2016-7099](https://nodejs.org/en/blog/vulnerability/september-2016-security-releases/):
-  _Fix invalid wildcard certificate validation check_. This is a high severity
-  defect that would allow a malicious TLS server to serve an invalid wildcard
-  certificate for its hostname and be improperly validated by a Node.js client.
+  _Fix invalid wildcard certificate validation check_. This was a high-severity
+  defect. It caused Node.js TLS clients to accept invalid wildcard certificates.
 
 - [#5507](https://github.com/nodejs/node/pull/5507): _Fix a defect that makes
   the CacheBleed Attack possible_. Many, though not all, OpenSSL vulnerabilities
@@ -215,8 +212,8 @@ us a report nonetheless.
 
 - [CVE-2016-2216](https://nodejs.org/en/blog/vulnerability/february-2016-security-releases/):
   _Fix defects in HTTP header parsing for requests and responses that can allow
-  response splitting_. While the impact of this vulnerability is application and
-  network dependent, it is remotely exploitable in the HTTP protocol.
+  response splitting_. This was a remotely-exploitable defect in the Node.js
+  HTTP implementation.
 
 When in doubt, please do send us a report.
 
@@ -294,8 +291,6 @@ For more information about the governance of the Node.js project, see
 
 ### Collaborators
 
-* [abouthiroppy](https://github.com/abouthiroppy) -
-**Yuta Hiroto** &lt;hello@about-hiroppy.com&gt; (he/him)
 * [addaleax](https://github.com/addaleax) -
 **Anna Henningsen** &lt;anna@addaleax.net&gt; (she/her)
 * [ak239](https://github.com/ak239) -
@@ -314,6 +309,8 @@ For more information about the governance of the Node.js project, see
 **Bryan English** &lt;bryan@bryanenglish.com&gt; (he/him)
 * [benjamingr](https://github.com/benjamingr) -
 **Benjamin Gruenbaum** &lt;benjamingr@gmail.com&gt;
+* [BethGriggs](https://github.com/BethGriggs) -
+**Beth Griggs** &lt;Bethany.Griggs@uk.ibm.com&gt; (she/her)
 * [bmeck](https://github.com/bmeck) -
 **Bradley Farias** &lt;bradley.meck@gmail.com&gt;
 * [bmeurer](https://github.com/bmeurer) -
@@ -370,6 +367,8 @@ For more information about the governance of the Node.js project, see
 **Guy Bedford** &lt;guybedford@gmail.com&gt; (he/him)
 * [hashseed](https://github.com/hashseed) -
 **Yang Guo** &lt;yangguo@chromium.org&gt; (he/him)
+* [hiroppy](https://github.com/hiroppy) -
+**Yuta Hiroto** &lt;hello@hiroppy.me&gt; (he/him)
 * [iarna](https://github.com/iarna) -
 **Rebecca Turner** &lt;me@re-becca.org&gt;
 * [imran-iq](https://github.com/imran-iq) -
@@ -427,21 +426,21 @@ For more information about the governance of the Node.js project, see
 * [misterdjules](https://github.com/misterdjules) -
 **Julien Gilli** &lt;jgilli@nodejs.org&gt;
 * [mmarchini](https://github.com/mmarchini) -
-**Matheus Marchini**  &lt;matheus@sthima.com&gt;
+**Matheus Marchini** &lt;matheus@sthima.com&gt;
+* [MoonBall](https://github.com/MoonBall) -
+**Chen Gang** &lt;gangc.cxy@foxmail.com&gt;
 * [mscdex](https://github.com/mscdex) -
 **Brian White** &lt;mscdex@mscdex.net&gt;
 * [MylesBorins](https://github.com/MylesBorins) -
 **Myles Borins** &lt;myles.borins@gmail.com&gt; (he/him)
 * [not-an-aardvark](https://github.com/not-an-aardvark) -
-**Teddy Katz** &lt;teddy.katz@gmail.com&gt;
+**Teddy Katz** &lt;teddy.katz@gmail.com&gt; (he/him)
 * [ofrobots](https://github.com/ofrobots) -
 **Ali Ijaz Sheikh** &lt;ofrobots@google.com&gt;
 * [orangemocha](https://github.com/orangemocha) -
 **Alexis Campailla** &lt;orangemocha@nodejs.org&gt;
 * [othiym23](https://github.com/othiym23) -
 **Forrest L Norvell** &lt;ogd@aoaioxxysz.net&gt; (he/him)
-* [phillipj](https://github.com/phillipj) -
-**Phillip Johnsen** &lt;johphi@gmail.com&gt;
 * [pmq20](https://github.com/pmq20) -
 **Minqi Pan** &lt;pmq2001@gmail.com&gt;
 * [princejwesley](https://github.com/princejwesley) -
@@ -498,6 +497,8 @@ For more information about the governance of the Node.js project, see
 **Tobias Nießen** &lt;tniessen@tnie.de&gt;
 * [trevnorris](https://github.com/trevnorris) -
 **Trevor Norris** &lt;trev.norris@gmail.com&gt;
+* [trivikr](https://github.com/trivikr) -
+**Trivikram Kamat** &lt;trivikr.dev@gmail.com&gt;
 * [Trott](https://github.com/Trott) -
 **Rich Trott** &lt;rtrott@gmail.com&gt; (he/him)
 * [tunniclm](https://github.com/tunniclm) -
@@ -510,10 +511,14 @@ For more information about the governance of the Node.js project, see
 **Vse Mozhet Byt** &lt;vsemozhetbyt@gmail.com&gt; (he/him)
 * [watilde](https://github.com/watilde) -
 **Daijiro Wachi** &lt;daijiro.wachi@gmail.com&gt; (he/him)
+* [watson](https://github.com/watson) -
+**Thomas Watson** &lt;w@tson.dk&gt;
 * [whitlockjc](https://github.com/whitlockjc) -
 **Jeremy Whitlock** &lt;jwhitlock@apache.org&gt;
 * [XadillaX](https://github.com/XadillaX) -
 **Khaidi Chu** &lt;i@2333.moe&gt; (he/him)
+* [yhwang](https://github.com/yhwang) -
+**Yihong Wang** &lt;yh.wang@ibm.com&gt;
 * [yorkie](https://github.com/yorkie) -
 **Yorkie Liu** &lt;yorkiefixer@gmail.com&gt;
 * [yosuke-furukawa](https://github.com/yosuke-furukawa) -
@@ -533,6 +538,8 @@ For more information about the governance of the Node.js project, see
 **Oleg Elifantiev** &lt;oleg@elifantiev.ru&gt;
 * [petkaantonov](https://github.com/petkaantonov) -
 **Petka Antonov** &lt;petka_antonov@hotmail.com&gt;
+* [phillipj](https://github.com/phillipj) -
+**Phillip Johnsen** &lt;johphi@gmail.com&gt;
 * [piscisaureus](https://github.com/piscisaureus) -
 **Bert Belder** &lt;bertbelder@gmail.com&gt;
 * [rlidwka](https://github.com/rlidwka) -
