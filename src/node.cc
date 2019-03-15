@@ -3613,11 +3613,17 @@ void SetupProcessObject(Environment* env,
                     FIXED_ONE_BYTE_STRING(env->isolate(), ZLIB_VERSION));
   READONLY_PROPERTY(versions,
                     "ares",
-                    FIXED_ONE_BYTE_STRING(env->isolate(), NODE_STRINGIFY(ARES_VERSION_STR)));
+                    FIXED_ONE_BYTE_STRING(env->isolate(), ARES_VERSION_STR));
 
   READONLY_PROPERTY(versions,
                     "nghttp2",
                     FIXED_ONE_BYTE_STRING(env->isolate(), NGHTTP2_VERSION));
+
+  const char node_modules_version[] = NODE_STRINGIFY(NODE_MODULE_VERSION);
+  READONLY_PROPERTY(
+      versions,
+      "modules",
+      FIXED_ONE_BYTE_STRING(env->isolate(), node_modules_version));
 
   const char node_napi_version[] = NODE_STRINGIFY(NAPI_VERSION);
   READONLY_PROPERTY(
