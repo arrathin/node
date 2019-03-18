@@ -3,8 +3,6 @@
 #define _AE_BIMODAL 1
 #endif
 #define snprintf __snprintf_a
-#define printf   __printf_a
-#define fprintf  __fprintf_a
 #endif
 
 #include <algorithm>

@@ -58,7 +58,7 @@ void Chdir(const FunctionCallbackInfo<Value>& args) {
   if (args.Length() != 1 || !args[0]->IsString())
     return env->ThrowTypeError("Bad argument.");
 
-  Utf8Value path(args.GetIsolate(), args[0]);
+  node::NativeEncodingValue path(args.GetIsolate(), args[0]);
   int err = uv_chdir(*path);
   if (err)
     return env->ThrowUVException(err, "uv_chdir");
@@ -108,7 +108,11 @@ void Cwd(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowUVException(err, "uv_cwd");
 
   Local<String> cwd = String::NewFromUtf8(env->isolate(),
+#ifdef __MVS__
+                                          *E2A(buf, cwd_len),
+#else
                                           buf,
+#endif
                                           String::kNormalString,
                                           cwd_len);
   args.GetReturnValue().Set(cwd);
