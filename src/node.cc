@@ -438,7 +438,13 @@ void PrintErrorString(const char* format, ...) {
   CHECK_GT(n, 0);
   WriteConsoleW(stderr_handle, wbuf.data(), n - 1, nullptr, nullptr);
 #elif defined(__MVS__)
-  vdprintf(2, format, ap);
+  int size = __vsnprintf_a(NULL, 0, format, ap);
+  char buf[size+1];
+  __vsnprintf_a(buf, size + 1, format, ap);
+  __a2e_s(buf);
+  #pragma convert("IBM-1047")
+    fprintf(stderr, "%s", buf);
+  #pragma convert(pop)
 #else
   vfprintf(, format, ap);
 #endif
@@ -448,7 +454,13 @@ static void PrintOutString(const char* format, ...) {
   va_list ap;
   va_start(ap, format);
 #if defined(__MVS__)
-  vdprintf(1, format, ap);
+  int size = __vsnprintf_a(NULL, 0, format, ap);
+  char buf[size+1];
+  __vsnprintf_a(buf, size + 1, format, ap);
+  __a2e_s(buf);
+  #pragma convert("IBM-1047")
+    fprintf(stdout, "%s", buf);
+  #pragma convert(pop)
 #else
   PrintString(stdout, format, ap);
 #endif
