@@ -72,6 +72,11 @@
 #include <openssl/objects.h>
 #include "vpm_int.h"
 
+#ifdef __MVS__
+// Need to use the ascii isdigit since literals are in ascii for crypto
+# define isdigit(x) __isdigit_a(x)
+#endif
+
 /* CRL score values */
 
 /* No unhandled critical extensions */
