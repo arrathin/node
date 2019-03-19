@@ -4163,8 +4163,10 @@ inline void PlatformInit() {
     // have to special-case EINTR, fstat() is not interruptible.
     if (errno != EBADF)
       ABORT();
+    #pragma convert("IBM-1047")
     if (fd != open("/dev/null", O_RDWR))
       ABORT();
+    #pragma convert(pop)
   }
 
 #if HAVE_INSPECTOR
