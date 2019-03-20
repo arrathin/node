@@ -26,11 +26,7 @@ const assert = require('assert');
 const net = require('net');
 
 const host = '*'.repeat(256);
-const errCode = common.isOpenBSD ? 'EAI_FAIL' : 'ENOTFOUND';
-
-let errCode = 'ENOTFOUND';
-if (common.isOpenBSD || common.isZOS)
-  errCode = 'EAI_FAIL';
+const errCode = (common.isOpenBSD || common.isZOS) ? 'EAI_FAIL' : 'ENOTFOUND';
 
 function do_not_call() {
   throw new Error('This function should not have been called.');
