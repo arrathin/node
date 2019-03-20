@@ -1744,11 +1744,11 @@ void AppendExceptionLine(Environment* env,
 
   // Print (filename):(line number): (message).
   ScriptOrigin origin = message->GetScriptOrigin();
-  node::NativeEncodingValue filename(env->isolate(), message->GetScriptResourceName());
+  node::Utf8Value filename(env->isolate(), message->GetScriptResourceName());
   const char* filename_string = *filename;
   int linenum = message->GetLineNumber();
   // Print line of source code.
-  node::NativeEncodingValue sourceline(env->isolate(), message->GetSourceLine());
+  node::Utf8Value sourceline(env->isolate(), message->GetSourceLine());
   const char* sourceline_string = *sourceline;
 
   // Because of how node modules work, all scripts are wrapped with a
@@ -1791,9 +1791,9 @@ void AppendExceptionLine(Environment* env,
   off = __snprintf_a(arrow,
                      sizeof(arrow),
                      "%s:%i\n%s\n",
-                     *E2A(filename_string),
+                     filename_string,
                      linenum,
-                     *E2A(sourceline_string));
+                     sourceline_string);
   CHECK_GE(off, 0);
   if (off > max_off) {
     off = max_off;
