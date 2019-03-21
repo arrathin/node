@@ -697,3 +697,12 @@ static void backtrace_symbols_fd_w(void *const *buffer, int size, int fd) {
     }
   }
 }
+void __abend(int comp_code, unsigned reason_code, int flat_byte, void *plist) {
+  unsigned long r15 = reason_code;
+  unsigned long r1;
+  void *__ptr32 r0 = plist;
+  if (flat_byte == -1)
+    flat_byte = 0x84;
+  r1 = (flat_byte << 24) + (0x00ffffff & comp_code);
+  __asm(" SVC 13\n" : : "NR:r0"(r0), "NR:r1"(r1), "NR:r15"(r15) :);
+}

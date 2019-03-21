@@ -20,6 +20,26 @@ const classes = {
   IN: 1
 };
 
+const table_e2a = Buffer.from('\
+000102039c09867f978d8e0b0c0d0e0f\
+101112139d0a08871819928f1c1d1e1f\
+808182838485171b88898a8b8c050607\
+909116939495960498999a9b14159e1a\
+20a0e2e4e0e1e3e5e7f1a22e3c282b7c\
+26e9eaebe8edeeefecdf21242a293b5e\
+2d2fc2c4c0c1c3c5c7d1a62c255f3e3f\
+f8c9cacbc8cdcecfcc603a2340273d22\
+d8616263646566676869abbbf0fdfeb1\
+b06a6b6c6d6e6f707172aabae6b8c6a4\
+b57e737475767778797aa1bfd05bdeae\
+aca3a5b7a9a7b6bcbdbedda8af5db4d7\
+7b414243444546474849adf4f6f2f3f5\
+7d4a4b4c4d4e4f505152b9fbfcf9faff\
+5cf7535455565758595ab2d4d6d2d3d5\
+30313233343536373839b3dbdcd9da9f',
+                              'hex');
+const need_conv = (process.platform === 'os390');
+
 // Naïve DNS parser/serializer.
 
 function readDomainFromPacket(buffer, offset) {
@@ -29,6 +49,11 @@ function readDomainFromPacket(buffer, offset) {
     return { nread: 1, domain: '' };
   } else if ((length & 0xC0) === 0) {
     offset += 1;
+    if (need_conv) {
+      for (var i = offset; i < (offset + length); ++i) {
+	    buffer[i] = table_e2a[buffer[i]];
+      }
+    }
     const chunk = buffer.toString('ascii', offset, offset + length);
     // Read the rest of the domain.
     const { nread, domain } = readDomainFromPacket(buffer, offset + length);
