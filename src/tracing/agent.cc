@@ -35,9 +35,11 @@ void Agent::Start(const string& enabled_categories) {
       trace_config->AddIncludedCategory(category.c_str());
     }
   } else {
+    #pragma convert("IBM-1047")
     trace_config->AddIncludedCategory("v8");
     trace_config->AddIncludedCategory("node");
     trace_config->AddIncludedCategory("node.async_hooks");
+    #pragma convert(pop)
   }
 
   // This thread should be created *after* async handles are created
