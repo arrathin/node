@@ -20,10 +20,12 @@ inline std::string remove_brackets(const std::string& host) {
 int parse_and_validate_port(const std::string& port) {
   char* endptr;
   errno = 0;
-  const long result = strtol(port.c_str(), &endptr, 10);  // NOLINT(runtime/int)
+  const long result = strtol(*A2E(port.c_str()), &endptr, 10);  // NOLINT(runtime/int)
   if (errno != 0 || *endptr != '\0'||
       (result != 0 && result < 1024) || result > 65535) {
+#pragma convert("IBM-1047")
     fprintf(stderr, "Debug port must be 0 or in range 1024 to 65535.\n");
+#pragma convert(pop)
     exit(12);
   }
   return static_cast<int>(result);

@@ -15,6 +15,10 @@
 #define DUMP_READS 0
 #define DUMP_WRITES 0
 
+#ifdef __MVS__
+#define isdigit(x) __isdigit_a(x)
+#endif
+
 namespace node {
 namespace inspector {
 

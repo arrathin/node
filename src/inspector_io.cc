@@ -1,3 +1,6 @@
+#ifdef __MVS__
+#define _AE_BIMODAL
+#endif
 #include "inspector_io.h"
 
 #include "inspector_socket_server.h"
@@ -10,7 +13,9 @@
 #include "zlib.h"
 
 #include <sstream>
+#ifndef __MVS__
 #include <unicode/unistr.h>
+#endif
 
 #include <string.h>
 #include <vector>
@@ -32,9 +37,9 @@ std::string ScriptPath(uv_loop_t* loop, const std::string& script_name) {
   if (!script_name.empty()) {
     uv_fs_t req;
     req.ptr = nullptr;
-    if (0 == uv_fs_realpath(loop, &req, script_name.c_str(), nullptr)) {
+    if (0 == uv_fs_realpath(loop, &req, *A2E(script_name.c_str()), nullptr)) {
       CHECK_NE(req.ptr, nullptr);
-      script_path = std::string(static_cast<char*>(req.ptr));
+      script_path = std::string(*E2A(static_cast<char*>(req.ptr)));
     }
     uv_fs_req_cleanup(&req);
   }
@@ -50,7 +55,7 @@ std::string GenerateID() {
                               sizeof(buffer)));
 
   char uuid[256];
-  snprintf(uuid, sizeof(uuid), "%04x%04x-%04x-%04x-%04x-%04x%04x%04x",
+  __snprintf_a(uuid, sizeof(uuid), "%04x%04x-%04x-%04x-%04x-%04x%04x%04x",
            buffer[0],  // time_low
            buffer[1],  // time_mid
            buffer[2],  // time_low
@@ -67,6 +72,7 @@ std::string StringViewToUtf8(const StringView& view) {
     return std::string(reinterpret_cast<const char*>(view.characters8()),
                        view.length());
   }
+#ifndef __MVS__
   const uint16_t* source = view.characters16();
   const UChar* unicodeSource = reinterpret_cast<const UChar*>(source);
   static_assert(sizeof(*source) == sizeof(*unicodeSource),
@@ -85,6 +91,10 @@ std::string StringViewToUtf8(const StringView& view) {
     done = !sink.Overflowed();
   }
   return result;
+#else
+    return std::string(reinterpret_cast<const char*>(view.characters8()),
+                       view.length());
+#endif
 }
 
 void HandleSyncCloseCb(uv_handle_t* handle) {
@@ -111,11 +121,16 @@ void ReleasePairOnAsyncClose(uv_handle_t* async) {
 }  // namespace
 
 std::unique_ptr<StringBuffer> Utf8ToStringView(const std::string& message) {
+#ifdef __MVS__
+  StringView view(reinterpret_cast<const uint8_t*>(message.c_str()),
+                  message.length());
+#else
   icu::UnicodeString utf16 =
     icu::UnicodeString::fromUTF8(icu::StringPiece(message.data(),
       message.length()));
   StringView view(reinterpret_cast<const uint16_t*>(utf16.getBuffer()),
                   utf16.length());
+#endif
   return StringBuffer::create(view);
 }
 
@@ -241,7 +256,9 @@ void InspectorIo::WaitForDisconnect() {
   if (state_ == State::kConnected) {
     state_ = State::kShutDown;
     Write(TransportAction::kStop, 0, StringView());
+#pragma convert("IBM-1047")
     fprintf(stderr, "Waiting for the debugger to disconnect...\n");
+#pragma convert(pop)
     fflush(stderr);
     parent_env_->inspector_agent()->RunMessageLoop();
   }
@@ -382,7 +399,9 @@ void InspectorIo::DispatchMessages() {
         CHECK_EQ(session_delegate_, nullptr);
         session_id_ = std::get<1>(task);
         state_ = State::kConnected;
+#pragma convert("IBM-1047")
         fprintf(stderr, "Debugger attached.\n");
+#pragma convert(pop)
         session_delegate_ = std::unique_ptr<InspectorSessionDelegate>(
             new IoSessionDelegate(this));
         parent_env_->inspector_agent()->Connect(session_delegate_.get());
@@ -492,4 +511,4 @@ void IoSessionDelegate::SendMessageToFrontend(
 }
 
 }  // namespace inspector
-}  // namespace node
+}  // namespaca node

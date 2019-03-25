@@ -1,3 +1,6 @@
+#ifdef __MVS__
+#define _AE_BIMODAL
+#endif
 #include "inspector_socket_server.h"
 
 #include "node.h"
@@ -29,7 +32,7 @@ std::string FormatWsAddress(const std::string& host, int port,
   if (v6) {
     url << ']';
   }
-  url << ':' << port << '/' << target_id;
+  url << ':' << *E2A(std::to_string(port).c_str()) << '/' << target_id;
   return url.str();
 }
 
@@ -98,11 +101,13 @@ void PrintDebuggerReadyMessage(const std::string& host,
     return;
   }
   for (const std::string& id : ids) {
+#pragma convert("IBM-1047")
     fprintf(out, "Debugger listening on %s\n",
-            FormatWsAddress(host, port, id, true).c_str());
+            *A2E(FormatWsAddress(host, port, id, true).c_str()));
   }
   fprintf(out, "For help see %s\n",
           "https://nodejs.org/en/docs/inspector");
+#pragma convert(pop)
   fflush(out);
 }
 
@@ -113,7 +118,7 @@ void SendHttpResponse(InspectorSocket* socket, const std::string& response) {
                          "Content-Length: %zu\r\n"
                          "\r\n";
   char header[sizeof(HEADERS) + 20];
-  int header_len = snprintf(header, sizeof(header), HEADERS, response.size());
+  int header_len = __snprintf_a(header, sizeof(header), HEADERS, response.size());
   inspector_write(socket, header, header_len);
   inspector_write(socket, response.data(), response.size());
 }
@@ -164,10 +169,10 @@ int GetSocketHost(uv_tcp_t* socket, std::string* out_host) {
   }
   if (err != 0)
     return err;
-  *out_host = ip;
 #ifdef __MVS__
   __e2a_s(ip);
 #endif
+  *out_host = ip;
   return err;
 }
 }  // namespace
@@ -398,12 +403,14 @@ bool InspectorSocketServer::Start() {
   hints.ai_socktype = SOCK_STREAM;
   uv_getaddrinfo_t req;
   const std::string port_string = std::to_string(port_);
-  int err = uv_getaddrinfo(loop_, &req, nullptr, host_.c_str(),
+  int err = uv_getaddrinfo(loop_, &req, nullptr, *A2E(host_.c_str()),
                            port_string.c_str(), &hints);
   if (err < 0) {
     if (out_ != nullptr) {
-      fprintf(out_, "Unable to resolve \"%s\": %s\n", host_.c_str(),
+#pragma convert("IBM-1047")
+      fprintf(out_, "Unable to resolve \"%s\": %s\n", *A2E(host_.c_str()),
               uv_strerror(err));
+#pragma convert(pop)
     }
     return false;
   }
@@ -420,8 +427,10 @@ bool InspectorSocketServer::Start() {
   // show one error, for the last address.
   if (server_sockets_.empty()) {
     if (out_ != nullptr) {
+#pragma convert("IBM-1047")
       fprintf(out_, "Starting inspector on %s:%d failed: %s\n",
-              host_.c_str(), port_, uv_strerror(err));
+              *A2E(host_.c_str()), port_, uv_strerror(err));
+#pragma convert(pop)
       fflush(out_);
     }
     return false;
