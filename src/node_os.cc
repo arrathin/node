@@ -142,7 +142,7 @@ static void GetOSRelease(const FunctionCallbackInfo<Value>& args) {
   rval = release;
 #endif  // __POSIX__
 
-  args.GetReturnValue().Set(OneByteString(env->isolate(), rval));
+  args.GetReturnValue().Set(OneByteString(env->isolate(), *E2A(rval)));
 }
 
 
