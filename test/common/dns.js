@@ -38,7 +38,69 @@ aca3a5b7a9a7b6bcbdbedda8af5db4d7\
 5cf7535455565758595ab2d4d6d2d3d5\
 30313233343536373839b3dbdcd9da9f',
                               'hex');
+
+const table_ai = Buffer.from('\
+01010101010101000000000000000101\
+01010101010101010101010101010101\
+00000000000000000000000000000000\
+00000000000000000000000000000000\
+00000000000000000000000000000000\
+00000000000000000000000000000000\
+00000000000000000000000000000000\
+00000000000000000000000000000001\
+01010101010101010101010101010101\
+01010101010101010101010101010101\
+01010101010101010101010101010101\
+01010101010101010101010101010101\
+01010101010101010101010101010101\
+01010101010101010101010101010101\
+01010101010101010101010101010101\
+01010101010101010101010101010101',
+                              'hex');
+
+const table_ei = Buffer.from('\
+01010101010001010101010000000101\
+01010101010000010101010101010101\
+01010101010101010101010101010100\
+01010101010101010101010101010101\
+00010101010101010101010000000000\
+00010101010101010101000000000000\
+00000101010101010101010000000000\
+01010101010101010100000000000000\
+01000000000000000000010101010101\
+01000000000000000000010101010101\
+01000000000000000000010101000101\
+01010101010101010101010101000101\
+00000000000000000000010101010101\
+00000000000000000000010101010101\
+00010000000000000000010101010101\
+00000000000000000000010101010101',
+                              'hex');
+
+
 const need_conv = (process.platform === 'os390');
+
+function convert_data(buffer, offset, length) {
+  var ia = true;
+  var astop = 0;
+  var ie = true;
+  var estop = 0;
+  for (var i = offset; i < (offset + length); ++i) {
+    if (ia && table_ai[buffer[i]]) {
+      ia = false;
+      astop = i;
+    } else if (ie && table_ei[buffer[i]]) {
+      ie = false;
+      estop = i;
+    }
+  }
+  if (astop > estop) {
+    for (var i = offset; i < (offset + length); ++i) {
+      buffer[i] = table_e2a[buffer[i]];
+    }
+  }
+  return buffer.toString('ascii', offset, offset + length);
+}
 
 // Naïve DNS parser/serializer.
 
@@ -49,12 +111,9 @@ function readDomainFromPacket(buffer, offset) {
     return { nread: 1, domain: '' };
   } else if ((length & 0xC0) === 0) {
     offset += 1;
-    if (need_conv) {
-      for (var i = offset; i < (offset + length); ++i) {
-	    buffer[i] = table_e2a[buffer[i]];
-      }
-    }
-    const chunk = buffer.toString('ascii', offset, offset + length);
+    const chunk = (need_conv)
+                      ? convert_data(buffer, offset, length)
+                      : buffer.toString('ascii', offset, offset + length);
     // Read the rest of the domain.
     const { nread, domain } = readDomainFromPacket(buffer, offset + length);
     return {
