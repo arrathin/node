@@ -33,7 +33,11 @@
 #include "ares_private.h" /* for the memdebug */
 
 static int name_length(const unsigned char *encoded, const unsigned char *abuf,
+                       int alen, int ebcdic);
+#ifdef __MVS__
+static int ebcdic_ness(const unsigned char *encoded, const unsigned char *abuf,
                        int alen);
+#endif
 
 /* Expand an RFC1035-encoded domain name given by encoded.  The
  * containing message is given by abuf and alen.  The result given by
@@ -59,18 +63,37 @@ static int name_length(const unsigned char *encoded, const unsigned char *abuf,
  * backslashes to escape periods or backslashes in the expanded name.
  */
 
+#include <pthread.h>
 int ares_expand_name(const unsigned char *encoded, const unsigned char *abuf,
                      int alen, char **s, long *enclen)
 {
   int len, indir = 0;
+  int ebcdic = 0;
   char *q;
   const unsigned char *p;
   union {
     ssize_t sig;
      size_t uns;
   } nlen;
+#ifdef __MVS__
+  char dot;
+  char slash;
+  ebcdic = ebcdic_ness(encoded, abuf, alen);
+  if (ebcdic == -1) return ARES_EBADNAME;
+  else if (ebcdic == 1 ) {
+	dot = '.';
+	slash = '\\';
+  }
+  else {
+	dot = u'.';
+	slash = u'\\';
+  }
+#else
+  char dot = '.';
+  char slash = '\\';
+#endif
 
-  nlen.sig = name_length(encoded, abuf, alen);
+  nlen.sig = name_length(encoded, abuf, alen, ebcdic);
   if (nlen.sig < 0)
     return ARES_EBADNAME;
 
@@ -114,12 +137,12 @@ int ares_expand_name(const unsigned char *encoded, const unsigned char *abuf,
           p++;
           while (len--)
             {
-              if (*p == '.' || *p == '\\')
-                *q++ = '\\';
+              if (*p == dot || *p == slash)
+                *q++ = slash;
               *q++ = *p;
               p++;
             }
-          *q++ = '.';
+          *q++ = dot;
         }
     }
   if (!indir)
@@ -130,18 +153,73 @@ int ares_expand_name(const unsigned char *encoded, const unsigned char *abuf,
     *(q - 1) = 0;
   else
     *q = 0; /* zero terminate; LCOV_EXCL_LINE: empty names exit above */
-
   return ARES_SUCCESS;
 }
 
+#ifdef __MVS__
+static int ebcdic_ness(const unsigned char *encoded, const unsigned char *abuf,
+                       int alen) {
+  int offset, indir = 0, top;
+
+  char *checkbuf = alloca(alen * 2);
+  int checkcnt = 0;
+  if (encoded >= abuf + alen)
+    return -1;
+  while (*encoded) {
+    top = (*encoded & INDIR_MASK);
+    if (top == INDIR_MASK) {
+      if (encoded + 1 >= abuf + alen)
+        return -1;
+      offset = (*encoded & ~INDIR_MASK) << 8 | *(encoded + 1);
+      if (offset >= alen)
+        return -1;
+      encoded = abuf + offset;
+      if (++indir > alen)
+        return -1;
+    } else if (top == 0x00) {
+      offset = *encoded;
+      if (encoded + offset + 1 >= abuf + alen)
+        return -1;
+      encoded++;
+      while (offset--) {
+        checkbuf[checkcnt++] = *encoded;
+        encoded++;
+      }
+    } else {
+      return -1;
+    }
+  }
+  checkbuf[checkcnt] = 0;
+  int ccsid = 0;
+  ccsid = __guess_ae(checkbuf, checkcnt);
+  if (ccsid == 1047)
+    return 1;
+  return 0;
+}
+#endif
 /* Return the length of the expansion of an encoded domain name, or
  * -1 if the encoding is invalid.
  */
+
 static int name_length(const unsigned char *encoded, const unsigned char *abuf,
-                       int alen)
+                       int alen, int ebcdic)
 {
   int n = 0, offset, indir = 0, top;
-
+#ifdef __MVS__
+  char dot;
+  char slash;
+  if (ebcdic) {
+	dot = '.';
+    slash = '\\';
+  } else {
+	dot = u'.';
+    slash = u'\\';
+  }
+#else
+  char dot = '.';
+  char slash = '\\';
+#endif
+  
   /* Allow the caller to pass us abuf + alen and have us check for it. */
   if (encoded >= abuf + alen)
     return -1;
@@ -173,7 +251,7 @@ static int name_length(const unsigned char *encoded, const unsigned char *abuf,
           encoded++;
           while (offset--)
             {
-              n += (*encoded == '.' || *encoded == '\\') ? 2 : 1;
+              n += (*encoded == dot || *encoded == slash) ? 2 : 1;
               encoded++;
             }
           n++;
@@ -186,7 +264,6 @@ static int name_length(const unsigned char *encoded, const unsigned char *abuf,
           return -1;
         }
     }
-
   /* If there were any labels at all, then the number of dots is one
    * less than the number of labels, so subtract one.
    */

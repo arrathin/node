@@ -28,11 +28,16 @@ extern int vdprintf(int fd, const char *, va_list ap);
 extern void __xfer_env(void);
 extern int __chgfdccsid(int fd, unsigned short ccsid);
 extern void __dump(int fd, const void *addr, size_t len, size_t bw);
+extern void __dump_title(int fd, const void *addr, size_t len, size_t bw,
+                         const char *, ...);
 extern int backtrace(void **buffer, int size);
 extern char **backtrace_symbols(void *const *buffer, int size);
 extern void backtrace_symbols_fd(void *const *buffer, int size, int fd);
 extern void __abend(int comp_code, unsigned reason_code, int flat_byte,
                     void *plist);
+extern int strncasecmp_ignorecp(const char *a, const char *b, size_t n);
+extern int strcasecmp_ignorecp(const char *a, const char *b);
+extern int __guess_ae(const void *src, size_t size);
 
 #ifdef __cplusplus
 }

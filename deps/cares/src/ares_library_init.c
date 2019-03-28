@@ -35,7 +35,16 @@ static unsigned int ares_initialized;
 static int          ares_init_flags;
 
 /* library-private global vars with visibility across the whole library */
+#if defined(__MVS__)
+void *zos_malloc(size_t s) {
+  if (s == 0)
+    s = 1;
+  return malloc(s);
+}
+void *(*ares_malloc)(size_t size) = zos_malloc;
+#else
 void *(*ares_malloc)(size_t size) = malloc;
+#endif
 void *(*ares_realloc)(void *ptr, size_t size) = realloc;
 void (*ares_free)(void *ptr) = free;
 

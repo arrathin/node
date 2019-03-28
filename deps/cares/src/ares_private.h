@@ -95,6 +95,11 @@
 
 #include "ares_strdup.h"
 
+#if defined(__MVS__) 
+#  define strcasecmp(p1,p2) strcasecmp_ignorecp(p1,p2)
+#  define strncasecmp(p1,p2,n) strncasecmp_ignorecp(p1,p2,n)
+#endif
+
 #ifndef HAVE_STRCASECMP
 #  include "ares_strcasecmp.h"
 #  define strcasecmp(p1,p2) ares_strcasecmp(p1,p2)
