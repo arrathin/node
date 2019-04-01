@@ -84,7 +84,7 @@
  * be thought of as the root domain).
  */
 
-int ares_create_query(const char *name, int dnsclass, int type,
+int ares_create_query(const char *name_in, int dnsclass, int type,
                       unsigned short id, int rd, unsigned char **bufp,
                       int *buflenp, int max_udp_size)
 {
@@ -93,6 +93,13 @@ int ares_create_query(const char *name, int dnsclass, int type,
   const char *p;
   size_t buflen;
   unsigned char *buf;
+
+#if defined(__MVS__)
+  int len_in = strlen(name_in)+1;
+  const char * name = (const char *) _convert_e2a(alloca(len_in), name_in, len_in);
+#else
+  const char * name = name_in;
+#endif
 
   /* Set our results early, in case we bail out early with an error. */
   *buflenp = 0;
@@ -126,23 +133,23 @@ int ares_create_query(const char *name, int dnsclass, int type,
   }
 
   /* A name of "." is a screw case for the loop below, so adjust it. */
-  if (strcmp(name, ".") == 0)
+  if (strcmp(name, u8".") == 0)
     name++;
 
   /* Start writing out the name after the header. */
   q += HFIXEDSZ;
   while (*name)
     {
-      if (*name == '.') {
+      if (*name == u'.') {
         free (buf);
         return ARES_EBADNAME;
       }
 
       /* Count the number of bytes in this label. */
       len = 0;
-      for (p = name; *p && *p != '.'; p++)
+      for (p = name; *p && *p != u'.'; p++)
         {
-          if (*p == '\\' && *(p + 1) != 0)
+          if (*p == u'\\' && *(p + 1) != 0)
             p++;
           len++;
         }
@@ -153,9 +160,9 @@ int ares_create_query(const char *name, int dnsclass, int type,
 
       /* Encode the length and copy the data. */
       *q++ = (unsigned char)len;
-      for (p = name; *p && *p != '.'; p++)
+      for (p = name; *p && *p != u'.'; p++)
         {
-          if (*p == '\\' && *(p + 1) != 0)
+          if (*p == u'\\' && *(p + 1) != 0)
             p++;
           *q++ = *p;
         }

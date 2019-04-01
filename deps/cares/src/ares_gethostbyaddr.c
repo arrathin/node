@@ -291,4 +291,7 @@ static void ptr_rr_name(char *name, const struct ares_addr *addr)
                 bytes[3]&0xf, bytes[3] >> 4, bytes[2]&0xf, bytes[2] >> 4,
                 bytes[1]&0xf, bytes[1] >> 4, bytes[0]&0xf, bytes[0] >> 4);
     }
+#if defined(__MVS__)
+  __e2a_s(name);
+#endif
 }
