@@ -26,6 +26,11 @@ const os = require('os');
 const util = require('util');
 const spawn = require('child_process').spawn;
 
+if ( process.platform === 'os390') {
+  // use USS's version of grep and sed
+  process.env.PATH="/bin:" + process.env.PATH;
+}
+
 // We're trying to reproduce:
 // $ echo "hello\nnode\nand\nworld" | grep o | sed s/o/a/
 
