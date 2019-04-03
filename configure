@@ -40,8 +40,15 @@ os.chdir(os.path.dirname(__file__) or '.')
 
 # gcc and g++ as defaults matches what GYP's Makefile generator does,
 # except on OS X.
-CC = os.environ.get('CC', 'cc' if sys.platform == 'darwin' else 'gcc')
-CXX = os.environ.get('CXX', 'c++' if sys.platform == 'darwin' else 'g++')
+if sys.platform == 'darwin':
+  CC = os.environ.get('CC', 'cc')
+  CXX = os.environ.get('CXX', 'c++')
+elif sys.platform == "zos":
+  CC = os.environ.get('CC', 'njsc')
+  CXX = os.environ.get('CXX', 'njsc++')
+else:
+  CC = os.environ.get('CC', 'gcc')
+  CXX = os.environ.get('CXX', 'g++')
 
 sys.path.insert(0, os.path.join('tools', 'gyp', 'pylib'))
 from gyp.common import GetFlavor
