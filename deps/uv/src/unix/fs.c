@@ -960,6 +960,11 @@ static ssize_t uv__fs_copyfile(uv_fs_t* req) {
   }
 #endif
 
+#if defined(__MVS__)
+  // copy the source tag to dest
+  __chgfdccsid(dstfd, statsbuf.st_tag.ft_ccsid);
+#endif
+
   bytes_to_send = statsbuf.st_size;
   in_offset = 0;
   while (bytes_to_send != 0) {
@@ -976,6 +981,7 @@ static ssize_t uv__fs_copyfile(uv_fs_t* req) {
     bytes_to_send -= fs_req.result;
     in_offset += fs_req.result;
   }
+  
 
 out:
   if (err < 0)

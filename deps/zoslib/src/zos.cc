@@ -240,7 +240,9 @@ extern "C" int __chgfdccsid(int fd, unsigned short ccsid) {
   memset(&attr, 0, sizeof(attr));
   attr.att_filetagchg = 1;
   attr.att_filetag.ft_ccsid = ccsid;
-  attr.att_filetag.ft_txtflag = 1;
+  if (ccsid != FT_BINARY) {
+    attr.att_filetag.ft_txtflag = 1;
+  } 
   return __fchattr(fd, &attr, sizeof(attr));
 }
 static void ledump(const char *title) {
