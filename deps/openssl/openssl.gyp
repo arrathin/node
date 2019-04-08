@@ -167,7 +167,6 @@
               '-q64',
               '-fexec-charset=ISO8859-1',
               '-qlonglong',
-              '-qbitfields=signed',
               '-qchars=signed',
               '-qexportall',
             ],
