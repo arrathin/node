@@ -177,7 +177,7 @@
                 'ldflags': [ '-pthreads' ],
               }],
               [ 'OS=="zos" and uv_library=="shared_library"', {
-                'ldflags': [ '-Wl,DLL', '-qxplink' ],
+                'ldflags': [ '-Wl,DLL' ],
                 'cflags': [ '-qexportall', '-qenum=int' ],
               }],
               ['OS != "solaris" and OS != "android" and OS != "zos"', {

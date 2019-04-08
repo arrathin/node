@@ -432,13 +432,11 @@
       }],
       ['OS == "zos"', {
          'cflags': [
-           '-qxplink',
            '-q64',
            '-qarch=9',
            '-qenum=int',
            ],
           'ldflags': [
-            '-qxplink',
             '-q64',
            ],
       }]
