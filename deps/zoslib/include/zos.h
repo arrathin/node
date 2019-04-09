@@ -6,14 +6,16 @@
 //
 #include <_Nascii.h>
 #include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 extern int __debug_mode;
 #define __ZOS_CC
 #ifdef __cplusplus
 extern "C" {
 #endif
+#ifndef __size_t
+typedef unsigned long size_t;
+#define __size_t 1
+#endif
+
 extern void *_convert_e2a(void *dst, const void *src, size_t size);
 extern void *_convert_a2e(void *dst, const void *src, size_t size);
 extern char **__get_environ_np(void);
@@ -38,6 +40,24 @@ extern void __abend(int comp_code, unsigned reason_code, int flat_byte,
 extern int strncasecmp_ignorecp(const char *a, const char *b, size_t n);
 extern int strcasecmp_ignorecp(const char *a, const char *b);
 extern int __guess_ae(const void *src, size_t size);
+extern int conv_utf8_utf16(char *, size_t, const char *, size_t);
+extern int conv_utf16_utf8(char *, size_t, const char *, size_t);
+
+#if defined(__assert)
+#undef assert
+#else
+#define __assert 1
+#endif
+// The default assert macro does not work when the string is not in EBCDIC.
+#define assert(expr)                                                           \
+  (void)((expr) ? 0                                                            \
+                : (dprintf(2,                                                  \
+                           "Assertion failed: %s, file: %s, line: %d, "        \
+                           "function: %s\n",                                   \
+                           #expr, __FILE__, __LINE__, __func__),               \
+                   __abend(999, 0x0000DEAD, -1, 0), 0))
+
+void __abort(void) asm("abort");
 
 #ifdef __cplusplus
 }

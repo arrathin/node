@@ -1,5 +1,7 @@
 #ifdef __MVS__
+#if !defined( _AE_BIMODAL)
 #define _AE_BIMODAL
+#endif
 #endif
 #include "inspector_io.h"
 
@@ -15,6 +17,8 @@
 #include <sstream>
 #ifndef __MVS__
 #include <unicode/unistr.h>
+#else
+#include "zos.h"
 #endif
 
 #include <string.h>
@@ -92,8 +96,15 @@ std::string StringViewToUtf8(const StringView& view) {
   }
   return result;
 #else
-    return std::string(reinterpret_cast<const char*>(view.characters8()),
-                       view.length());
+  const uint16_t* source = view.characters16();
+  size_t result_length = view.length() * sizeof(*source);
+  char * output = (char *) alloca(result_length + 1);
+  int bytes = conv_utf16_utf8(output, result_length + 1,  (const char *) source, result_length); 
+  if (bytes <0 ) {
+	assert(!!!"iconv");
+  }
+  output[bytes] = 0;
+  return std::string(reinterpret_cast<const char*>(output), bytes);
 #endif
 }
 
@@ -122,8 +133,14 @@ void ReleasePairOnAsyncClose(uv_handle_t* async) {
 
 std::unique_ptr<StringBuffer> Utf8ToStringView(const std::string& message) {
 #ifdef __MVS__
-  StringView view(reinterpret_cast<const uint8_t*>(message.c_str()),
-                  message.length());
+  int len = message.length();
+  char * buffer = (char *) _convert_e2a( alloca(len+1),message.c_str(), len +1);
+  char * buffer16 = (char *) alloca( len  * 3);
+  int bytes = conv_utf8_utf16(buffer16, len * 3, buffer, len); 
+  if (bytes <0 ) {
+	assert(!!!"iconv");
+  }
+  StringView view(reinterpret_cast<const uint16_t*>(buffer16), bytes/2);
 #else
   icu::UnicodeString utf16 =
     icu::UnicodeString::fromUTF8(icu::StringPiece(message.data(),

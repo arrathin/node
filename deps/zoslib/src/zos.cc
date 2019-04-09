@@ -5,13 +5,18 @@
 #define _OPEN_SYS_FILE_EXT 1
 #define __ZOS_CC
 #include "zos.h"
+#include <_Ccsid.h>
 #include <_Nascii.h>
 #include <__le_api.h>
 #include <ctest.h>
 #include <errno.h>
+#include <iconv.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 int __debug_mode = 0;
 
 static inline void *__convert_one_to_one(const void *table, void *dst,
@@ -242,7 +247,7 @@ extern "C" int __chgfdccsid(int fd, unsigned short ccsid) {
   attr.att_filetag.ft_ccsid = ccsid;
   if (ccsid != FT_BINARY) {
     attr.att_filetag.ft_txtflag = 1;
-  } 
+  }
   return __fchattr(fd, &attr, sizeof(attr));
 }
 static void ledump(const char *title) {
@@ -364,13 +369,15 @@ quit:
   return len;
 }
 
-extern void __dump_title(int fd, const void *addr, size_t len, size_t bw, const char * format, ...);
+extern void __dump_title(int fd, const void *addr, size_t len, size_t bw,
+                         const char *format, ...);
 
 extern void __dump(int fd, const void *addr, size_t len, size_t bw) {
-	__dump_title(fd,addr, len, bw, 0);
+  __dump_title(fd, addr, len, bw, 0);
 }
 
-extern void __dump_title(int fd, const void *addr, size_t len, size_t bw, const char * format, ...) {
+extern void __dump_title(int fd, const void *addr, size_t len, size_t bw,
+                         const char *format, ...) {
   static const unsigned char *atbl = (unsigned char *)"................"
                                                       "................"
                                                       " !\"#$%&'()*+,-./"
@@ -406,12 +413,11 @@ extern void __dump_title(int fd, const void *addr, size_t len, size_t bw, const 
   const unsigned char *p = (const unsigned char *)addr;
   if (format) {
     va_list ap;
-	va_start(ap, format);
-	vdprintf(fd, format, ap);
+    va_start(ap, format);
+    vdprintf(fd, format, ap);
     va_end(ap);
-  }
-  else {
-  	dprintf(fd, "Dump: \"Address: Content in Hexdecimal, ASCII, EBCDIC\"\n");
+  } else {
+    dprintf(fd, "Dump: \"Address: Content in Hexdecimal, ASCII, EBCDIC\"\n");
   }
   if (bw < 16 && bw > 64) {
     bw = 16;
@@ -800,4 +806,82 @@ int strncasecmp_ignorecp(const char *a, const char *b, size_t n) {
   }
 
   return strcmp(a_new, b_new);
+}
+
+class __csConverter {
+  int fr_id;
+  int to_id;
+  char fr_name[_CSNAME_LEN_MAX + 1];
+  char to_name[_CSNAME_LEN_MAX + 1];
+  iconv_t cv;
+  int valid;
+
+public:
+  __csConverter(int fr_ccsid, int to_ccsid) : fr_id(fr_ccsid), to_id(to_ccsid) {
+    valid = 0;
+    if (0 != __toCSName(fr_id, fr_name)) {
+      return;
+    }
+    if (0 != __toCSName(to_id, to_name)) {
+      return;
+    }
+    if (fr_id != -1 && to_id != -1) {
+      cv = iconv_open(fr_name, to_name);
+      if (cv != (iconv_t)-1) {
+        valid = 1;
+      }
+    }
+  }
+  int is_valid(void) { return valid; }
+  ~__csConverter(void) {
+    if (valid)
+      iconv_close(cv);
+  }
+  size_t iconv(char **inbuf, size_t *inbytesleft, char **outbuf,
+               size_t *outbytesleft) {
+    return ::iconv(cv, inbuf, inbytesleft, outbuf, outbytesleft);
+  }
+  int conv(char *out, size_t outsize, const char *in, size_t insize) {
+    size_t o_len = outsize;
+    size_t i_len = insize;
+    char *p = (char *)in;
+    char *q = out;
+    if (i_len == 0)
+      return 0;
+    int converted = ::iconv(cv, &p, &i_len, &q, &o_len);
+    if (converted == -1)
+      return -1;
+    if (i_len == 0) {
+      return outsize - o_len;
+    }
+    return -1;
+  }
+};
+static __csConverter utf16_to_8(1208, 1200);
+static __csConverter utf8_to_16(1200, 1208);
+
+extern "C" int conv_utf8_utf16(char *out, size_t outsize, const char *in,
+                               size_t insize) {
+  return utf8_to_16.conv(out, outsize, in, insize);
+}
+extern "C" int conv_utf16_utf8(char *out, size_t outsize, const char *in,
+                               size_t insize) {
+  return utf16_to_8.conv(out, outsize, in, insize);
+}
+extern "C" void abort(void) {
+  void *buf[100];
+  backtrace_symbols_fd(buf, backtrace(buf, 100), 2);
+  __abend(999, 0x0000DEAD, -1, 0);
+}
+extern "C" void perror(const char *str) {
+  int err = errno;
+  char buf[1024];
+  int rc = strerror_r(err, buf, 1024);
+  if (rc == -1) {
+    dprintf(2, "strerror on errno %d gives errno=%d\n", err, errno);
+    return;
+  }
+  dprintf(2, buf);
+  dprintf(2, "\n");
+  errno = err;
 }

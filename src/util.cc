@@ -198,6 +198,9 @@ std::string GetHumanReadableProcessName() {
 void GetHumanReadableProcessName(char (*name)[1024]) {
   char title[1024] = "Node.js";
   uv_get_process_title(title, sizeof(title));
+#ifdef __MVS__
+  __e2a_s(title);
+#endif
   __snprintf_a(*name, sizeof(*name), "%s[%u]", title, uv_os_getpid());
 }
 
