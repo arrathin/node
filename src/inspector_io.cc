@@ -3,6 +3,9 @@
 #define _AE_BIMODAL
 #endif
 #endif
+#ifdef __MVS__
+#include "zos.h"
+#endif
 #include "inspector_io.h"
 
 #include "inspector_socket_server.h"
@@ -17,8 +20,6 @@
 #include <sstream>
 #ifndef __MVS__
 #include <unicode/unistr.h>
-#else
-#include "zos.h"
 #endif
 
 #include <string.h>

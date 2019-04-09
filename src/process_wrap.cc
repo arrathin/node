@@ -22,6 +22,11 @@
 #ifndef _AE_BIMODAL
 #define _AE_BIMODAL 1
 #endif
+#ifdef __MVS__
+#include <regex>
+#include <unistd.h> // e2a
+#include "zos.h"
+#endif
 #include "env-inl.h"
 #include "handle_wrap.h"
 #include "node_wrap.h"
@@ -29,11 +34,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#ifdef __MVS__
-#include <regex>
-#include <unistd.h> // e2a
-#include "zos.h"
-#endif
 
 namespace node {
 
