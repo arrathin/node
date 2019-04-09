@@ -2047,6 +2047,7 @@ def GenerateOutput(target_list, target_dicts, data, params):
 
   flock_command= 'flock'
   copy_archive_arguments = '-af'
+  makedep_arguments = '-MMD'
   header_params = {
       'default_target': default_target,
       'builddir': builddir_name,
@@ -2057,6 +2058,7 @@ def GenerateOutput(target_list, target_dicts, data, params):
       'extra_commands': '',
       'srcdir': srcdir,
       'copy_archive_args': copy_archive_arguments,
+      'makedep_args': makedep_arguments,
     }
   if flavor == 'mac':
     flock_command = './gyp-mac-tool flock'
@@ -2105,6 +2107,14 @@ def GenerateOutput(target_list, target_dicts, data, params):
     'CXX.host':    GetEnvironFallback(('CXX_host', 'CXX'), 'g++'),
     'LINK.host':   GetEnvironFallback(('LINK_host', 'LINK'), '$(CXX.host)'),
   })
+
+  if flavor == 'zos':
+    header_params.update({
+    'CC.target':   GetEnvironFallback(('CC_target', 'CC'), 'njsc'),
+    'CXX.target':  GetEnvironFallback(('CXX_target', 'CXX'), 'njsc++'),
+    'CC.host':     GetEnvironFallback(('CC_host', 'CC'), 'njsc'),
+    'CXX.host':    GetEnvironFallback(('CXX_host', 'CXX'), 'njsc++'),
+    })
 
   build_file, _, _ = gyp.common.ParseQualifiedTarget(target_list[0])
   make_global_settings_array = data[build_file].get('make_global_settings', [])
