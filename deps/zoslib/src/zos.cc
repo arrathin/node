@@ -868,6 +868,7 @@ extern "C" int conv_utf16_utf8(char *out, size_t outsize, const char *in,
                                size_t insize) {
   return utf16_to_8.conv(out, outsize, in, insize);
 }
+#if __TEST
 extern "C" void abort(void) {
   void *buf[100];
   backtrace_symbols_fd(buf, backtrace(buf, 100), 2);
@@ -885,3 +886,4 @@ extern "C" void perror(const char *str) {
   dprintf(2, "\n");
   errno = err;
 }
+#endif
