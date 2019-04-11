@@ -686,7 +686,16 @@ void Agent::ContextCreated(Local<Context> context) {
   if (client_ == nullptr)  // This happens for a main context
     return;
   std::ostringstream name;
+#if defined(__MVS__)
+#if ' ' == 0x40
+	#error bad compile option
+#endif
+  char buffer [50];
+  __snprintf_a(buffer, 50,"VM Context %d",next_context_number_++);
+  name << buffer;
+#else
   name << "VM Context " << next_context_number_++;
+#endif
   client_->contextCreated(context, name.str());
 }
 
