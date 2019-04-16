@@ -20,7 +20,7 @@ function pacoteOpts (moreOpts) {
   }
   const ownerStats = calculateOwner()
   const opts = {
-    cache: process.env.NPM_NOCACHE === '1' ? undefined : path.join(npm.config.get('cache'), '_cacache'),
+    cache: path.join(npm.config.get('cache'), '_cacache'),
     ca: npm.config.get('ca'),
     cert: npm.config.get('cert'),
     defaultTag: npm.config.get('tag'),
