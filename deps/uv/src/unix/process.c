@@ -185,7 +185,7 @@ skip:
  * Used for initializing stdio streams like options.stdin_stream. Returns
  * zero on success. See also the cleanup section in uv_spawn().
  */
-static int uv__process_init_stdio(uv_stdio_container_t* container, int fds[2]) {
+static int uv__process_init_stdio(uv_stdio_container_t* container, int fds[2], int isStderr) {
   int mask;
   int fd;
 
@@ -199,8 +199,12 @@ static int uv__process_init_stdio(uv_stdio_container_t* container, int fds[2]) {
     assert(container->data.stream != NULL);
     if (container->data.stream->type != UV_NAMED_PIPE)
       return UV_EINVAL;
-    else
-      return uv__make_socketpair(fds, 0);
+    else {
+	  if (isStderr) //TODO: zOS socketpair issue on stderr, use pipes for stderr
+     	return uv__make_pipe(fds, 0);
+	  else 
+     	return uv__make_socketpair(fds, 0);
+	}
 
   case UV_INHERIT_FD:
   case UV_INHERIT_STREAM:
@@ -459,7 +463,14 @@ int uv_spawn(uv_loop_t* loop,
   }
 
   for (i = 0; i < options->stdio_count; i++) {
-    err = uv__process_init_stdio(options->stdio + i, pipes[i]);
+#ifdef __MVS__
+	if (i == 2) // stderr
+    	err = uv__process_init_stdio(options->stdio + i, pipes[i], 1);
+	else
+    	err = uv__process_init_stdio(options->stdio + i, pipes[i], 0);
+#else
+    err = uv__process_init_stdio(options->stdio + i, pipes[i], 0);
+#endif
     if (err)
       goto error;
   }
