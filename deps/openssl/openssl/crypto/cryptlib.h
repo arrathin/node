@@ -106,6 +106,12 @@ extern int OPENSSL_NONPIC_relocated;
 
 char *ossl_safe_getenv(const char *);
 
+#if defined(__MVS__)
+    #undef getenv
+    char * __getenv_zos(const char *);
+    #define getenv(_x) __getenv_zos(_x)
+#endif
+
 #ifdef  __cplusplus
 }
 #endif

@@ -89,3 +89,14 @@ void OPENSSL_init(void)
     fprintf(stderr, "Called OPENSSL_init\n");
 #endif
 }
+#if defined(__MVS__)
+char * __getenv_zos(const char * str) {
+    int len = strlen(str);
+    char * e_str = alloca(len+1);
+    memcpy(e_str, str, len+1);
+    __a2e_l(e_str, len);
+    char * res = getenv(e_str);
+    __e2a_s(res);
+    return res;
+}
+#endif
