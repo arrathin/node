@@ -2368,6 +2368,11 @@ static void ReleaseResourcesOnExit(void * arg) {
 #ifdef __MVS__
 void on_sigabrt (int signum)
 {
+  signal(signum, SIG_DFL);
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = SIG_DFL;
+  sigaction(signum, &sa, 0);
   ReleaseResourcesOnExit(nullptr);
   raise(signum);
 }
@@ -4525,7 +4530,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
                  int exec_argc, const char* const* exec_argv) {
 #ifdef __MVS__
   int i;
-  int siglist[] = {SIGABRT, SIGHUP, SIGFPE, SIGILL, SIGINT, SIGSEGV,
+  int siglist[] = {SIGABRT, SIGFPE, SIGILL, SIGINT, SIGSEGV,
                  SIGTERM, SIGABND, SIGINT, SIGIOERR };
   i = 0;
   for (i=0; i< (sizeof(siglist)/sizeof(int)); ++i) {
