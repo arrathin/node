@@ -148,8 +148,10 @@ static void init_message_queue(uv__os390_epoll* lst) {
 
   /* initialize message queue */
   lst->msg_queue = msgget(IPC_PRIVATE, 0600 | IPC_CREAT);
-  if (lst->msg_queue == -1)
+  if (lst->msg_queue == -1) {
+    perror("msgget");
     abort();
+  }
 
   /*
      On z/OS, the message queue will be affiliated with the process only
@@ -157,12 +159,16 @@ static void init_message_queue(uv__os390_epoll* lst) {
      can be queried for all message queues belonging to our process id.
   */
   msg.header = 1;
-  if (msgsnd(lst->msg_queue, &msg, sizeof(msg.body), 0) != 0)
+  if (msgsnd(lst->msg_queue, &msg, sizeof(msg.body), 0) != 0) {
+    perror("msgsnd");
     abort();
+  }
 
   /* Clean up the dummy message sent above */
-  if (msgrcv(lst->msg_queue, &msg, sizeof(msg.body), 0, 0) != sizeof(msg.body))
+  if (msgrcv(lst->msg_queue, &msg, sizeof(msg.body), 0, 0) != sizeof(msg.body)) {
+    perror("msgrcv");
     abort();
+  }
 }
 
 

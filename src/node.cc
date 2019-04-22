@@ -4524,16 +4524,21 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
                  int argc, const char* const* argv,
                  int exec_argc, const char* const* exec_argv) {
 #ifdef __MVS__
-  signal(SIGABRT, &on_sigabrt);
-  signal(SIGABND, &on_sigabrt);
-  signal(SIGHUP, &on_sigabrt);
+  int i;
+  int siglist[] = {SIGABRT, SIGHUP, SIGFPE, SIGILL, SIGINT, SIGSEGV,
+                 SIGTERM, SIGABND, SIGINT, SIGIOERR };
+  i = 0;
+  for (i=0; i< (sizeof(siglist)/sizeof(int)); ++i) {
+    signal(siglist[i], &on_sigabrt);
+  }
   struct sigaction action;
   memset(&action, 0, sizeof(action));
   action.sa_flags = SA_RESETHAND;
   action.sa_handler = &on_sigabrt;
-  sigaction(SIGABRT, &action, NULL);
-  sigaction(SIGABND, &action, NULL);
-  sigaction(SIGHUP, &action, NULL);
+  
+  for (i=0; i< (sizeof(siglist)/sizeof(int)); ++i) {
+    sigaction(siglist[i], &action, NULL);
+  }
 #endif
 
   HandleScope handle_scope(isolate);

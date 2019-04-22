@@ -1756,15 +1756,7 @@ def Main():
 
 def CleanupResources():
  if (platform.system() == 'OS/390'):
-   os.system("for u in `ipcs | grep \"^q.*$(whoami)\" | tr -s ' ' | cut -d' ' -f2`;"
-                "do ipcrm -q $u;"
-             "done")
-   os.system("for u in `ipcs | grep \"^s.*$(whoami)\" | tr -s ' ' | cut -d' ' -f2`;"
-               "do ipcrm -s $u;"
-             "done")
-   os.system("for u in `ps -ecf -o ppid,jobname,pid | grep \" 1 $(whoami)\" | tr -s ' ' | cut -f4 -d' '`;"
-               "do kill -9 $u > /dev/null 2>&1;"
-             "done")
+   os.system("PATH=/bin:$PATH;for s in $(ipcs -a|awk '$1 == \"q\" && $5 == \"'$(id -nu)'\" {print $2\"-\"$16}');do i=$(echo $s|cut -d - -f1);p=$(echo $s|cut -d - -f2);kill -0 $p >/dev/null 2>&1||ipcrm -q $i;done");
 
 
 if __name__ == '__main__':
