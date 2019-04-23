@@ -2979,9 +2979,6 @@ void Connection::SetShutdownFlags() {
 
 
 void Connection::NewSessionDoneCb() {
-  HandleScope scope(env()->isolate());
-
-  MakeCallback(env()->onnewsessiondone_string(), 0, nullptr);
 }
 
 
