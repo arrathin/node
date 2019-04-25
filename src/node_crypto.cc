@@ -23,8 +23,9 @@
 #define _AE_BIMODAL 1
 #endif
 #define snprintf __snprintf_a
-#define printf   __printf_a
+#define printf   error__printf_a
 #define fprintf  __fprintf_a
+#include "zos.h"
 #endif
 
 #include "node.h"
@@ -2845,7 +2846,11 @@ void Connection::OnClientHelloParseEnd(void* arg) {
 
 
 #ifdef SSL_PRINT_DEBUG
+#if defined(__MVS__)
+# define DEBUG_PRINT(...) dprintf (2, __VA_ARGS__)
+#else
 # define DEBUG_PRINT(...) fprintf (stderr, __VA_ARGS__)
+#endif
 #else
 # define DEBUG_PRINT(...)
 #endif
@@ -6221,11 +6226,15 @@ void InitCryptoOnce() {
         CONF_MFLAGS_DEFAULT_SECTION);
     int err = ERR_get_error();
     if (0 != err) {
-#pragma convert("IBM-1047")
+#if defined(__MVS__)
+      dprintf(2,
+              "openssl config failed: %s\n",
+              ERR_error_string(err, nullptr));
+#else
       fprintf(stderr,
               "openssl config failed: %s\n",
               ERR_error_string(err, nullptr));
-#pragma convert(pop)
+#endif
       CHECK_NE(err, 0);
     }
   }
@@ -6248,9 +6257,15 @@ void InitCryptoOnce() {
     }
   }
   if (0 != err) {
+#if defined(__MVS__)
+    dprintf(2,
+            "openssl fips failed: %s\n",
+            ERR_error_string(err, nullptr));
+#else
     fprintf(stderr,
             "openssl fips failed: %s\n",
             ERR_error_string(err, nullptr));
+#endif
     UNREACHABLE();
   }
 #endif  // NODE_FIPS_MODE

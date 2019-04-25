@@ -24,6 +24,7 @@
 #define _AE_BIMODAL 1
 #endif
 #include "zos.h"
+#include <ctest.h>
 #endif
 #include "node.h"
 #include "node_buffer.h"
@@ -2368,12 +2369,23 @@ static void ReleaseResourcesOnExit(void * arg) {
 #ifdef __MVS__
 void on_sigabrt (int signum)
 {
+  static int loop = 0;
+  ++loop;
+  if (loop > 9)  {
+	// looping 
+	 __abend(signum, 0x0000DEAD, -1, 0);
+  }
   signal(signum, SIG_DFL);
   struct sigaction sa;
   memset(&sa, 0, sizeof(sa));
   sa.sa_handler = SIG_DFL;
   sigaction(signum, &sa, 0);
   ReleaseResourcesOnExit(nullptr);
+  if (signum == SIGABRT) {
+	char msg [50];
+	strcpy(msg, "sigabort received");
+    __cdump_a(msg);
+  }
   raise(signum);
 }
 #endif
@@ -4531,7 +4543,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
 #ifdef __MVS__
   int i;
   int siglist[] = {SIGABRT, SIGFPE, SIGILL, SIGINT, SIGSEGV,
-                 SIGTERM, SIGABND, SIGINT, SIGIOERR };
+                 SIGTERM, SIGABND, SIGIOERR };
   i = 0;
   for (i=0; i< (sizeof(siglist)/sizeof(int)); ++i) {
     signal(siglist[i], &on_sigabrt);
