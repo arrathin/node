@@ -6,7 +6,6 @@
 //
 #include <_Nascii.h>
 #include <stdarg.h>
-extern int __debug_mode;
 #define __ZOS_CC
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +41,11 @@ extern int strcasecmp_ignorecp(const char *a, const char *b);
 extern int __guess_ae(const void *src, size_t size);
 extern int conv_utf8_utf16(char *, size_t, const char *, size_t);
 extern int conv_utf16_utf8(char *, size_t, const char *, size_t);
+extern int __indebug(void);
+extern void __setdebug(int);
+extern char **__getargv(void);
+extern char **__getargv_a(void);
+extern int __getargc(void);
 
 #ifdef __cplusplus
 }

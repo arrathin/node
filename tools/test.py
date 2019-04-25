@@ -166,7 +166,6 @@ class ProgressIndicator(object):
       self.remaining -= 1
       self.HasRun(output)
       self.lock.release()
-      CleanupResources()
 
 def EscapeCommand(command):
   parts = []
@@ -1754,11 +1753,5 @@ def Main():
   return result
 
 
-def CleanupResources():
- if (platform.system() == 'OS/390'):
-   os.system("PATH=/bin:$PATH;for s in $(ipcs -a|awk '$1 == \"q\" && $5 == \"'$(id -nu)'\" {print $2\"-\"$16}');do i=$(echo $s|cut -d - -f1);p=$(echo $s|cut -d - -f2);kill -0 $p >/dev/null 2>&1||ipcrm -q $i;done");
-
-
 if __name__ == '__main__':
   sys.exit(Main())
-  CleanupResources()

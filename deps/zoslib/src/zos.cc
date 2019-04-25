@@ -10,14 +10,27 @@
 #include <__le_api.h>
 #include <ctest.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <iconv.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/__getipc.h>
+#include <sys/msg.h>
 #include <sys/stat.h>
 #include <unistd.h>
-int __debug_mode = 0;
+static int __debug_mode = 0;
+#if ' ' != 0x20
+#error not build with correct codeset
+#endif
+
+int __argc = 1;
+char **__argv;
+char **__argv_a;
+extern void __settimelimit(int secs);
 
 static inline void *__convert_one_to_one(const void *table, void *dst,
                                          size_t size, const void *src) {
@@ -857,6 +870,84 @@ public:
     return -1;
   }
 };
+
+static void cleanupmsgq(int others) {
+  IPCQPROC buf;
+  int rc;
+  int uid = getuid();
+  int pid = getpid();
+  int stop = -1;
+  rc = __getipc(0, &buf, sizeof(buf), IPCQMSG);
+  while (rc != -1 && stop != buf.msg.ipcqmid) {
+    if (stop == -1)
+      stop = buf.msg.ipcqmid;
+    if (buf.msg.ipcqpcp.uid == uid) {
+      if (buf.msg.ipcqkey == 0) {
+        if (buf.msg.ipcqlrpid == pid) {
+          msgctl(buf.msg.ipcqmid, IPC_RMID, 0);
+        } else if (others && kill(buf.msg.ipcqlrpid, 0) == -1 &&
+                   kill(buf.msg.ipcqlspid, 0) == -1) {
+          msgctl(buf.msg.ipcqmid, IPC_RMID, 0);
+        }
+      }
+    }
+    rc = __getipc(rc, &buf, sizeof(buf), IPCQMSG);
+  }
+}
+class __init {
+public:
+  __init() {
+    // initialization
+    unsigned long *x =
+        (unsigned long *)((char *****__ptr32 *)1208)[0][11][1][113][149];
+    __argv = (char **)x[1];
+    if ((unsigned long)(__argv) < 0x00000000FFFFFFFFUL) {
+      __argc = 0;
+    } else {
+      if (0 == (x[0] & 0x00000000ffffffffUL)) {
+        __argc = x[0] >> 32;
+      } else {
+        __argc = x[0];
+      }
+    }
+    int i;
+
+    int bytes = 0;
+    char *strbuf;
+    for (i = 0; i < __argc; ++i) {
+      bytes += sizeof(void *);
+      bytes += (1 + strlen(__argv[i]));
+    }
+    bytes += sizeof(void *);
+    __argv_a = (char **)malloc(bytes);
+    strbuf = ((char *)__argv_a) + ((__argc + 1) * sizeof(void *));
+
+    for (i = 0; i < __argc; ++i) {
+      int l = strlen(__argv[i]);
+      __argv_a[i] = strbuf;
+      _convert_e2a(strbuf, __argv[i], l);
+      strbuf[l] = 0;
+      strbuf += (l + 1);
+    }
+    __argv_a[i] = 0;
+    char *cu = __getenv_a("__IPC_CLEANUP");
+    if (cu && !memcmp(cu, "1", 2)) {
+      cleanupmsgq(1);
+    }
+    char *tl = __getenv_a("__NODERUNTIMELIMIT");
+    if (tl) {
+      int sec = __atoi_a(tl);
+      if (sec > 0) {
+        __settimelimit(sec);
+      }
+    }
+  }
+  ~__init() {
+    cleanupmsgq(0);
+    free(__argv_a);
+  }
+};
+static __init __a;
 static __csConverter utf16_to_8(1208, 1200);
 static __csConverter utf8_to_16(1200, 1208);
 
@@ -868,22 +959,43 @@ extern "C" int conv_utf16_utf8(char *out, size_t outsize, const char *in,
                                size_t insize) {
   return utf16_to_8.conv(out, outsize, in, insize);
 }
-#if __TEST
-extern "C" void abort(void) {
-  void *buf[100];
-  backtrace_symbols_fd(buf, backtrace(buf, 100), 2);
-  __abend(999, 0x0000DEAD, -1, 0);
+
+typedef struct timer_parm {
+  int secs;
+  pthread_t tid;
+} timer_parm_t;
+
+static void *_timer(void *parm) {
+  timer_parm_t *tp = (timer_parm_t *)parm;
+  sleep(tp->secs);
+  if (__debug_mode) {
+    dprintf(2, "Sent abort: __NODERUNTIMELIMIT was set to %d\n", tp->secs);
+    raise(SIGABRT);
+  }
+  return 0;
 }
-extern "C" void perror(const char *str) {
-  int err = errno;
-  char buf[1024];
-  int rc = strerror_r(err, buf, 1024);
-  if (rc == -1) {
-    dprintf(2, "strerror on errno %d gives errno=%d\n", err, errno);
+
+extern void __settimelimit(int secs) {
+  pthread_t tid;
+  pthread_attr_t attr;
+  int rc;
+  timer_parm_t *tp = (timer_parm_t *)malloc(sizeof(timer_parm_t));
+  tp->secs = secs;
+  tp->tid = pthread_self();
+  rc = pthread_attr_init(&attr);
+  if (rc) {
+    perror("timer:pthread_create");
     return;
   }
-  dprintf(2, buf);
-  dprintf(2, "\n");
-  errno = err;
+  rc = pthread_create(&tid, &attr, _timer, tp);
+  if (rc) {
+    perror("timer:pthread_create");
+    return;
+  }
+  pthread_attr_destroy(&attr);
 }
-#endif
+extern void __setdebug(int v) { __debug_mode = v; }
+extern int __indebug(void) { return __debug_mode; }
+extern char **__getargv(void) { return __argv; }
+extern char **__getargv_a(void) { return __argv_a; }
+extern int __getargc(void) { return __argc; }
