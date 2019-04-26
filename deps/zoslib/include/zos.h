@@ -33,7 +33,7 @@ extern void __dump(int fd, const void *addr, size_t len, size_t bw);
 extern void __dump_title(int fd, const void *addr, size_t len, size_t bw,
                          const char *, ...);
 extern int backtrace(void **buffer, int size);
-extern char **backtrace_symbols(void *const *buffer, int size);
+extern char **backtrace_symbols(void *const *buffer, int size, int *actual_size);
 extern void backtrace_symbols_fd(void *const *buffer, int size, int fd);
 extern void __abend(int comp_code, unsigned reason_code, int flat_byte,
                     void *plist);
