@@ -634,18 +634,18 @@ static int backtrace_w(void **buffer, int size) {
   return rc;
 }
 
-static char **backtrace_symbols_w(void *const *buffer, int size);
+static char **backtrace_symbols_w(void *const *buffer, int size, int *actual_size);
 
-char **backtrace_symbols(void *const *buffer, int size) {
+char **backtrace_symbols(void *const *buffer, int size, int *actual_size) {
   int mode;
   char **result;
   mode = __ae_thread_swapmode(__AE_ASCII_MODE);
-  result = backtrace_symbols_w(buffer, size);
+  result = backtrace_symbols_w(buffer, size, actual_size);
   __ae_thread_swapmode(mode);
   return result;
 }
 
-static char **backtrace_symbols_w(void *const *buffer, int size) {
+static char **backtrace_symbols_w(void *const *buffer, int size, int *actual_size) {
   int sz;
   char *return_buff;
   char **table;
@@ -656,6 +656,7 @@ static char **backtrace_symbols_w(void *const *buffer, int size) {
   char entry_name[256];
   char stmt_id[256];
   char *return_addr;
+  char *prev_return_addr = (char*)-1;
   _FEEDBACK fc;
   int rc = 0;
   int i;
@@ -663,7 +664,6 @@ static char **backtrace_symbols_w(void *const *buffer, int size) {
   int inst;
   void *caller_dsa = 0;
   void *caller_inst = 0;
-
   init_tf_parms_t(&tbck_parms, pu_name, 256, entry_name, 256, stmt_id, 256);
   sz = (size * 300); // estimate
   return_buff = (char *)malloc(sz);
@@ -679,7 +679,9 @@ static char **backtrace_symbols_w(void *const *buffer, int size) {
       } else {
         tbck_parms.__tf_call_instruction = 0;
       }
+
       ____le_traceback_a(__TRACEBACK_FIELDS, &tbck_parms, &fc);
+
       if (fc.tok_sev >= 2) {
         __fprintf_a(stderr, "____le_traceback_a() service failed\n");
         free(return_buff);
@@ -728,9 +730,16 @@ static char **backtrace_symbols_w(void *const *buffer, int size) {
       }
       table[i] = stringpool;
       stringpool += (cnt + 1);
+      if (prev_return_addr == return_addr) {
+          *actual_size = i+1;
+          return &table[0];
+      }
+      prev_return_addr = return_addr;
     }
     if (i == size)
+    {
       return &table[0];
+    }
     free(return_buff);
     sz += (size * 300);
     return_buff = (char *)malloc(sz);
@@ -752,6 +761,7 @@ static void backtrace_symbols_fd_w(void *const *buffer, int size, int fd) {
   char entry_name[256];
   char stmt_id[256];
   char *return_addr;
+  char *prev_return_addr = (char*)-1;
   char out[4096];
   _FEEDBACK fc;
   int rc = 0;
@@ -813,6 +823,10 @@ static void backtrace_symbols_fd_w(void *const *buffer, int size, int fd) {
       write(fd, out, cnt);
       write(fd, "\n", 1);
     }
+    if (prev_return_addr == return_addr) {
+      break;
+    }
+    prev_return_addr = return_addr;
   }
 }
 void __abend(int comp_code, unsigned reason_code, int flat_byte, void *plist) {
