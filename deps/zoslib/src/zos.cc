@@ -274,6 +274,7 @@ static void ledump(const char *title) {
   __auto_ascii _a;
   __cdump_a((char *)title);
 }
+#if DEBUG_ONLY
 extern "C" size_t __e2a_l(char *bufptr, size_t szLen) {
   int ccsid;
   int am;
@@ -335,6 +336,7 @@ extern "C" size_t __a2e_s(char *string) {
   }
   return __a2e_l(string, strlen(string));
 }
+#endif
 
 static void __console(const void *p_in, int len_i) {
   const unsigned char *p = (const unsigned char *)p_in;
@@ -1127,51 +1129,3 @@ extern char **__getargv(void) { return __argv; }
 extern char **__getargv_a(void) { return __argv_a; }
 extern int __getargc(void) { return __argc; }
 
-#define dref32_32(_p, _o) (*(char *__ptr32 *__ptr32)(_o + (char *__ptr32)_p))
-#define dref32_64(_p, _o) (*(char **__ptr32)(_o + (char *__ptr32)_p))
-#define dref64_64(_p, _o) (*(char **)(_o + (char *)_p))
-#define dref64_32i(_p, _o) (*(unsigned int *)(_o + (char *)_p))
-#define dref64_16i(_p, _o) (*(unsigned short *)(_o + (char *)_p))
-extern "C" const char **listdll(void) {
-  char *pcb;
-  char *caa64;
-  char *current_dlcb;
-  char *next_dlcb;
-  char *name;
-  unsigned short len;
-  int i, cnt;
-  // char *fdsptr;
-  char *dllloadaddr;
-  char *impexptable;
-
-  __asm(" llgt %0,1208 \n"
-        " lg   %0,88(%0) \n"
-        " lg   %0,8(%0) \n"
-        : "=r"(caa64)::);
-  __asm(" lg   %0,912(%1) \n" : "=r"(pcb) : "r"(caa64) :);
-  __asm(" lg   %0,904(%1) \n"
-        " lg   %0,1544(%0) \n"
-        : "=r"(current_dlcb)
-        : "r"(caa64)
-        :);
-
-  while (current_dlcb) {
-    next_dlcb = dref64_64(current_dlcb, 0);
-    len = dref64_16i(current_dlcb, 0x58);
-    name = dref64_64(current_dlcb, 0x60);
-    cnt = dref64_32i(current_dlcb, 0x90);
-    // fdsptr = dref64_64(current_dlcb, 0x78);
-    dllloadaddr = dref64_64(current_dlcb, 16);
-    impexptable = dref64_64(current_dlcb, 0x68);
-    char dllname[4096];
-    memcpy(dllname, name, len);
-    dllname[len] = 0;
-    void *p = dlopen(dllname, RTLD_NOW);
-    __e2a_l(dllname, len);
-    dprintf(2, "DLL %s starting@ %p count %d open %p\n", dllname, dllloadaddr,
-            cnt, p);
-    current_dlcb = next_dlcb;
-  }
-
-  return 0;
-}
