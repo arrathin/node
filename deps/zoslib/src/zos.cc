@@ -9,6 +9,7 @@
 #include <_Nascii.h>
 #include <__le_api.h>
 #include <ctest.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <iconv.h>
@@ -42,7 +43,7 @@ static inline void *__convert_one_to_one(const void *table, void *dst,
   return rst;
 }
 static inline unsigned strlen_ae(const unsigned char *str, int *code_page,
-                                 int max_len) {
+                                 int max_len, int *ambiguous) {
   static int last_ccsid = 819;
   static const unsigned char _tab_a[256] __attribute__((aligned(8))) = {
       1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -96,13 +97,16 @@ static inline unsigned strlen_ae(const unsigned char *str, int *code_page,
   if (a_len > e_len) {
     *code_page = 819;
     last_ccsid = 819;
+    *ambiguous = 0;
     return a_len;
   } else if (e_len > a_len) {
     *code_page = 1047;
     last_ccsid = 1047;
+    *ambiguous = 0;
     return e_len;
   }
   *code_page = last_ccsid;
+  *ambiguous = 1;
   return a_len;
 }
 
@@ -158,7 +162,8 @@ static const unsigned char __iso88591_ibm1047[256]
 
 extern "C" void *_convert_e2a(void *dst, const void *src, size_t size) {
   int ccsid;
-  unsigned len = strlen_ae((unsigned char *)src, &ccsid, size);
+  int am;
+  unsigned len = strlen_ae((unsigned char *)src, &ccsid, size, &am);
   if (ccsid == 819) {
     memcpy(dst, src, size);
     return dst;
@@ -167,7 +172,8 @@ extern "C" void *_convert_e2a(void *dst, const void *src, size_t size) {
 }
 extern "C" void *_convert_a2e(void *dst, const void *src, size_t size) {
   int ccsid;
-  unsigned len = strlen_ae((unsigned char *)src, &ccsid, size);
+  int am;
+  unsigned len = strlen_ae((unsigned char *)src, &ccsid, size, &am);
   if (ccsid == 1047) {
     memcpy(dst, src, size);
     return dst;
@@ -176,7 +182,8 @@ extern "C" void *_convert_a2e(void *dst, const void *src, size_t size) {
 }
 extern "C" int __guess_ae(const void *src, size_t size) {
   int ccsid;
-  unsigned len = strlen_ae((unsigned char *)src, &ccsid, size);
+  int am;
+  unsigned len = strlen_ae((unsigned char *)src, &ccsid, size, &am);
   return ccsid;
 }
 
@@ -269,16 +276,21 @@ static void ledump(const char *title) {
 }
 extern "C" size_t __e2a_l(char *bufptr, size_t szLen) {
   int ccsid;
+  int am;
   if (0 == bufptr) {
     errno = EINVAL;
     return -1;
   }
-  unsigned len = strlen_ae((const unsigned char *)bufptr, &ccsid, szLen);
+  unsigned len = strlen_ae((const unsigned char *)bufptr, &ccsid, szLen, &am);
 
   if (ccsid == 819) {
-    if (__debug_mode) {
-      dprintf(2, "Attempt convert from ASCII to ASCII\n");
+    if (__debug_mode && !am) {
+      /*
+      __dump_title(2, bufptr, szLen, 16,
+                   "Attempt convert from ASCII to ASCII \n");
       ledump((char *)"Attempt convert from ASCII to ASCII");
+      */
+      return szLen;
     }
     // return szLen; restore to convert
   }
@@ -288,16 +300,21 @@ extern "C" size_t __e2a_l(char *bufptr, size_t szLen) {
 }
 extern "C" size_t __a2e_l(char *bufptr, size_t szLen) {
   int ccsid;
+  int am;
   if (0 == bufptr) {
     errno = EINVAL;
     return -1;
   }
-  unsigned len = strlen_ae((const unsigned char *)bufptr, &ccsid, szLen);
+  unsigned len = strlen_ae((const unsigned char *)bufptr, &ccsid, szLen, &am);
 
   if (ccsid == 1047) {
-    if (__debug_mode) {
-      dprintf(2, "Attempt convert from EBCDIC to EBCDIC\n");
-      ledump((char *)"Attempt convert from EBCDIC to EBCDIC");
+    if (__debug_mode && !am) {
+      /*
+     __dump_title(2, bufptr, szLen, 16,
+                  "Attempt convert from EBCDIC to EBCDIC\n");
+     ledump((char *)"Attempt convert from EBCDIC to EBCDIC");
+     */
+      return szLen;
     }
     // return szLen; restore to convert
   }
@@ -370,7 +387,8 @@ extern "C" int __console_printf(const char *fmt, ...) {
   va_copy(ap2, ap);
   int bytes;
   int ccsid;
-  strlen_ae((const unsigned char *)fmt, &ccsid, strlen(fmt) + 1);
+  int am;
+  strlen_ae((const unsigned char *)fmt, &ccsid, strlen(fmt) + 1, &am);
   int mode;
   if (ccsid == 819) {
     mode = __ae_thread_swapmode(__AE_ASCII_MODE);
@@ -397,7 +415,8 @@ quit:
 
 extern "C" int vdprintf(int fd, const char *fmt, va_list ap) {
   int ccsid;
-  strlen_ae((const unsigned char *)fmt, &ccsid, strlen(fmt) + 1);
+  int am;
+  strlen_ae((const unsigned char *)fmt, &ccsid, strlen(fmt) + 1, &am);
   int mode;
   int len;
   int bytes;
@@ -435,7 +454,8 @@ extern "C" int dprintf(int fd, const char *fmt, ...) {
   va_copy(ap2, ap);
   int bytes;
   int ccsid;
-  strlen_ae((const unsigned char *)fmt, &ccsid, strlen(fmt) + 1);
+  int am;
+  strlen_ae((const unsigned char *)fmt, &ccsid, strlen(fmt) + 1, &am);
   int mode;
   if (ccsid == 819) {
     mode = __ae_thread_swapmode(__AE_ASCII_MODE);
@@ -634,7 +654,8 @@ static int backtrace_w(void **buffer, int size) {
   return rc;
 }
 
-static char **backtrace_symbols_w(void *const *buffer, int size, int *actual_size);
+static char **backtrace_symbols_w(void *const *buffer, int size,
+                                  int *actual_size);
 
 char **backtrace_symbols(void *const *buffer, int size, int *actual_size) {
   int mode;
@@ -645,7 +666,8 @@ char **backtrace_symbols(void *const *buffer, int size, int *actual_size) {
   return result;
 }
 
-static char **backtrace_symbols_w(void *const *buffer, int size, int *actual_size) {
+static char **backtrace_symbols_w(void *const *buffer, int size,
+                                  int *actual_size) {
   int sz;
   char *return_buff;
   char **table;
@@ -656,7 +678,7 @@ static char **backtrace_symbols_w(void *const *buffer, int size, int *actual_siz
   char entry_name[256];
   char stmt_id[256];
   char *return_addr;
-  char *prev_return_addr = (char*)-1;
+  char *prev_return_addr = (char *)-1;
   _FEEDBACK fc;
   int rc = 0;
   int i;
@@ -731,13 +753,12 @@ static char **backtrace_symbols_w(void *const *buffer, int size, int *actual_siz
       table[i] = stringpool;
       stringpool += (cnt + 1);
       if (prev_return_addr == return_addr) {
-          *actual_size = i+1;
-          return &table[0];
+        *actual_size = i + 1;
+        return &table[0];
       }
       prev_return_addr = return_addr;
     }
-    if (i == size)
-    {
+    if (i == size) {
       return &table[0];
     }
     free(return_buff);
@@ -761,7 +782,7 @@ static void backtrace_symbols_fd_w(void *const *buffer, int size, int fd) {
   char entry_name[256];
   char stmt_id[256];
   char *return_addr;
-  char *prev_return_addr = (char*)-1;
+  char *prev_return_addr = (char *)-1;
   char out[4096];
   _FEEDBACK fc;
   int rc = 0;
@@ -880,8 +901,9 @@ int strcasecmp_ignorecp(const char *a, const char *b) {
 
 int strncasecmp_ignorecp(const char *a, const char *b, size_t n) {
   int ccsid_a, ccsid_b;
-  unsigned len_a = strlen_ae((unsigned char *)a, &ccsid_a, n);
-  unsigned len_b = strlen_ae((unsigned char *)b, &ccsid_b, n);
+  int am_a, am_b;
+  unsigned len_a = strlen_ae((unsigned char *)a, &ccsid_a, n, &am_a);
+  unsigned len_b = strlen_ae((unsigned char *)b, &ccsid_b, n, &am_b);
   char *a_new;
   char *b_new;
   if (len_a != len_b)
@@ -1025,6 +1047,10 @@ public:
     if (cu && !memcmp(cu, "1", 2)) {
       cleanupmsgq(1);
     }
+    char *dbg = __getenv_a("__NODERUNDEBUG");
+    if (dbg && !memcmp(dbg, "1", 2)) {
+      __debug_mode = 1;
+    }
     char *tl = __getenv_a("__NODERUNTIMELIMIT");
     if (tl) {
       int sec = __atoi_a(tl);
@@ -1056,9 +1082,19 @@ typedef struct timer_parm {
   pthread_t tid;
 } timer_parm_t;
 
+unsigned long __clock(void) {
+  unsigned long long value, sec, nsec;
+  __stckf(&value);
+  return ((value / 512UL) * 125UL) - 2208988800000000000UL;
+}
 static void *_timer(void *parm) {
   timer_parm_t *tp = (timer_parm_t *)parm;
-  sleep(tp->secs);
+  unsigned long t0 = __clock();
+  unsigned long t1 = t0;
+  while ((t1 - t0) < ((tp->secs) * 1000000000)) {
+    sleep(tp->secs);
+    t1 = __clock();
+  }
   if (__debug_mode) {
     dprintf(2, "Sent abort: __NODERUNTIMELIMIT was set to %d\n", tp->secs);
     raise(SIGABRT);
@@ -1090,3 +1126,52 @@ extern int __indebug(void) { return __debug_mode; }
 extern char **__getargv(void) { return __argv; }
 extern char **__getargv_a(void) { return __argv_a; }
 extern int __getargc(void) { return __argc; }
+
+#define dref32_32(_p, _o) (*(char *__ptr32 *__ptr32)(_o + (char *__ptr32)_p))
+#define dref32_64(_p, _o) (*(char **__ptr32)(_o + (char *__ptr32)_p))
+#define dref64_64(_p, _o) (*(char **)(_o + (char *)_p))
+#define dref64_32i(_p, _o) (*(unsigned int *)(_o + (char *)_p))
+#define dref64_16i(_p, _o) (*(unsigned short *)(_o + (char *)_p))
+extern "C" const char **listdll(void) {
+  char *pcb;
+  char *caa64;
+  char *current_dlcb;
+  char *next_dlcb;
+  char *name;
+  unsigned short len;
+  int i, cnt;
+  // char *fdsptr;
+  char *dllloadaddr;
+  char *impexptable;
+
+  __asm(" llgt %0,1208 \n"
+        " lg   %0,88(%0) \n"
+        " lg   %0,8(%0) \n"
+        : "=r"(caa64)::);
+  __asm(" lg   %0,912(%1) \n" : "=r"(pcb) : "r"(caa64) :);
+  __asm(" lg   %0,904(%1) \n"
+        " lg   %0,1544(%0) \n"
+        : "=r"(current_dlcb)
+        : "r"(caa64)
+        :);
+
+  while (current_dlcb) {
+    next_dlcb = dref64_64(current_dlcb, 0);
+    len = dref64_16i(current_dlcb, 0x58);
+    name = dref64_64(current_dlcb, 0x60);
+    cnt = dref64_32i(current_dlcb, 0x90);
+    // fdsptr = dref64_64(current_dlcb, 0x78);
+    dllloadaddr = dref64_64(current_dlcb, 16);
+    impexptable = dref64_64(current_dlcb, 0x68);
+    char dllname[4096];
+    memcpy(dllname, name, len);
+    dllname[len] = 0;
+    void *p = dlopen(dllname, RTLD_NOW);
+    __e2a_l(dllname, len);
+    dprintf(2, "DLL %s starting@ %p count %d open %p\n", dllname, dllloadaddr,
+            cnt, p);
+    current_dlcb = next_dlcb;
+  }
+
+  return 0;
+}

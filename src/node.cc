@@ -2367,26 +2367,37 @@ static void ReleaseResourcesOnExit(void * arg) {
   }
 }
 #ifdef __MVS__
-void on_sigabrt (int signum)
-{
-  static int loop = 0;
-  ++loop;
-  if (loop > 9)  {
-	// looping 
-	 __abend(signum, 0x0000DEAD, -1, 0);
+
+typedef struct {
+  int signum;
+  struct sigaction saved;
+} sig_save;
+
+static sig_save siglist[] = {
+    {
+        SIGINT,
+    },
+    {
+        SIGABRT,
+    },
+    {
+        SIGTERM,
+    },
+    {
+        SIGABND,
+    },
+};
+
+void termination_handler(int signum) {
+  struct sigaction new_action;
+  for (int i = 0; i < (sizeof(siglist) / sizeof(sig_save)); ++i) {
+    if (signum == siglist[i].signum) {
+      sigaction(signum, &(siglist[i].saved) , NULL);
+      ReleaseResourcesOnExit(nullptr);
+      kill(0,signum);
+      return;
+    }
   }
-  signal(signum, SIG_DFL);
-  struct sigaction sa;
-  memset(&sa, 0, sizeof(sa));
-  sa.sa_handler = SIG_DFL;
-  sigaction(signum, &sa, 0);
-  ReleaseResourcesOnExit(nullptr);
-  if (signum == SIGABRT) {
-	char msg [50];
-	strcpy(msg, "sigabort received");
-    __cdump_a(msg);
-  }
-  raise(signum);
 }
 #endif
 
@@ -4541,20 +4552,14 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
                  int argc, const char* const* argv,
                  int exec_argc, const char* const* exec_argv) {
 #ifdef __MVS__
-  int i;
-  int siglist[] = {SIGABRT, SIGFPE, SIGILL, SIGINT, SIGSEGV,
-                 SIGTERM, SIGABND, SIGIOERR };
-  i = 0;
-  for (i=0; i< (sizeof(siglist)/sizeof(int)); ++i) {
-    signal(siglist[i], &on_sigabrt);
-  }
-  struct sigaction action;
-  memset(&action, 0, sizeof(action));
-  action.sa_flags = SA_RESETHAND;
-  action.sa_handler = &on_sigabrt;
-  
-  for (i=0; i< (sizeof(siglist)/sizeof(int)); ++i) {
-    sigaction(siglist[i], &action, NULL);
+  struct sigaction new_action;
+  new_action.sa_handler = termination_handler;
+  sigemptyset(&new_action.sa_mask);
+  new_action.sa_flags = SA_RESETHAND;
+  for (int i = 0; i < (sizeof(siglist) / sizeof(sig_save)); ++i) {
+    sigaction(siglist[i].signum, NULL, &(siglist[i].saved));
+    if (siglist[i].saved.sa_handler != SIG_IGN)
+      sigaction(siglist[i].signum, &new_action, NULL);
   }
 #endif
 

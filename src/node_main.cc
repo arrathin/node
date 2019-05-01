@@ -100,42 +100,78 @@ namespace node {
 #include <sstream>
 #include <string.h>
 #include <stdlib.h>
+#include <dlfcn.h>
+#include <assert.h>
 
-void setlibpath(void) {
-  std::vector<char> argv(512, 0);
-  std::vector<char> parent(512, 0);
-  W_PSPROC buf;
-  int token = 0;
-  pid_t mypid = getpid();
-  memset(&buf, 0, sizeof(buf));
-  buf.ps_pathlen = argv.size();
-  buf.ps_pathptr = &argv[0];
-  while ((token = w_getpsent(token, &buf, sizeof(buf))) > 0) {
-    if (buf.ps_pid == mypid) {
-      /* Found our process. */
+class __setlibpath {
+  void *p;
 
-      /* Resolve path to find true location of executable. */
-      if (realpath(&argv[0], &parent[0]) == NULL)
-        break;
+public:
+  __setlibpath() {
+    std::vector<char> argv(512, 0);
+    std::vector<char> parent(512, 0);
+    W_PSPROC buf;
+    int token = 0;
+    pid_t mypid = getpid();
+    memset(&buf, 0, sizeof(buf));
+    buf.ps_pathlen = argv.size();
+    buf.ps_pathptr = &argv[0];
+    while ((token = w_getpsent(token, &buf, sizeof(buf))) > 0) {
+      if (buf.ps_pid == mypid) {
+        /* Found our process. */
 
-      /* Get parent directory. */
-      dirname(&parent[0]);
-      /* Get parent's parent directory. */
-      std::vector<char> parent2(parent.begin(), parent.end());
-      dirname(&parent2[0]);
+        /* Resolve path to find true location of executable. */
+        if (realpath(&argv[0], &parent[0]) == NULL)
+          break;
+
+        /* Get parent directory. */
+        dirname(&parent[0]);
+        /* Get parent's parent directory. */
+        std::vector<char> parent2(parent.begin(), parent.end());
+        dirname(&parent2[0]);
 
 #pragma convert("ibm-1047")
-      /* Append new paths to libpath. */
-      std::ostringstream libpath;
-      libpath << getenv("LIBPATH");
-      libpath << ":" << &parent[0] << "/obj.target/";
-      libpath << ":" << &parent2[0] << "/lib/";
-      setenv("LIBPATH", libpath.str().c_str(), 1);
+        /* Append new paths to libpath. */
+        std::ostringstream libpath;
+        libpath << getenv("LIBPATH");
+        libpath << ":" << &parent[0] << "/obj.target/";
+        libpath << ":" << &parent2[0] << "/lib/";
+        setenv("LIBPATH", libpath.str().c_str(), 1);
+        char *error;
+        p = dlopen("libnode.so", RTLD_NOW);
+        if (!p) {
+          error = dlerror();
+          fprintf(stderr, "dlopen:%s\n", error);
+          assert(p);
+        }
+        void (*__xfer_env_p)(void) = (void (*)(void))dlsym(p, "__xfer_env");
+        if (!p) {
+          error = dlerror();
+          fprintf(stderr, "dlsym:__xfer_env:%s\n", error);
+          assert(p);
+        }
+        __xfer_env_p();
+        void (*__chgfdccsid_p)(int, int) =
+            (void (*)(int, int))dlsym(p, "__chgfdccsid");
+        if (!p) {
+          error = dlerror();
+          fprintf(stderr, "dlsym:__chgfdccsid:%s\n", error);
+          assert(p);
+        }
+        __chgfdccsid_p(STDOUT_FILENO, 1047);
+        __chgfdccsid_p(STDERR_FILENO, 1047);
 #pragma convert(pop)
-      break;
+        break;
+      }
     }
   }
-}
+
+  ~__setlibpath() {
+    if (p)
+      dlclose(p);
+  }
+};
+__setlibpath __zossetup;
 #endif
 
 int main(int argc, char *argv[]) {
@@ -163,13 +199,6 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
-#endif
-#if defined(__MVS__)
-  __setdebug(1);
-  setlibpath();
-  __xfer_env();
-  __chgfdccsid(STDOUT_FILENO, 1047);
-  __chgfdccsid(STDERR_FILENO, 1047);
 #endif
   // Disable stdio buffering, it interacts poorly with printf()
   // calls elsewhere in the program (e.g., any logging from V8.)
