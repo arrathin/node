@@ -32,7 +32,8 @@ extern void __dump(int fd, const void *addr, size_t len, size_t bw);
 extern void __dump_title(int fd, const void *addr, size_t len, size_t bw,
                          const char *, ...);
 extern int backtrace(void **buffer, int size);
-extern char **backtrace_symbols(void *const *buffer, int size, int *actual_size);
+extern char **backtrace_symbols(void *const *buffer, int size,
+                                int *actual_size);
 extern void backtrace_symbols_fd(void *const *buffer, int size, int fd);
 extern void __abend(int comp_code, unsigned reason_code, int flat_byte,
                     void *plist);
@@ -47,6 +48,13 @@ extern void __setdebug(int);
 extern char **__getargv(void);
 extern char **__getargv_a(void);
 extern int __getargc(void);
+
+extern void *__dlcb_next(void *last);
+extern int __dlcb_entry_name(char *buf, int size, void *dlcb);
+extern void *__dlcb_entry_addr(void *dlcb);
+extern int __find_file_in_path(char *out, int size, const char *envvar,
+                               const char *file);
+extern void __listdll(int fd);
 
 #ifdef __cplusplus
 }

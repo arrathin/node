@@ -1129,3 +1129,85 @@ extern char **__getargv(void) { return __argv; }
 extern char **__getargv_a(void) { return __argv_a; }
 extern int __getargc(void) { return __argc; }
 
+extern "C" void *__dlcb_next(void *last) {
+  if (last == 0) {
+    return ((char *****__ptr32 *)1208)[0][11][1][113][193];
+  }
+  return ((char **)last)[0];
+}
+extern "C" int __dlcb_entry_name(char *buf, int size, void *dlcb) {
+  unsigned short n;
+  char *name;
+  if (dlcb == 0)
+    return 0;
+  n = ((unsigned short *)dlcb)[44];
+  name = ((char **)dlcb)[12];
+  return __snprintf_a(
+      buf, size, "%-.*s", n,
+      __convert_one_to_one(__ibm1047_iso88591, alloca(n + 1), n, name));
+}
+extern "C" void *__dlcb_entry_addr(void *dlcb) {
+  if (dlcb == 0)
+    return 0;
+  char *addr = ((char **)dlcb)[2];
+  return addr;
+}
+
+extern "C" int __find_file_in_path(char *out, int size, const char *envvar,
+                                   const char *file) {
+  char *start = (char *)envvar;
+  char path[1025];
+  char path_file[1025];
+  char *p;
+  struct stat st;
+  p = path;
+  while (*start && ((p - path) < 1024)) {
+    if (*start != ':') {
+      *p = *start;
+    } else {
+      if (*(p - 1) == '/')
+        *(p - 1) = 0;
+      else
+        *p = 0;
+      __snprintf_a(path_file, 1025, "%s/%s", path, file);
+      if (0 == __stat_a(path_file, &st)) {
+        strncpy(out, path_file, size);
+        return strlen(path_file) + 1;
+      }
+      ++start;
+      p = path;
+    }
+    ++start;
+    ++p;
+  }
+  if (*(p - 1) == '/')
+    *(p - 1) = 0;
+  else
+    *p = 0;
+  __snprintf_a(path_file, 1025, "%s/%s", path, file);
+  if (0 == __stat_a(path_file, &st)) {
+    strncpy(out, path_file, size);
+    return strlen(path_file) + 1;
+  }
+  return 0;
+}
+extern "C" void __listdll(int fd) {
+  void *dlcb = 0;
+  char buffer[1024];
+  char filename[1024];
+  char *libpath = __getenv_a("LIBPATH");
+  int len2;
+  while (dlcb = __dlcb_next(dlcb), dlcb) {
+    int len = __dlcb_entry_name(buffer, 1024, dlcb);
+    void *addr = __dlcb_entry_addr(dlcb);
+    if (0 == addr)
+      continue;
+    if (libpath && (len2 = __find_file_in_path(filename, 1024, libpath, buffer),
+                    len2 > 0)) {
+      len += __snprintf_a(buffer + len, 1024 - len, " => %s (0x%p)", filename,
+                          addr);
+    } else
+      len += __snprintf_a(buffer + len, 1024 - len, " (0x%p)", addr);
+    dprintf(fd, "\t%s\n", buffer);
+  }
+}

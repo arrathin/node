@@ -19,6 +19,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifdef __MVS__
+#ifndef _AE_BIMODAL
+#define _AE_BIMODAL 1
+#endif
 #include "zos.h"
 #endif
 #include "node.h"
@@ -93,15 +96,15 @@ namespace node {
   extern bool linux_at_secure;
 }  // namespace node
 
-# if defined(__MVS__)
-#include <sys/ps.h>
-#include <unistd.h>
+#if defined(__MVS__)
+#include <assert.h>
+#include <dlfcn.h>
 #include <libgen.h>
 #include <sstream>
-#include <string.h>
 #include <stdlib.h>
-#include <dlfcn.h>
-#include <assert.h>
+#include <string.h>
+#include <sys/ps.h>
+#include <unistd.h>
 
 class __setlibpath {
   void *p;
@@ -137,6 +140,13 @@ public:
         libpath << ":" << &parent[0] << "/obj.target/";
         libpath << ":" << &parent2[0] << "/lib/";
         setenv("LIBPATH", libpath.str().c_str(), 1);
+#pragma convert(pop)
+        int size = libpath.str().length();
+        char *libpath_a = (char *)alloca(size + 1);
+        memcpy(libpath_a, libpath.str().c_str(), size + 1);
+        __e2a_l(libpath_a, size);
+        __setenv_a("LIBPATH", libpath_a,1);
+#pragma convert("ibm-1047")
         char *error;
         p = dlopen("libnode.so", RTLD_NOW);
         if (!p) {
