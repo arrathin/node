@@ -621,7 +621,7 @@ static void init_tf_parms_t(__tf_parms_t *parm, char *pu_name_buf, size_t len1,
 
 static int backtrace_w(void **buffer, int size);
 
-int backtrace(void **buffer, int size) {
+extern "C" int backtrace(void **buffer, int size) {
   int mode;
   int result;
   mode = __ae_thread_swapmode(__AE_ASCII_MODE);
@@ -633,6 +633,7 @@ int backtrace(void **buffer, int size) {
 static int backtrace_w(void **buffer, int size) {
   __tf_parms_t tbck_parms;
   _FEEDBACK fc;
+  void *prev_return_addr = (void *)-1;
   int rc = 0;
   init_tf_parms_t(&tbck_parms, 0, 0, 0, 0, 0, 0);
   int skip = 2;
@@ -642,6 +643,9 @@ static int backtrace_w(void **buffer, int size) {
       __fprintf_a(stderr, "____le_traceback_a() service failed\n");
       return 0;
     }
+    if (skip==0 && (prev_return_addr == tbck_parms.__tf_caller_call_instruction))
+      return rc;
+    prev_return_addr = tbck_parms.__tf_caller_call_instruction;
     *buffer = tbck_parms.__tf_dsa_addr;
     tbck_parms.__tf_dsa_addr = tbck_parms.__tf_caller_dsa_addr;
     tbck_parms.__tf_call_instruction = tbck_parms.__tf_caller_call_instruction;
@@ -656,20 +660,18 @@ static int backtrace_w(void **buffer, int size) {
   return rc;
 }
 
-static char **backtrace_symbols_w(void *const *buffer, int size,
-                                  int *actual_size);
+static char **backtrace_symbols_w(void *const *buffer, int size);
 
-char **backtrace_symbols(void *const *buffer, int size, int *actual_size) {
+extern "C" char **backtrace_symbols(void *const *buffer, int size) {
   int mode;
   char **result;
   mode = __ae_thread_swapmode(__AE_ASCII_MODE);
-  result = backtrace_symbols_w(buffer, size, actual_size);
+  result = backtrace_symbols_w(buffer, size);
   __ae_thread_swapmode(mode);
   return result;
 }
 
-static char **backtrace_symbols_w(void *const *buffer, int size,
-                                  int *actual_size) {
+static char **backtrace_symbols_w(void *const *buffer, int size) {
   int sz;
   char *return_buff;
   char **table;
@@ -680,7 +682,6 @@ static char **backtrace_symbols_w(void *const *buffer, int size,
   char entry_name[256];
   char stmt_id[256];
   char *return_addr;
-  char *prev_return_addr = (char *)-1;
   _FEEDBACK fc;
   int rc = 0;
   int i;
@@ -754,11 +755,6 @@ static char **backtrace_symbols_w(void *const *buffer, int size,
       }
       table[i] = stringpool;
       stringpool += (cnt + 1);
-      if (prev_return_addr == return_addr) {
-        *actual_size = i + 1;
-        return &table[0];
-      }
-      prev_return_addr = return_addr;
     }
     if (i == size) {
       return &table[0];
@@ -771,7 +767,7 @@ static char **backtrace_symbols_w(void *const *buffer, int size,
 }
 static void backtrace_symbols_fd_w(void *const *buffer, int size, int fd);
 
-void backtrace_symbols_fd(void *const *buffer, int size, int fd) {
+extern "C" void backtrace_symbols_fd(void *const *buffer, int size, int fd) {
   int mode;
   mode = __ae_thread_swapmode(__AE_ASCII_MODE);
   backtrace_symbols_fd_w(buffer, size, fd);
@@ -784,7 +780,6 @@ static void backtrace_symbols_fd_w(void *const *buffer, int size, int fd) {
   char entry_name[256];
   char stmt_id[256];
   char *return_addr;
-  char *prev_return_addr = (char *)-1;
   char out[4096];
   _FEEDBACK fc;
   int rc = 0;
@@ -846,10 +841,6 @@ static void backtrace_symbols_fd_w(void *const *buffer, int size, int fd) {
       write(fd, out, cnt);
       write(fd, "\n", 1);
     }
-    if (prev_return_addr == return_addr) {
-      break;
-    }
-    prev_return_addr = return_addr;
   }
 }
 void __abend(int comp_code, unsigned reason_code, int flat_byte, void *plist) {
@@ -1123,11 +1114,11 @@ extern void __settimelimit(int secs) {
   }
   pthread_attr_destroy(&attr);
 }
-extern void __setdebug(int v) { __debug_mode = v; }
-extern int __indebug(void) { return __debug_mode; }
-extern char **__getargv(void) { return __argv; }
-extern char **__getargv_a(void) { return __argv_a; }
-extern int __getargc(void) { return __argc; }
+extern "C" void __setdebug(int v) { __debug_mode = v; }
+extern "C" int __indebug(void) { return __debug_mode; }
+extern "C" char **__getargv(void) { return __argv; }
+extern "C" char **__getargv_a(void) { return __argv_a; }
+extern "C" int __getargc(void) { return __argc; }
 
 extern "C" void *__dlcb_next(void *last) {
   if (last == 0) {
@@ -1153,61 +1144,46 @@ extern "C" void *__dlcb_entry_addr(void *dlcb) {
   return addr;
 }
 
+static int return_abspath(char *out, int size, const char *path_file) {
+  char buffer[1025];
+  char *res = 0;
+  if (path_file[0] != '/')
+    res = __realpath_a(path_file, buffer);
+  return __snprintf_a(out, size, "%s", res ? buffer : path_file);
+}
+
 extern "C" int __find_file_in_path(char *out, int size, const char *envvar,
-                                   const char *file) {
+                const char *file) {
   char *start = (char *)envvar;
   char path[1025];
+  char real_path[1025];
   char path_file[1025];
-  char *p;
+  char *p = path;
+  int len = 0;
   struct stat st;
-  p = path;
-  while (*start && ((p - path) < 1024)) {
-    if (*start != ':') {
-      *p = *start;
-    } else {
-      if (*(p - 1) == '/')
-        *(p - 1) = 0;
-      else
-        *p = 0;
-      __snprintf_a(path_file, 1025, "%s/%s", path, file);
-      if (0 == __stat_a(path_file, &st)) {
-        strncpy(out, path_file, size);
-        return strlen(path_file) + 1;
-      }
-      ++start;
+  while (*start && (p < (path + 1024))) {
+    if (*start == ':') {
       p = path;
+      ++start;
+      if (len > 0) {
+        for (; len>0 && path[len-1]=='/'; --len);
+        __snprintf_a(path_file, 1025, "%-.*s/%s", len, path, file);
+        if (0 == __stat_a(path_file, &st)) {
+          return return_abspath(out, size, path_file);
+        }
+        len = 0;
+      }
+    } else {
+      ++len;
+      *p++ = *start++;
     }
-    ++start;
-    ++p;
   }
-  if (*(p - 1) == '/')
-    *(p - 1) = 0;
-  else
-    *p = 0;
-  __snprintf_a(path_file, 1025, "%s/%s", path, file);
-  if (0 == __stat_a(path_file, &st)) {
-    strncpy(out, path_file, size);
-    return strlen(path_file) + 1;
+  if (len > 0) {
+    for (; len>0 && path[len-1]=='/'; --len);
+    __snprintf_a(path_file, 1025, "%-.*s/%s", len, path, file);
+    if (0 == __stat_a(path_file, &st)) {
+      return return_abspath(out, size, path_file);
+    }
   }
   return 0;
-}
-extern "C" void __listdll(int fd) {
-  void *dlcb = 0;
-  char buffer[1024];
-  char filename[1024];
-  char *libpath = __getenv_a("LIBPATH");
-  int len2;
-  while (dlcb = __dlcb_next(dlcb), dlcb) {
-    int len = __dlcb_entry_name(buffer, 1024, dlcb);
-    void *addr = __dlcb_entry_addr(dlcb);
-    if (0 == addr)
-      continue;
-    if (libpath && (len2 = __find_file_in_path(filename, 1024, libpath, buffer),
-                    len2 > 0)) {
-      len += __snprintf_a(buffer + len, 1024 - len, " => %s (0x%p)", filename,
-                          addr);
-    } else
-      len += __snprintf_a(buffer + len, 1024 - len, " (0x%p)", addr);
-    dprintf(fd, "\t%s\n", buffer);
-  }
 }
