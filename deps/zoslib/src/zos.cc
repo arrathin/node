@@ -608,6 +608,7 @@ __auto_ascii::~__auto_ascii(void) {
 static void init_tf_parms_t(__tf_parms_t *parm, char *pu_name_buf, size_t len1,
                             char *entry_name_buf, size_t len2,
                             char *stmt_id_buf, size_t len3) {
+  _FEEDBACK fc;
   parm->__tf_pu_name.__tf_buff = pu_name_buf;
   parm->__tf_pu_name.__tf_bufflen = len1;
   parm->__tf_entry_name.__tf_buff = entry_name_buf;
@@ -617,6 +618,13 @@ static void init_tf_parms_t(__tf_parms_t *parm, char *pu_name_buf, size_t len1,
   parm->__tf_dsa_addr = 0;
   parm->__tf_caa_addr = 0;
   parm->__tf_call_instruction = 0;
+  int skip = 2;
+  while (skip > 0 && !parm->__tf_is_main) {
+    ____le_traceback_a(__TRACEBACK_FIELDS, parm, &fc);
+    parm->__tf_dsa_addr = parm->__tf_caller_dsa_addr;
+    parm->__tf_call_instruction = parm->__tf_caller_call_instruction;
+    --skip;
+  }
 }
 
 static int backtrace_w(void **buffer, int size);
@@ -630,48 +638,50 @@ extern "C" int backtrace(void **buffer, int size) {
   return result;
 }
 
-static int backtrace_w(void **buffer, int size) {
+int backtrace_w(void **input_buffer, int size) {
+  void **buffer = input_buffer;
   __tf_parms_t tbck_parms;
   _FEEDBACK fc;
-  void *prev_return_addr = (void *)-1;
   int rc = 0;
   init_tf_parms_t(&tbck_parms, 0, 0, 0, 0, 0, 0);
-  int skip = 2;
   while (size > 0 && !tbck_parms.__tf_is_main) {
     ____le_traceback_a(__TRACEBACK_FIELDS, &tbck_parms, &fc);
     if (fc.tok_sev >= 2) {
-      __fprintf_a(stderr, "____le_traceback_a() service failed\n");
+      dprintf(2, "____le_traceback_a() service failed\n");
       return 0;
     }
-    if (skip==0 && (prev_return_addr == tbck_parms.__tf_caller_call_instruction))
-      return rc;
-    prev_return_addr = tbck_parms.__tf_caller_call_instruction;
     *buffer = tbck_parms.__tf_dsa_addr;
     tbck_parms.__tf_dsa_addr = tbck_parms.__tf_caller_dsa_addr;
     tbck_parms.__tf_call_instruction = tbck_parms.__tf_caller_call_instruction;
-    if (skip > 0)
-      --skip;
-    else {
-      ++buffer;
-      --size;
-      ++rc;
+    --size;
+    if (rc > 0) {
+      if (input_buffer[rc - 1] >= input_buffer[rc]) {
+        // xplink stack address is not increasing as we go up, could be stack
+        // corruption
+        input_buffer[rc] = 0;
+        --rc;
+        return rc;
+      }
     }
+    ++buffer;
+    ++rc;
   }
   return rc;
 }
 
-static char **backtrace_symbols_w(void *const *buffer, int size);
+static void backtrace_symbols_w(void *const *buffer, int size, int fd,
+                                char ***return_string);
 
 extern "C" char **backtrace_symbols(void *const *buffer, int size) {
   int mode;
   char **result;
   mode = __ae_thread_swapmode(__AE_ASCII_MODE);
-  result = backtrace_symbols_w(buffer, size);
+  backtrace_symbols_w(buffer, size, -1, &result);
   __ae_thread_swapmode(mode);
   return result;
 }
-
-static char **backtrace_symbols_w(void *const *buffer, int size) {
+void backtrace_symbols_w(void *const *buffer, int size, int fd,
+                         char ***return_string) {
   int sz;
   char *return_buff;
   char **table;
@@ -689,33 +699,37 @@ static char **backtrace_symbols_w(void *const *buffer, int size) {
   int inst;
   void *caller_dsa = 0;
   void *caller_inst = 0;
-  init_tf_parms_t(&tbck_parms, pu_name, 256, entry_name, 256, stmt_id, 256);
-  sz = (size * 300); // estimate
-  return_buff = (char *)malloc(sz);
 
-  while (return_buff != 0) {
-    table = (char **)return_buff;
-    stringpool = return_buff + (size * sizeof(void *));
-    buff_end = return_buff + sz;
+  sz = ((size + 1) * 300); // estimate
+  if (fd == -1) {
+    return_buff = (char *)malloc(sz);
+  }
+  while (return_buff != 0 || (return_buff == 0 && fd != -1)) {
+    if (fd == -1) {
+      table = (char **)return_buff;
+      stringpool = return_buff + ((size + 1) * sizeof(void *));
+      buff_end = return_buff + sz;
+    }
+    init_tf_parms_t(&tbck_parms, pu_name, 256, entry_name, 256, stmt_id, 256);
     for (i = 0; i < size; ++i) {
-      tbck_parms.__tf_dsa_addr = buffer[i];
+      if (i > 0) {
+        tbck_parms.__tf_dsa_addr = buffer[i];
+      }
       if (tbck_parms.__tf_dsa_addr == caller_dsa) {
         tbck_parms.__tf_call_instruction = caller_inst;
       } else {
         tbck_parms.__tf_call_instruction = 0;
       }
-
       ____le_traceback_a(__TRACEBACK_FIELDS, &tbck_parms, &fc);
-
       if (fc.tok_sev >= 2) {
-        __fprintf_a(stderr, "____le_traceback_a() service failed\n");
+        dprintf(2, "____le_traceback_a() service failed\n");
         free(return_buff);
-        return 0;
+        *return_string = 0;
+        return;
       }
       caller_dsa = tbck_parms.__tf_caller_dsa_addr;
       caller_inst = tbck_parms.__tf_caller_call_instruction;
       inst = *(char *)(tbck_parms.__tf_caller_call_instruction);
-
       if (inst == 0xa7) {
         // BRAS
         return_addr = 6 + (char *)tbck_parms.__tf_caller_call_instruction;
@@ -725,124 +739,81 @@ static char **backtrace_symbols_w(void *const *buffer, int size) {
       }
       if (tbck_parms.__tf_call_instruction) {
         if (pu_name[0]) {
+          if (fd == -1)
+            cnt = __snprintf_a(stringpool, buff_end - stringpool,
+                               "%s:%s (%s+0x%lx) [0x%p]", pu_name, stmt_id,
+                               entry_name,
+                               (char *)tbck_parms.__tf_call_instruction -
+                                   (char *)tbck_parms.__tf_entry_addr,
+                               return_addr);
+          else
+            dprintf(fd, "%s:%s (%s+0x%lx) [0x%p]\n", pu_name, stmt_id,
+                    entry_name,
+                    (char *)tbck_parms.__tf_call_instruction -
+                        (char *)tbck_parms.__tf_entry_addr,
+                    return_addr);
 
-          cnt = __snprintf_a(stringpool, buff_end - stringpool,
-                             "%s:%s (%s+0x%lx) [0x%p]", pu_name, stmt_id,
-                             entry_name,
-                             (char *)tbck_parms.__tf_call_instruction -
-                                 (char *)tbck_parms.__tf_entry_addr,
-                             return_addr);
         } else {
-          cnt = __snprintf_a(stringpool, buff_end - stringpool,
-                             "(%s+0x%lx) [0x%p]", entry_name,
-                             (char *)tbck_parms.__tf_call_instruction -
-                                 (char *)tbck_parms.__tf_entry_addr,
-                             return_addr);
+          if (fd == -1)
+            cnt = __snprintf_a(stringpool, buff_end - stringpool,
+                               "(%s+0x%lx) [0x%p]", entry_name,
+                               (char *)tbck_parms.__tf_call_instruction -
+                                   (char *)tbck_parms.__tf_entry_addr,
+                               return_addr);
+          else
+            dprintf(fd, "(%s+0x%lx) [0x%p]\n", entry_name,
+                    (char *)tbck_parms.__tf_call_instruction -
+                        (char *)tbck_parms.__tf_entry_addr,
+                    return_addr);
         }
       } else {
         if (pu_name[0]) {
-          cnt = __snprintf_a(stringpool, buff_end - stringpool,
-                             "%s:%s (%s) [0x%p]", pu_name, stmt_id, entry_name,
-                             return_addr);
+          if (fd == -1)
+            cnt = __snprintf_a(stringpool, buff_end - stringpool,
+                               "%s:%s (%s) [0x%p]", pu_name, stmt_id,
+                               entry_name, return_addr);
+          else
+            dprintf(fd, "%s:%s (%s) [0x%p]\n", pu_name, stmt_id, entry_name,
+                    return_addr);
         } else {
-          cnt = __snprintf_a(stringpool, buff_end - stringpool, "(%s) [0x%p]",
-                             entry_name, return_addr);
+          if (fd == -1)
+            cnt = __snprintf_a(stringpool, buff_end - stringpool, "(%s) [0x%p]",
+                               entry_name, return_addr);
+          else
+            dprintf(fd, "(%s) [0x%p]\n", entry_name, return_addr);
         }
       }
-      if (cnt < 0 || cnt >= (buff_end - stringpool)) {
-        // out of space
-        break;
+      if (fd == -1) {
+        if (cnt < 0 || cnt >= (buff_end - stringpool)) {
+          // out of space
+          break;
+        }
+        table[i] = stringpool;
+        stringpool += (cnt + 1);
       }
-      table[i] = stringpool;
-      stringpool += (cnt + 1);
     }
-    if (i == size) {
-      return &table[0];
-    }
-    free(return_buff);
-    sz += (size * 300);
-    return_buff = (char *)malloc(sz);
+    if (fd == -1) {
+      if (i == size) {
+        // return &table[0];
+        table[i] = 0;
+        *return_string = &table[0];
+        return;
+      }
+      free(return_buff);
+      sz += (size * 300);
+      return_buff = (char *)malloc(sz);
+    } else
+      return;
   }
-  return 0;
 }
-static void backtrace_symbols_fd_w(void *const *buffer, int size, int fd);
 
 extern "C" void backtrace_symbols_fd(void *const *buffer, int size, int fd) {
   int mode;
   mode = __ae_thread_swapmode(__AE_ASCII_MODE);
-  backtrace_symbols_fd_w(buffer, size, fd);
+  backtrace_symbols_w(buffer, size, fd, 0);
   __ae_thread_swapmode(mode);
 }
 
-static void backtrace_symbols_fd_w(void *const *buffer, int size, int fd) {
-  __tf_parms_t tbck_parms;
-  char pu_name[256];
-  char entry_name[256];
-  char stmt_id[256];
-  char *return_addr;
-  char out[4096];
-  _FEEDBACK fc;
-  int rc = 0;
-  int i;
-  int inst;
-  int cnt;
-  void *caller_dsa = 0;
-  void *caller_inst = 0;
-
-  init_tf_parms_t(&tbck_parms, pu_name, 256, entry_name, 256, stmt_id, 256);
-
-  for (i = 0; i < size; ++i) {
-    tbck_parms.__tf_dsa_addr = buffer[i];
-    if (tbck_parms.__tf_dsa_addr == caller_dsa) {
-      tbck_parms.__tf_call_instruction = caller_inst;
-    } else {
-      tbck_parms.__tf_call_instruction = 0;
-    }
-    ____le_traceback_a(__TRACEBACK_FIELDS, &tbck_parms, &fc);
-    if (fc.tok_sev >= 2) {
-      write(fd, "____le_traceback_a() service failed\n",
-            sizeof("____le_traceback_a() service failed\n") - 1);
-      return;
-    }
-    caller_dsa = tbck_parms.__tf_caller_dsa_addr;
-    caller_inst = tbck_parms.__tf_caller_call_instruction;
-    inst = *(char *)(tbck_parms.__tf_caller_call_instruction);
-    if (inst == 0xa7) {
-      // BRAS
-      return_addr = 6 + (char *)tbck_parms.__tf_caller_call_instruction;
-    } else {
-      // BASR
-      return_addr = 4 + (char *)tbck_parms.__tf_caller_call_instruction;
-    }
-    //
-    if (tbck_parms.__tf_call_instruction) {
-      if (pu_name[0]) {
-
-        cnt = __snprintf_a(out, 4096, "%s:%s (%s+0x%lx) [0x%p]", pu_name,
-                           stmt_id, entry_name,
-                           (char *)tbck_parms.__tf_call_instruction -
-                               (char *)tbck_parms.__tf_entry_addr,
-                           return_addr);
-      } else {
-        cnt = __snprintf_a(out, 4096, "(%s+0x%lx) [0x%p]", entry_name,
-                           (char *)tbck_parms.__tf_call_instruction -
-                               (char *)tbck_parms.__tf_entry_addr,
-                           return_addr);
-      }
-    } else {
-      if (pu_name[0]) {
-        cnt = __snprintf_a(out, 4096, "%s:%s (%s) [0x%p]", pu_name, stmt_id,
-                           entry_name, return_addr);
-      } else {
-        cnt = __snprintf_a(out, 4096, "(%s) [0x%p]", entry_name, return_addr);
-      }
-    }
-    if (cnt > 0) {
-      write(fd, out, cnt);
-      write(fd, "\n", 1);
-    }
-  }
-}
 void __abend(int comp_code, unsigned reason_code, int flat_byte, void *plist) {
   unsigned long r15 = reason_code;
   unsigned long r1;
@@ -1153,7 +1124,7 @@ static int return_abspath(char *out, int size, const char *path_file) {
 }
 
 extern "C" int __find_file_in_path(char *out, int size, const char *envvar,
-                const char *file) {
+                                   const char *file) {
   char *start = (char *)envvar;
   char path[1025];
   char real_path[1025];
@@ -1166,7 +1137,8 @@ extern "C" int __find_file_in_path(char *out, int size, const char *envvar,
       p = path;
       ++start;
       if (len > 0) {
-        for (; len>0 && path[len-1]=='/'; --len);
+        for (; len > 0 && path[len - 1] == '/'; --len)
+          ;
         __snprintf_a(path_file, 1025, "%-.*s/%s", len, path, file);
         if (0 == __stat_a(path_file, &st)) {
           return return_abspath(out, size, path_file);
@@ -1179,7 +1151,8 @@ extern "C" int __find_file_in_path(char *out, int size, const char *envvar,
     }
   }
   if (len > 0) {
-    for (; len>0 && path[len-1]=='/'; --len);
+    for (; len > 0 && path[len - 1] == '/'; --len)
+      ;
     __snprintf_a(path_file, 1025, "%-.*s/%s", len, path, file);
     if (0 == __stat_a(path_file, &st)) {
       return return_abspath(out, size, path_file);
