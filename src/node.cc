@@ -2394,7 +2394,7 @@ void termination_handler(int signum) {
     if (signum == siglist[i].signum) {
       sigaction(signum, &(siglist[i].saved) , NULL);
       ReleaseResourcesOnExit(nullptr);
-      kill(0,signum);
+      raise(signum);
       return;
     }
   }

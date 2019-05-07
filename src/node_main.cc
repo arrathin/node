@@ -145,7 +145,7 @@ public:
         char *libpath_a = (char *)alloca(size + 1);
         memcpy(libpath_a, libpath.str().c_str(), size + 1);
         __e2a_l(libpath_a, size);
-        __setenv_a("LIBPATH", libpath_a,1);
+        __setenv_a("LIBPATH", libpath_a, 1);
 #pragma convert("ibm-1047")
         char *error;
         p = dlopen("libnode.so", RTLD_NOW);
@@ -155,7 +155,7 @@ public:
           assert(p);
         }
         void (*__xfer_env_p)(void) = (void (*)(void))dlsym(p, "__xfer_env");
-        if (!p) {
+        if (!__xfer_env_p) {
           error = dlerror();
           fprintf(stderr, "dlsym:__xfer_env:%s\n", error);
           assert(p);
@@ -163,7 +163,7 @@ public:
         __xfer_env_p();
         void (*__chgfdccsid_p)(int, int) =
             (void (*)(int, int))dlsym(p, "__chgfdccsid");
-        if (!p) {
+        if (!__chgfdccsid_p) {
           error = dlerror();
           fprintf(stderr, "dlsym:__chgfdccsid:%s\n", error);
           assert(p);

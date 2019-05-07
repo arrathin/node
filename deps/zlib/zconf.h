@@ -516,6 +516,8 @@ typedef uLong FAR uLongf;
 
 /* MVS linker does not support external names larger than 8 bytes */
 #if defined(__MVS__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wignored-pragmas"
   #pragma map(deflateInit_,"DEIN")
   #pragma map(deflateInit2_,"DEIN2")
   #pragma map(deflateEnd,"DEEND")
@@ -529,6 +531,7 @@ typedef uLong FAR uLongf;
   #pragma map(inflate_table,"INTABL")
   #pragma map(inflate_fast,"INFA")
   #pragma map(inflate_copyright,"INCOPY")
+  #pragma clang diagnostic pop
 #endif
 
 #endif /* ZCONF_H */
