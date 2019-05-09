@@ -2392,7 +2392,7 @@ void termination_handler(int signum) {
   struct sigaction new_action;
   for (int i = 0; i < (sizeof(siglist) / sizeof(sig_save)); ++i) {
     if (signum == siglist[i].signum) {
-      sigaction(signum, &(siglist[i].saved) , NULL);
+      // sigaction(signum, &(siglist[i].saved) , NULL);
       ReleaseResourcesOnExit(nullptr);
       raise(signum);
       return;
@@ -4552,15 +4552,33 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
                  int argc, const char* const* argv,
                  int exec_argc, const char* const* exec_argv) {
 #ifdef __MVS__
+  static char altstack[SIGSTKSZ + 4096];
+  stack_t ss = {.ss_size = SIGSTKSZ, .ss_sp = altstack};
   struct sigaction new_action;
   new_action.sa_handler = termination_handler;
-  sigemptyset(&new_action.sa_mask);
-  new_action.sa_flags = SA_RESETHAND;
+  int rc = sigaltstack(&ss, 0);
+  if (rc == 0) {
+    new_action.sa_flags = SA_RESETHAND | SA_ONSTACK;
+  }
+  else {
+#pragma convert("IBM-1047")
+    perror("sigaltstack");
+#pragma convert(pop)
+    new_action.sa_flags = SA_RESETHAND;
+  }
   for (int i = 0; i < (sizeof(siglist) / sizeof(sig_save)); ++i) {
     sigaction(siglist[i].signum, NULL, &(siglist[i].saved));
-    if (siglist[i].saved.sa_handler != SIG_IGN)
+    if (siglist[i].saved.sa_handler != SIG_IGN) {
+      sigfillset(&new_action.sa_mask);
       sigaction(siglist[i].signum, &new_action, NULL);
+    }
   }
+  new_action.sa_handler = SIG_IGN;
+  sigfillset(&new_action.sa_mask);
+  sigaction(SIGPIPE, &new_action, NULL);
+  new_action.sa_handler = SIG_IGN;
+  sigfillset(&new_action.sa_mask);
+  sigaction(SIGCHLD, &new_action, NULL);
 #endif
 
   HandleScope handle_scope(isolate);
