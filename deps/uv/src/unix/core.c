@@ -972,7 +972,7 @@ int uv__open_cloexec(const char* path, int flags) {
   int fd;
 
 #if defined(UV__O_CLOEXEC)
-  static int no_cloexec;
+  static int no_cloexec = 0;
 
   if (!no_cloexec) {
     fd = open(path, flags | UV__O_CLOEXEC);

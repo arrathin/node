@@ -779,12 +779,16 @@ int uv_fs_event_stop(uv_fs_event_t* handle) {
     abort();
 
   uv__handle_stop(handle);
+  if (handle->path != NULL) {
+    uv__free(handle->path);
+    handle->path = NULL;
+  }
 
   return 0;
 }
 
 
-static int os390_message_queue_handler(uv__os390_epoll* ep) {
+static int os390_message_queue_handler(uv__os390_epoll* ep, uv_fs_event_t** phandle) {
   uv_fs_event_t* handle;
   int msglen;
   int events;
@@ -814,6 +818,8 @@ static int os390_message_queue_handler(uv__os390_epoll* ep) {
 
   handle = *(uv_fs_event_t**)(msg.__rfim_utok);
   handle->cb(handle, uv__basename_r(handle->path), events, 0);
+  if (phandle != NULL)
+    *phandle = handle;
   return 1;
 }
 
@@ -940,12 +946,19 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
 
       ep = loop->ep;
       if (pe->is_msg) {
-        if (os390_message_queue_handler(ep) == -1) {
+        uv_fs_event_t* phandle = NULL;
+        if (os390_message_queue_handler(ep, &phandle) == -1) {
           /* The user has deleted the System V message queue. Highly likely
            * because the process is being shut down. So stop listening to it.
            */
           epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, ep->msg_queue, pe);
           loop->backend_fd = -1;
+        } else if (phandle != NULL && phandle->path != NULL) {
+          char* savepath = uv__strdup(phandle->path);
+          uv_fs_event_cb cb = phandle->cb;
+          uv_fs_event_stop(phandle);
+          uv_fs_event_start(phandle, cb, savepath, 0);
+          uv__free(savepath);
         }
         continue;
       }
