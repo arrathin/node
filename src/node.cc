@@ -2324,46 +2324,27 @@ static void DLOpen(const FunctionCallbackInfo<Value>& args) {
 
 //#pragma convert("IBM-1047")
 static void ReleaseResourcesOnExit(void * arg) {
-  /* TODO: This might make all other ReleaseSystem... functions redundant */
-  IPCQPROC bufptr;
-  int token;
-  int foreignmsgqid;
-  int foreignsemid;
-  token = 0;
-  foreignmsgqid = 0;
-  foreignsemid = 0;
-  int count = 0;
-  char ipctype[4];
-  while (token != -1) {
-    token = __getipc(token, &bufptr, sizeof(bufptr), IPCQALL);
-    memcpy(&ipctype,&bufptr.common.ipcqtype,4);
-    __e2a_l(ipctype,4);
-    if (memcmp(ipctype, "IMSG", 4) == 0) {
-      if (bufptr.msg.ipcqpcp.uid != getuid() || bufptr.msg.ipcqlspid != getpid()) {
-        if (foreignmsgqid == 0) {
-           foreignmsgqid = bufptr.msg.ipcqmid;
+  IPCQPROC buf;
+  int rc;
+  int uid = getuid();
+  int pid = getpid();
+  int stop = -1;
+  int others = 0; // temp
+  rc = __getipc(0, &buf, sizeof(buf), IPCQMSG);
+  while (rc != -1 && stop != buf.msg.ipcqmid) {
+    if (stop == -1)
+      stop = buf.msg.ipcqmid;
+    if (buf.msg.ipcqpcp.uid == uid) {
+      if (buf.msg.ipcqkey == 0) {
+        if (buf.msg.ipcqlrpid == pid) {
+          msgctl(buf.msg.ipcqmid, IPC_RMID, 0);
+        } else if (others && kill(buf.msg.ipcqlrpid, 0) == -1 &&
+                   kill(buf.msg.ipcqlspid, 0) == -1) {
+          msgctl(buf.msg.ipcqmid, IPC_RMID, 0);
         }
-        else if (foreignmsgqid == bufptr.msg.ipcqmid) /* have we rotated to the top */
-          break;
-        else 
-        continue;
       }
-      msgctl(bufptr.msg.ipcqmid, IPC_RMID, NULL);
     }
-    else if (memcmp(ipctype, "ISEM", 4) == 0) {
-      if (bufptr.sem.ipcqpcp.uid != getuid() || bufptr.sem.ipcqlopid != getpid()) {
-        if (foreignsemid == 0) {
-          foreignsemid = bufptr.sem.ipcqmid;
-        
-        }else if (foreignsemid == bufptr.sem.ipcqmid) /* have we rotated to the top */
-          break;
-        else 
-        continue;
-      }
-      semctl(bufptr.sem.ipcqmid, 1, IPC_RMID);
-    }
-    else {
-    }
+    rc = __getipc(rc, &buf, sizeof(buf), IPCQMSG);
   }
 }
 #ifdef __MVS__
@@ -4552,7 +4533,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
                  int argc, const char* const* argv,
                  int exec_argc, const char* const* exec_argv) {
 #ifdef __MVS__
-  static char altstack[SIGSTKSZ + 4096];
+  static char altstack[SIGSTKSZ + 4096*1024];
   stack_t ss = {.ss_size = SIGSTKSZ, .ss_sp = altstack};
   struct sigaction new_action;
   new_action.sa_handler = termination_handler;
