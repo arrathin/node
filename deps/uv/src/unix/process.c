@@ -185,7 +185,7 @@ skip:
  * Used for initializing stdio streams like options.stdin_stream. Returns
  * zero on success. See also the cleanup section in uv_spawn().
  */
-static int uv__process_init_stdio(uv_stdio_container_t* container, int fds[2], int isStderr) {
+static int uv__process_init_stdio(uv_stdio_container_t* container, int fds[2], int usePipe) {
   int mask;
   int fd;
 
@@ -197,14 +197,18 @@ static int uv__process_init_stdio(uv_stdio_container_t* container, int fds[2], i
 
   case UV_CREATE_PIPE:
     assert(container->data.stream != NULL);
-    if (container->data.stream->type != UV_NAMED_PIPE)
+    if (container->data.stream->type != UV_NAMED_PIPE) {
       return UV_EINVAL;
-    else {
-	  if (isStderr) //TODO: zOS socketpair issue on stderr, use pipes for stderr
-     	return uv__make_pipe(fds, 0);
-	  else 
-     	return uv__make_socketpair(fds, 0);
-	}
+    } else {
+      /* - z/OS socketpair issue on stderr, use pipes for stderr
+       * - TODO: z/OS code page autoconvert requires pipe instead of
+       *   socketpair, but need further adjustment to use pipe for stdin
+       */
+      if (usePipe)
+        return uv__make_pipe(fds, 0);
+      else 
+        return uv__make_socketpair(fds, 0);
+    }
 
   case UV_INHERIT_FD:
   case UV_INHERIT_STREAM:
@@ -464,10 +468,10 @@ int uv_spawn(uv_loop_t* loop,
 
   for (i = 0; i < options->stdio_count; i++) {
 #ifdef __MVS__
-	if (i == 2) // stderr
-    	err = uv__process_init_stdio(options->stdio + i, pipes[i], 1);
+	if (i == 1 || i == 2) /* stdout or stderr */
+    err = uv__process_init_stdio(options->stdio + i, pipes[i], 1);
 	else
-    	err = uv__process_init_stdio(options->stdio + i, pipes[i], 0);
+    err = uv__process_init_stdio(options->stdio + i, pipes[i], 0);
 #else
     err = uv__process_init_stdio(options->stdio + i, pipes[i], 0);
 #endif
@@ -517,6 +521,12 @@ int uv_spawn(uv_loop_t* loop,
     uv__process_child_init(options, stdio_count, pipes, signal_pipe[1]);
     abort();
   }
+  #ifdef __MVS__
+    else {
+      __chgfdccsid(pipes[1][0], 1047);
+      __chgfdccsid(pipes[2][0], 1047);  
+    }
+  #endif
 
   /* Release lock in parent process */
   uv_rwlock_wrunlock(&loop->cloexec_lock);
