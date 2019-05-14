@@ -144,7 +144,6 @@
         }],
         [ 'OS not in "win"', {
           # Not Windows i.e. POSIX
-          'cflags': [ '-g', ],
           'defines': [ 'HAVE_CONFIG_H' ],
         }],
         [ 'OS=="linux"', {
