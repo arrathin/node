@@ -454,6 +454,7 @@
          'cflags': [
            '-q64',
            '-qarch=9',
+           '-qTUNE=10',
            '-qenum=int',
            ],
           'ldflags': [
