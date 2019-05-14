@@ -30,7 +30,4 @@
 #define UV_PLATFORM_FS_EVENT_FIELDS                                           \
   char rfis_rftok[8];                                                         \
 
-#define UV_STREAM_PRIVATE_PLATFORM_FIELDS                                     \
-  int ascii;
-
 #endif /* UV_MVS_H */
