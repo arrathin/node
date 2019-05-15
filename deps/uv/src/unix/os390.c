@@ -799,13 +799,14 @@ static int os390_message_queue_handler(uv__os390_epoll* ep, uv_fs_event_t** phan
 
   msglen = msgrcv(ep->msg_queue, &msg, sizeof(msg), 0, IPC_NOWAIT);
 
-  if (msglen == -1)
+  if (msglen == -1) {
     if (errno == ENOMSG)
       return 0;
     else if (errno == EINVAL)
       return -1;
     else
       abort();
+  }
 
   events = 0;
   if (msg.__rfim_event == _RFIM_ATTR || msg.__rfim_event == _RFIM_WRITE)
@@ -823,6 +824,16 @@ static int os390_message_queue_handler(uv__os390_epoll* ep, uv_fs_event_t** phan
   return 1;
 }
 
+static void os390_re_regfileint (uv__os390_epoll* ep, uv_fs_event_t* phandle) {
+  if (phandle == NULL || phandle->path == NULL)
+    return;
+  char* savepath = uv__strdup(phandle->path);
+  uv__free(phandle->path);
+  phandle->path = NULL;
+  phandle->flags &= ~UV_HANDLE_ACTIVE;
+  uv_fs_event_start(phandle, phandle->cb, savepath, 0);
+  uv__free(savepath);
+}
 
 void uv__io_poll(uv_loop_t* loop, int timeout) {
   static const int max_safe_timeout = 1789569;
@@ -953,12 +964,9 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
            */
           epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, ep->msg_queue, pe);
           loop->backend_fd = -1;
-        } else if (phandle != NULL && phandle->path != NULL) {
-          char* savepath = uv__strdup(phandle->path);
-          uv_fs_event_cb cb = phandle->cb;
-          uv_fs_event_stop(phandle);
-          uv_fs_event_start(phandle, cb, savepath, 0);
-          uv__free(savepath);
+        }
+        else {
+          os390_re_regfileint(ep, phandle);
         }
         continue;
       }
