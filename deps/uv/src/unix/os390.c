@@ -787,8 +787,18 @@ int uv_fs_event_stop(uv_fs_event_t* handle) {
   return 0;
 }
 
+static void os390_re_regfileint (uv_fs_event_t* handle) {
+  if (handle == NULL || handle->path == NULL)
+    return;
+  char* savepath = uv__strdup(handle->path);
+  uv__free(handle->path);
+  handle->path = NULL;
+  handle->flags &= ~UV_HANDLE_ACTIVE;
+  uv_fs_event_start(handle, handle->cb, savepath, 0);
+  uv__free(savepath);
+}
 
-static int os390_message_queue_handler(uv__os390_epoll* ep, uv_fs_event_t** phandle) {
+static int os390_message_queue_handler(uv__os390_epoll* ep) {
   uv_fs_event_t* handle;
   int msglen;
   int events;
@@ -818,21 +828,9 @@ static int os390_message_queue_handler(uv__os390_epoll* ep, uv_fs_event_t** phan
     return 0;
 
   handle = *(uv_fs_event_t**)(msg.__rfim_utok);
+  os390_re_regfileint(handle);
   handle->cb(handle, uv__basename_r(handle->path), events, 0);
-  if (phandle != NULL)
-    *phandle = handle;
   return 1;
-}
-
-static void os390_re_regfileint (uv__os390_epoll* ep, uv_fs_event_t* phandle) {
-  if (phandle == NULL || phandle->path == NULL)
-    return;
-  char* savepath = uv__strdup(phandle->path);
-  uv__free(phandle->path);
-  phandle->path = NULL;
-  phandle->flags &= ~UV_HANDLE_ACTIVE;
-  uv_fs_event_start(phandle, phandle->cb, savepath, 0);
-  uv__free(savepath);
 }
 
 void uv__io_poll(uv_loop_t* loop, int timeout) {
@@ -958,15 +956,12 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
       ep = loop->ep;
       if (pe->is_msg) {
         uv_fs_event_t* phandle = NULL;
-        if (os390_message_queue_handler(ep, &phandle) == -1) {
+        if (os390_message_queue_handler(ep) == -1) {
           /* The user has deleted the System V message queue. Highly likely
            * because the process is being shut down. So stop listening to it.
            */
           epoll_ctl(loop->ep, UV__EPOLL_CTL_DEL, ep->msg_queue, pe);
           loop->backend_fd = -1;
-        }
-        else {
-          os390_re_regfileint(ep, phandle);
         }
         continue;
       }
