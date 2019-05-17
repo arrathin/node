@@ -24,7 +24,6 @@
 #endif
 #define snprintf __snprintf_a
 #define printf   error__printf_a
-#define fprintf  __fprintf_a
 #include "zos.h"
 #endif
 
@@ -6221,7 +6220,7 @@ void InitCryptoOnce() {
 #endif
     ERR_clear_error();
     CONF_modules_load_file(
-        openssl_config.c_str(),
+        *E2A(openssl_config.c_str()),
         nullptr,
         CONF_MFLAGS_DEFAULT_SECTION);
     int err = ERR_get_error();
