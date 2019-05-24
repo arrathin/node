@@ -5,9 +5,9 @@
 #define _OPEN_SYS_FILE_EXT 1
 #define __ZOS_CC
 #include "zos.h"
+#include <__le_api.h>
 #include <_Ccsid.h>
 #include <_Nascii.h>
-#include <__le_api.h>
 #include <ctest.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -1159,4 +1159,28 @@ extern "C" int __find_file_in_path(char *out, int size, const char *envvar,
     }
   }
   return 0;
+}
+
+static char *__ptr32 *__ptr32 __base(void) {
+  static char *__ptr32 *__ptr32 res = 0;
+  if (res == 0) {
+    res = ((char *__ptr32 *__ptr32 *__ptr32 *__ptr32 *)16)[0][136][6];
+  }
+  return res;
+}
+static void __bpx4kil(int pid, int signal, void *signal_options,
+                      int *return_value, int *return_code, int *reason_code) {
+  void *reg15 = __base()[308 / 4]; // BPX4KIL offset is 308
+  void *argv[] = {&pid,         &signal,     signal_options,
+                  return_value, return_code, reason_code}; // os style parm list
+  __asm(" basr 14,%0\n" : "+NR:r15"(reg15) : "NR:r1"(&argv) : "r0", "r14");
+}
+
+// overriding LE's kill when linked statically
+extern "C" int kill(int pid, int sig) {
+  int rv, rc, rn;
+  __bpx4kil(pid, sig, 0, &rv, &rc, &rn);
+  if (rv != 0)
+    errno = rc;
+  return rv;
 }

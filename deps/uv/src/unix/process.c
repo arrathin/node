@@ -44,6 +44,9 @@ extern char **environ;
 # include <grp.h>
 #endif
 
+#ifdef __MVS__
+#include "zos.h"
+#endif
 
 static void uv__chld(uv_signal_t* handle, int signum) {
   uv_process_t* process;
