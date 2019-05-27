@@ -308,7 +308,9 @@
         '-qenum=int',
         '-qexportall',
       ],
-      'dependencies': [ 'deps/zoslib/zoslib.gyp:zoslib' ],
+      'include_dirs': [
+          'deps/v8z/src/deps/zoslib/include'
+       ],
       'conditions': [
         [ 'v8_enable_i18n_support==1', {
           'libraries': [

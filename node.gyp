@@ -187,7 +187,7 @@
       'include_dirs': [
         'src',
         'deps/v8z/include',
-        'deps/zoslib/include',
+        'deps/v8z/src/deps/zoslib/include'
 	  ],
       'defines': [
         '_OPEN_SOURCE=1'

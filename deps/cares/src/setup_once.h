@@ -551,7 +551,7 @@ typedef int sig_atomic_t;
 #define ZERO_NULL 0
 
 #if defined(__MVS__)
-#include "../../zoslib/include/zos.h"
+#include "../../v8z/src/deps/zoslib/include/zos.h"
 #endif
 
 #endif /* __SETUP_ONCE_H */
