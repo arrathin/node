@@ -4711,7 +4711,7 @@ int Start(int argc, char** argv) {
   sigset_t set;
   sigfillset(&set);
   uv_thread_create(&signalHandlerThread, SignalHandlerThread, NULL);
-  sigprocmask(SIG_BLOCK, &set, NULL);
+  CHECK_EQ(0,pthread_sigmask(SIG_BLOCK, &set, NULL));
 #endif
 
 #if HAVE_OPENSSL
