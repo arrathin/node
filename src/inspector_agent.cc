@@ -1,3 +1,5 @@
+#include "zos.h"
+
 #include "inspector_agent.h"
 
 #include "inspector_io.h"
@@ -74,6 +76,17 @@ static void StartIoThreadWakeup(int signo) {
   uv_sem_post(&start_io_thread_semaphore);
 }
 
+#ifdef __MVS__
+static void *SigUsr1Posting(void *) {
+  sigset_t sigmask;
+  RegisterSignalHandler(SIGUSR1, StartIoThreadWakeup);
+  sigemptyset(&sigmask);
+  sigaddset(&sigmask, SIGUSR1);
+  CHECK_EQ(0, pthread_sigmask(SIG_UNBLOCK, &sigmask, nullptr));
+  while (1)
+    sleep(10000);
+}
+#endif
 inline void* StartIoThreadMain(void* unused) {
   for (;;) {
     uv_sem_wait(&start_io_thread_semaphore);
@@ -118,11 +131,23 @@ static int StartDebugSignalHandler() {
     // receiving the signal would terminate the process.
     return -err;
   }
+#ifdef __MVS__
+  pthread_t wl;
+  pthread_attr_t wl_attr;
+  CHECK_EQ(0, pthread_attr_init(&wl_attr));
+  CHECK_EQ(0, pthread_create(&wl, &wl_attr, SigUsr1Posting, nullptr));
+  CHECK_EQ(0, pthread_attr_destroy(&wl_attr));
+#else
   RegisterSignalHandler(SIGUSR1, StartIoThreadWakeup);
+#endif
+#ifdef __MVS__
+  // leave SIGUSR1 blocked on this thread
+#else
   // Unblock SIGUSR1.  A pending SIGUSR1 signal will now be delivered.
   sigemptyset(&sigmask);
   sigaddset(&sigmask, SIGUSR1);
   CHECK_EQ(0, pthread_sigmask(SIG_UNBLOCK, &sigmask, nullptr));
+#endif
   return 0;
 }
 #endif  // __POSIX__

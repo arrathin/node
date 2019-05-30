@@ -4547,6 +4547,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
 #pragma convert(pop)
     new_action.sa_flags = SA_RESETHAND;
   }
+#if SKIPPING_FOR_SAVSTACK
   for (int i = 0; i < (sizeof(siglist) / sizeof(sig_save)); ++i) {
     sigaction(siglist[i].signum, NULL, &(siglist[i].saved));
     if (siglist[i].saved.sa_handler != SIG_IGN) {
@@ -4554,6 +4555,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
       sigaction(siglist[i].signum, &new_action, NULL);
     }
   }
+#endif
   new_action.sa_handler = SIG_IGN;
   sigfillset(&new_action.sa_mask);
   sigaction(SIGPIPE, &new_action, NULL);
