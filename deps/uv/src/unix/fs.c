@@ -277,8 +277,25 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
   return r;
 }
 
+#if defined(__MVS__)
+static ssize_t uv__fs_read_inner(uv_fs_t *req);
+static ssize_t uv__fs_read(uv_fs_t *req) {
+  int org_state = __ae_autoconvert_state(_CVTSTATE_ON);
+  int org_mode = __ae_thread_swapmode(__AE_ASCII_MODE);
+  ssize_t res = uv__fs_read_inner(req);
+  __ae_thread_swapmode(org_mode);
+  __ae_autoconvert_state(org_state);
+  return res;
+}
+#define uv__fs_read uv__fs_read_inner 
+#endif
 
 static ssize_t uv__fs_read(uv_fs_t* req) {
+
+#if defined(__MVS__)
+#undef uv__fs_read
+#endif
+
 #if defined(__linux__)
   static int no_preadv;
 #endif
@@ -334,14 +351,6 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
   }
 
 done:
-#if defined(__MVS__)
-  if (!((__ae_autoconvert_state(_CVTSTATE_QUERY) == _CVTSTATE_OFF &&
-         buf.st_tag.ft_txtflag && buf.st_tag.ft_ccsid == 819) ||
-        buf.st_tag.ft_ccsid == FT_BINARY))
-    for (int idx = 0; idx < req->nbufs; idx++) {
-      __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
-    }
-#endif
   /* Early cleanup of bufs allocation, since we're done with it. */
   if (req->bufs != req->bufsml)
     uv__free(req->bufs);
@@ -766,28 +775,22 @@ ssize_t __writev(int fd, const struct iovec *vector, int count) {
 }
 #endif
 
+#if defined(__MVS__)
+static ssize_t uv__fs_write_inner(uv_fs_t *req);
+static ssize_t uv__fs_write(uv_fs_t *req) {
+  int org_state = __ae_autoconvert_state(_CVTSTATE_ON);
+  int org_mode = __ae_thread_swapmode(__AE_ASCII_MODE);
+  ssize_t res = uv__fs_write_inner(req);
+  __ae_thread_swapmode(org_mode);
+  __ae_autoconvert_state(org_state);
+  return res;
+}
+#define uv__fs_write uv__fs_write_inner 
+#endif
+
 static ssize_t uv__fs_write(uv_fs_t* req) {
 #if defined(__MVS__)
-  int doconvert;
-  struct stat statbuf;
-
-  if(fstat(req->file, &statbuf))
-    return -1;
-
-  doconvert = 0;
-  if ( !( 
-          (getenv("_BPXK_AUTOCVT") == NULL && statbuf.st_tag.ft_txtflag && statbuf.st_tag.ft_ccsid == 819) ||
-          statbuf.st_tag.ft_ccsid == FT_BINARY
-        )
-     )
-    doconvert = 1;
-
-  if (doconvert) {
-    for (int idx = 0; idx < req->nbufs; idx++) {
-        __a2e_l(req->bufs[idx].base, req->bufs[idx].len);
-    }
-  }
-
+  #undef uv__fs_write
 #endif
 
 #if defined(__linux__)
@@ -849,12 +852,6 @@ done:
 #if defined(__APPLE__)
   if (pthread_mutex_unlock(&lock))
     abort();
-#endif
-#if defined(__MVS__)
-  if (doconvert)
-    for (int idx = 0; idx < req->nbufs; idx++) {
-      __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
-    }
 #endif
 
   return r;
