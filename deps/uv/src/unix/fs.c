@@ -269,7 +269,7 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
   // Tag newly written files as 819 which does not exit prior to the open
   if (req->newFile && doesFileExist)
     __chgfdccsid(r, 819);
-  
+
   // restore errno from open
   errno = old_errno;
 #endif
@@ -277,7 +277,7 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
   return r;
 }
 
-#if defined(__MVS__)
+#if 0 //defined(__MVS__)
 static ssize_t uv__fs_read_inner(uv_fs_t *req);
 static ssize_t uv__fs_read(uv_fs_t *req) {
   int org_state = __ae_autoconvert_state(_CVTSTATE_ON);
@@ -351,6 +351,14 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
   }
 
 done:
+#if defined(__MVS__)
+  if (!((__ae_autoconvert_state(_CVTSTATE_QUERY) == _CVTSTATE_OFF &&
+         buf.st_tag.ft_txtflag && buf.st_tag.ft_ccsid == 819) ||
+        buf.st_tag.ft_ccsid == FT_BINARY))
+    for (int idx = 0; idx < req->nbufs; idx++) {
+      __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
+    }
+#endif
   /* Early cleanup of bufs allocation, since we're done with it. */
   if (req->bufs != req->bufsml)
     uv__free(req->bufs);
