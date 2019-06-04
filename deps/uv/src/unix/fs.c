@@ -25,6 +25,9 @@
  * return -1 with errno set. The dispatcher in uv__fs_work() takes care of
  * getting the errno to the right place (req->result or as the return value.)
  */
+#if defined(__MVS__)
+#define _OPEN_SYS_FILE_EXT 1
+#endif
 
 #include "uv.h"
 #include "internal.h"
@@ -249,7 +252,17 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
   req->newFile = !fileAlreadyExists;
 #endif
   r = open(req->path, req->flags, req->mode);
-
+#ifdef __MVS__
+  struct stat st;
+  if (r >= 0 && 0 == fstat(r, &st)) {
+    if (0 == st.st_tag.ft_txtflag && 0 == st.st_tag.ft_ccsid &&
+        0 != (req->flags & O_RDONLY)) {
+      // read untag file
+      __file_needs_conversion_init(req->path, r);
+    }
+  }
+#endif
+  
   /* In case of failure `uv__cloexec` will leave error in `errno`,
    * so it is enough to just set `r` to `-1`.
    */
@@ -265,9 +278,8 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
     
 #ifdef __MVS__
   int old_errno = errno;
-  int doesFileExist = (stat(req->path, &buffer) == 0);
   // Tag newly written files as 819 which does not exit prior to the open
-  if (req->newFile && doesFileExist)
+  if (req->newFile &&  r >= 0)
     __chgfdccsid(r, 819);
 
   // restore errno from open
@@ -277,23 +289,11 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
   return r;
 }
 
-#if 0 //defined(__MVS__)
-static ssize_t uv__fs_read_inner(uv_fs_t *req);
-static ssize_t uv__fs_read(uv_fs_t *req) {
-  int org_state = __ae_autoconvert_state(_CVTSTATE_ON);
-  int org_mode = __ae_thread_swapmode(__AE_ASCII_MODE);
-  ssize_t res = uv__fs_read_inner(req);
-  __ae_thread_swapmode(org_mode);
-  __ae_autoconvert_state(org_state);
-  return res;
-}
-#define uv__fs_read uv__fs_read_inner 
-#endif
-
 static ssize_t uv__fs_read(uv_fs_t* req) {
 
 #if defined(__MVS__)
-#undef uv__fs_read
+  int org_state;
+  int org_mode;
 #endif
 
 #if defined(__linux__)
@@ -315,6 +315,10 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
   if (req->nbufs > iovmax)
     req->nbufs = iovmax;
 
+#if defined(__MVS__)
+  org_state = __ae_autoconvert_state(_CVTSTATE_ON);
+  org_mode = __ae_thread_swapmode(__AE_ASCII_MODE);
+#endif
   if (req->off < 0) {
     if (req->nbufs == 1)
       result = read(req->file, req->bufs[0].base, req->bufs[0].len);
@@ -352,12 +356,13 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
 
 done:
 #if defined(__MVS__)
-  if (!((__ae_autoconvert_state(_CVTSTATE_QUERY) == _CVTSTATE_OFF &&
-         buf.st_tag.ft_txtflag && buf.st_tag.ft_ccsid == 819) ||
-        buf.st_tag.ft_ccsid == FT_BINARY))
+  __ae_autoconvert_state(org_state);
+  __ae_thread_swapmode(org_mode);
+  if (__file_needs_conversion(req->file)) {
     for (int idx = 0; idx < req->nbufs; idx++) {
       __e2a_l(req->bufs[idx].base, req->bufs[idx].len);
     }
+  }
 #endif
   /* Early cleanup of bufs allocation, since we're done with it. */
   if (req->bufs != req->bufsml)
@@ -1335,6 +1340,9 @@ int uv_fs_chown(uv_loop_t* loop,
 int uv_fs_close(uv_loop_t* loop, uv_fs_t* req, uv_file file, uv_fs_cb cb) {
   INIT(CLOSE);
   req->file = file;
+#if defined(__MVS__)
+  __fd_close(file);
+#endif
   POST;
 }
 
