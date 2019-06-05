@@ -482,6 +482,18 @@
           '-Wl,--export-dynamic',
         ],
       }],
+      ['OS == "zos"', {
+         'cflags': [
+           '-q64',
+           '-Wc,DLL',
+           '-qARCH=9',
+           '-qTUNE=10',
+           '-qENUM=INT',
+           ],
+           'ldflags': [
+            '-q64',
+           ],
+      }],
       ['node_shared_openssl!="true"', {
         # `OPENSSL_THREADS` is defined via GYP for openSSL for all architectures.
         'defines': [
