@@ -18,8 +18,9 @@
       'conditions': [
         [ 'openssl_no_asm==1', {
           'includes': ['./openssl_no_asm.gypi'],
-        }, 'target_arch=="arm64" and OS=="win"', {
+        }, 'target_arch=="arm64" and OS=="win" and OS=="zos"', {
           # VC-WIN64-ARM inherits from VC-noCE-common that has no asms.
+          # z/OS does not have asms at this point
           'includes': ['./openssl_no_asm.gypi'],
         }, 'gas_version >= "2.26" or nasm_version >= "2.11.8"', {
            # Require AVX512IFMA supported. See
