@@ -12,6 +12,7 @@ import shlex
 import subprocess
 import shutil
 import string
+import tempfile
 from distutils.spawn import find_executable as which
 
 # If not run from node/, cd to node/.
@@ -637,16 +638,28 @@ def pkg_config(pkg):
 
 
 def try_check_compiler(cc, lang):
-  try:
-    proc = subprocess.Popen(shlex.split(cc) + ['-E', '-P', '-x', lang, '-'],
+  if sys.platform == 'zos':
+    f = tempfile.NamedTemporaryFile(delete=False, suffix=".cc")
+    f.write('__clang__ __GNUC__ __GNUC_MINOR__ __GNUC_PATCHLEVEL__ '
+            '__clang_major__ __clang_minor__ __clang_patchlevel__')
+    os.system("chtag -tc 819 %s" % f.name)
+    f.close() 
+    try:
+      proc = subprocess.Popen(shlex.split(cc) + ['-E', '-P', f.name ],
+                            stdout=subprocess.PIPE)
+    except OSError:
+      return (False, False, '', '')
+  else:
+    try:
+      proc = subprocess.Popen(shlex.split(cc) + ['-E', '-P', '-x', lang, '-'],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-  except OSError:
-    return (False, False, '', '')
+    except OSError:
+      return (False, False, '', '')
 
-  proc.stdin.write('__clang__ __GNUC__ __GNUC_MINOR__ __GNUC_PATCHLEVEL__ '
-                   '__clang_major__ __clang_minor__ __clang_patchlevel__')
+    proc.stdin.write('__clang__ __GNUC__ __GNUC_MINOR__ __GNUC_PATCHLEVEL__ '
+					'__clang_major__ __clang_minor__ __clang_patchlevel__')
 
-  values = (proc.communicate()[0].split() + ['0'] * 7)[0:7]
+  values = (proc.communicate()[0].split('\n')[-2].split() + ['0'] * 7)[0:7]
   is_clang = values[0] == '1'
   gcc_version = tuple(map(int, values[1:1+3]))
   clang_version = tuple(map(int, values[4:4+3])) if is_clang else None
