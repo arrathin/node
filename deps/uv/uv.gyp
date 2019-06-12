@@ -352,6 +352,8 @@
           ],
           'cflags': [
             '-qenum=int',
+            '-qexportall',
+            '-qascii',
           ],
         }],
       ]
