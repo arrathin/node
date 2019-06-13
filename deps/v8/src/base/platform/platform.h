@@ -244,7 +244,12 @@ class V8_BASE_EXPORT OS {
 
   static int GetCurrentProcessId();
 
+#if defined(V8_OS_ZOS)
+  static pthread_t GetCurrentThreadId();
+#else
   static int GetCurrentThreadId();
+
+#endif
 
   static void ExitProcess(int exit_code);
 
@@ -308,7 +313,11 @@ inline void EnsureConsoleOutput() {
 class V8_BASE_EXPORT Thread {
  public:
   // Opaque data type for thread-local storage keys.
+#if defined(V8_OS_ZOS)
+  typedef pthread_key_t LocalStorageKey;
+#else
   typedef int32_t LocalStorageKey;
+#endif
 
   class Options {
    public:

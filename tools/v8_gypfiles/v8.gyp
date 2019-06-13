@@ -2238,6 +2238,15 @@
             ],
           }
         ],
+        ['OS=="zos"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/debug/stack_trace_posix.cc',
+            '<(V8_ROOT)/src/base/platform/platform-zos.cc',
+            '<(V8_ROOT)/src/base/platform/platform-posix.cc',
+            '<(V8_ROOT)/src/base/platform/platform-posix.h',
+            '<(V8_ROOT)/src/s390/semaphore-zos.cc',
+          ]},
+        ],
         ['OS=="aix"', {
           'sources': [
             '<(V8_ROOT)/src/base/debug/stack_trace_posix.cc',
