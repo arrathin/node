@@ -507,6 +507,7 @@
            '-qTUNE=10',
            '-qENUM=INT',
            '-qEXPORTALL',
+           '-qASM',
            ],
            'ldflags': [
             '-q64',

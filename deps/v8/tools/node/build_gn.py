@@ -46,6 +46,8 @@ def FindGn(options):
     os_path = "mac"
   elif options.host_os == "win":
     os_path = "win"
+  elif options.host_os == "zos":
+    os_path = "zos"
   else:
     raise "Operating system not supported by GN"
   return os.path.join(options.v8_path, "buildtools", os_path, "gn")
