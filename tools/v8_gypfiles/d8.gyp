@@ -4,6 +4,7 @@
 
 {
   'variables': {
+    'V8_ROOT': '../../deps/v8',
     'v8_code': 1,
     # Enable support for Intel VTune. Supported on ia32/x64 only
     'v8_enable_vtunejit%': 0,
@@ -18,6 +19,7 @@
         'v8.gyp:v8',
         'v8.gyp:v8_libbase',
         'v8.gyp:v8_libplatform',
+        'v8.gyp:v8_snapshot',
       ],
       # Generated source files need this explicitly:
       'include_dirs+': [
@@ -26,15 +28,15 @@
         '<(SHARED_INTERMEDIATE_DIR)',
       ],
       'sources': [
-        '../src/async-hooks-wrapper.cc',
-        '../src/async-hooks-wrapper.h',
-        '../src/d8-console.cc',
-        '../src/d8-console.h',
-        '../src/d8-js.cc',
-        '../src/d8-platforms.cc',
-        '../src/d8-platforms.h',
-        '../src/d8.cc',
-        '../src/d8.h',
+        '<(V8_ROOT)/src/async-hooks-wrapper.cc',
+        '<(V8_ROOT)/src/async-hooks-wrapper.h',
+        '<(V8_ROOT)/src/d8-console.cc',
+        '<(V8_ROOT)/src/d8-console.h',
+        '<(V8_ROOT)/src/d8-js.cc',
+        '<(V8_ROOT)/src/d8-platforms.cc',
+        '<(V8_ROOT)/src/d8-platforms.h',
+        '<(V8_ROOT)/src/d8.cc',
+        '<(V8_ROOT)/src/d8.h',
       ],
       'conditions': [
         [ 'want_separate_host_toolset==1', {
@@ -45,8 +47,8 @@
         }],
         ['(OS=="linux" or OS=="mac" or OS=="freebsd" or OS=="netbsd" \
            or OS=="openbsd" or OS=="solaris" or OS=="android" \
-           or OS=="qnx" or OS=="aix" or OS="zos")', {
-             'sources': [ '../src/d8-posix.cc', ]
+           or OS=="qnx" or OS=="aix" or OS=="zos")', {
+             'sources': [ '<(V8_ROOT)/src/d8-posix.cc', ]
            }],
         [ 'OS=="win"', {
           'sources': [ '../src/d8-windows.cc', ]
