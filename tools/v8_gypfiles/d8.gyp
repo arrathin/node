@@ -17,9 +17,9 @@
       'type': 'executable',
       'dependencies': [
         'v8.gyp:v8',
-        'v8.gyp:v8_libbase',
         'v8.gyp:v8_libplatform',
         'v8.gyp:v8_snapshot',
+        'v8.gyp:v8_libbase',
       ],
       # Generated source files need this explicitly:
       'include_dirs+': [
