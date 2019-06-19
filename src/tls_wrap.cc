@@ -631,6 +631,16 @@ AsyncWrap* TLSWrap::GetAsyncWrap() {
 }
 
 
+bool TLSWrap::IsPipe() {
+  return false;
+}
+
+
+bool TLSWrap::IsTTY() {
+  return false;
+}
+
+
 bool TLSWrap::IsIPCPipe() {
   return underlying_stream()->IsIPCPipe();
 }

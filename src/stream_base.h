@@ -270,6 +270,8 @@ class StreamBase : public StreamResource {
 
   virtual bool IsAlive() = 0;
   virtual bool IsClosing() = 0;
+  virtual bool IsPipe();
+  virtual bool IsTTY();
   virtual bool IsIPCPipe();
   virtual int GetFD();
 
