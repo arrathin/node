@@ -391,7 +391,7 @@
         }],
         # Platforms that don't have Compare-And-Swap support need to link atomic
         # library to implement atomic memory access
-        [ 'v8_current_cpu in ["mips", "mipsel", "mips64", "mips64el", "ppc", "ppc64", "s390", "s390x"]', {
+        [ 'v8_current_cpu in ["mips", "mipsel", "mips64", "mips64el", "ppc", "ppc64", "s390", "s390x"] and OS!="zos"', {
             'link_settings': {
               'libraries': [ '-latomic', ],
             },
@@ -2656,9 +2656,9 @@
       'dependencies': [
         'v8_base',
         'v8_init',
-        'v8_libbase',
         'v8_libplatform',
         'v8_nosnapshot',
+        'v8_libbase',
       ],
       'sources': [
         '<(V8_ROOT)/src/snapshot/embedded-file-writer.cc',
