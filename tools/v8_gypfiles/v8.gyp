@@ -2667,6 +2667,7 @@
         'v8_libplatform',
         'v8_nosnapshot',
         'v8_libbase',
+        '../../deps/zoslib/zoslib.gyp:zoslib',
       ],
       'sources': [
         '<(V8_ROOT)/src/snapshot/embedded-file-writer.cc',
