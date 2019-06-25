@@ -1294,7 +1294,7 @@ inline void ss_a_format(Opcode op, int f1, int f2, int f3, int f4, int f5) {
   void emit_label_addr(Label* label);
 
 #ifdef V8_OS_ZOS
-  //Generate function descriptor for z/OS
+  // Generate function descriptor for z/OS
   void function_descriptor();
 
   static void RelocateInternalReference(Address pc, intptr_t delta,
