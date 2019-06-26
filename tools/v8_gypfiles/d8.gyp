@@ -20,7 +20,6 @@
         'v8.gyp:v8_libplatform',
         'v8.gyp:v8_snapshot',
         'v8.gyp:v8_libbase',
-        '../../deps/zoslib/zoslib.gyp:zoslib'
       ],
       # Generated source files need this explicitly:
       'include_dirs+': [

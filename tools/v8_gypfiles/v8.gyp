@@ -2141,6 +2141,9 @@
       'target_name': 'v8_libbase',
       'type': '<(component)',
       'toolsets': ['host', 'target'],
+      'dependencies': [
+        '<(V8_ROOT)/../../deps/zoslib/zoslib.gyp:zoslib#target',
+      ],
       'sources': [
         '<(V8_ROOT)/src/base/adapters.h',
         '<(V8_ROOT)/src/base/address-region.h',
@@ -2667,7 +2670,6 @@
         'v8_libplatform',
         'v8_nosnapshot',
         'v8_libbase',
-        '../../deps/zoslib/zoslib.gyp:zoslib',
       ],
       'sources': [
         '<(V8_ROOT)/src/snapshot/embedded-file-writer.cc',
@@ -2693,7 +2695,7 @@
       'type': 'executable',
       'toolsets': ['host'],
       'dependencies': [
-        "v8_libbase#host"
+        "v8_libbase#host",
       ],
       'sources': [
         "<(V8_ROOT)/src/builtins/generate-bytecodes-builtins-list.cc",
