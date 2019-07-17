@@ -149,6 +149,7 @@ class StatsCounter;
   V(libc_memmove_function, "libc_memmove")                                    \
   V(libc_memset_function, "libc_memset")                                      \
   V(log_enter_external_function, "Logger::EnterExternal")                     \
+  V(debug_zos, "Logger::DebugZOS")                     \
   V(log_leave_external_function, "Logger::LeaveExternal")                     \
   V(mod_two_doubles_operation, "mod_two_doubles")                             \
   V(new_deoptimizer_function, "Deoptimizer::New()")                           \

@@ -1064,6 +1064,10 @@ void Logger::TimerEvent(Logger::StartEnd se, const char* name) {
 }
 
 // static
+void Logger::DebugZOS(Isolate* isolate) {
+	static int x = 0;
+	printf("In zOS: %d\n", x++);
+}
 void Logger::EnterExternal(Isolate* isolate) {
   DCHECK(FLAG_log_internal_timer_events);
   LOG(isolate, TimerEvent(START, TimerEventExternal::name()));

@@ -335,6 +335,7 @@ FUNCTION_REFERENCE(wasm_call_trap_callback_for_testing,
                    wasm::call_trap_callback_for_testing)
 
 FUNCTION_REFERENCE(log_enter_external_function, Logger::EnterExternal)
+FUNCTION_REFERENCE(debug_zos, Logger::DebugZOS)
 FUNCTION_REFERENCE(log_leave_external_function, Logger::LeaveExternal)
 
 ExternalReference ExternalReference::isolate_root(Isolate* isolate) {
