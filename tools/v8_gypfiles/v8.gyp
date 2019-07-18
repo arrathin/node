@@ -2330,6 +2330,9 @@
         'v8_base_without_compiler',
         'v8_compiler',
       ],
+      'include_dirs': [
+        '<(V8_ROOT)/../zoslib/include',
+      ],
     },  # v8_base
     {
       'target_name': 'torque_base',
@@ -2912,6 +2915,9 @@
         '<(V8_ROOT)/src/snapshot/embedded-file-writer.cc',
         '<(V8_ROOT)/src/snapshot/embedded-file-writer.h',
         '<(V8_ROOT)/src/snapshot/mksnapshot.cc',
+      ],
+      'include_dirs+': [
+        '<(V8_ROOT)/../zoslib/include',
       ],
       'conditions': [
         ['OS == "fuchsia"', {

@@ -16,6 +16,8 @@
 #include "src/unwinding-info-win64.h"
 #endif
 
+#include "zos.h"
+
 namespace v8 {
 namespace internal {
 
@@ -185,6 +187,9 @@ class EmbeddedFileWriter : public EmbeddedFileWriterInterface {
       i::PrintF("Unable to open file \"%s\" for writing.\n", filename);
       exit(1);
     }
+#ifdef V8_OS_ZOS
+    __chgfdccsid(fileno(fp), 819);
+#endif
     return fp;
   }
 
