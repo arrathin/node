@@ -585,6 +585,7 @@
       'include_dirs': [
         '<(generate_bytecode_output_root)',
         '<(torque_output_root)',
+        '<(V8_ROOT)/../zoslib/include',
       ],
       'direct_dependent_settings': {
         'include_dirs': [
@@ -2675,6 +2676,9 @@
         '<(V8_ROOT)/src/snapshot/embedded-file-writer.cc',
         '<(V8_ROOT)/src/snapshot/embedded-file-writer.h',
         '<(V8_ROOT)/src/snapshot/mksnapshot.cc',
+      ],
+      'include_dirs+': [
+        '<(V8_ROOT)/../zoslib/include',
       ],
       'conditions': [
         ['v8_enable_i18n_support==1', {
