@@ -827,6 +827,9 @@
         'v8_base_without_compiler',
         'v8_compiler',
       ],
+      'include_dirs': [
+        '<(V8_ROOT)/../zoslib/include',
+      ],
     },  # v8_base
     {
       'target_name': 'torque_base',
@@ -1312,6 +1315,9 @@
       ],
       'sources': [
         '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"mksnapshot.*?sources = ")',
+      ],
+      'include_dirs+': [
+        '<(V8_ROOT)/../zoslib/include',
       ],
       'conditions': [
         ['want_separate_host_toolset', {
