@@ -694,6 +694,7 @@
     {
       'target_name': 'v8_snapshot',
       'type': 'static_library',
+      'asmflags': ['-m GOFF'],
       'toolsets': ['target'],
       'conditions': [
         ['want_separate_host_toolset', {
@@ -779,7 +780,11 @@
                 'mksnapshot_flags': ['--startup_blob', '<(INTERMEDIATE_DIR)/snapshot_blob.bin', ],
               },
             }, {
-               'outputs': ["<(INTERMEDIATE_DIR)/snapshot.cc"],
+               'conditions': [ ['OS=="zos"', {
+                    'outputs': ["<(INTERMEDIATE_DIR)/snapshot.cc", "<(INTERMEDIATE_DIR)/snapshot.cc.S"],
+                }, {
+                    'outputs': ["<(INTERMEDIATE_DIR)/snapshot.cc"],
+               }]],
                'variables': {
                  'mksnapshot_flags': ['--startup_src', '<(INTERMEDIATE_DIR)/snapshot.cc', ],
                },

@@ -19,13 +19,14 @@
         'v8.gyp:v8',
         'v8.gyp:v8_libplatform',
         'v8.gyp:v8_snapshot',
-        'v8.gyp:v8_libbase',
       ],
       # Generated source files need this explicitly:
       'include_dirs+': [
         '..',
         '<(DEPTH)',
         '<(SHARED_INTERMEDIATE_DIR)',
+        '<(SHARED_INTERMEDIATE_DIR)/generate-bytecode-output-root',
+        '<(SHARED_INTERMEDIATE_DIR)/torque-output-root',
       ],
       'sources': [
         '<(V8_ROOT)/src/async-hooks-wrapper.cc',
