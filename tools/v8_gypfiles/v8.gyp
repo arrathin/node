@@ -445,6 +445,7 @@
     {
       'target_name': 'generate_snapshot',
       'type': 'static_library',
+      'asmflags': ['-m GOFF'],
       'toolsets': ['target'],
       'include_dirs': [
         '<(generate_bytecode_output_root)',
@@ -513,7 +514,11 @@
                 'mksnapshot_flags': ['--startup_blob', '<(INTERMEDIATE_DIR)/snapshot_blob.bin', ],
               },
             }, {
-               'outputs': ["<(INTERMEDIATE_DIR)/snapshot.cc"],
+               'conditions': [ ['OS=="zos"', {
+                    'outputs': ["<(INTERMEDIATE_DIR)/snapshot.cc", "<(INTERMEDIATE_DIR)/snapshot.cc.S"],
+                }, {
+                    'outputs': ["<(INTERMEDIATE_DIR)/snapshot.cc"],
+               }]],
                'variables': {
                  'mksnapshot_flags': ['--startup_src', '<(INTERMEDIATE_DIR)/snapshot.cc', ],
                },
