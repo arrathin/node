@@ -373,6 +373,15 @@ class EmbeddedFileWriter : public EmbeddedFileWriterInterface {
     const uint32_t* long_ptr = reinterpret_cast<const uint32_t*>(data);
     return current_line_length + w->HexLiteral(*long_ptr);
   }
+#elif defined(V8_OS_ZOS)
+  static constexpr DataDirective kByteChunkDirective = kQuad;
+  static constexpr int kByteChunkSize = 8;
+
+  static int WriteByteChunk(PlatformDependentEmbeddedFileWriter* w,
+                            int current_line_length, const uint8_t* data) {
+    const uint64_t* quad_ptr = reinterpret_cast<const uint64_t*>(data);
+    return current_line_length + w->HexLiteral(*quad_ptr);
+  }
 
 #else  // defined(V8_COMPILER_IS_MSVC) || defined(V8_OS_AIX)
   static constexpr DataDirective kByteChunkDirective = kOcta;
@@ -431,6 +440,22 @@ class EmbeddedFileWriter : public EmbeddedFileWriterInterface {
     }
   }
 
+#ifdef V8_OS_ZOS
+  static void WriteBinaryContentsAsInlineAssembly(
+      PlatformDependentEmbeddedFileWriter* w, const uint8_t* data,
+      uint32_t size) {
+    int chunks = (size + 31)/32;
+    uint32_t i,j;
+    uint32_t offset = 0;
+    for (i = 0; i < chunks; ++i) {
+      fprintf(w->fp(), " dc x'");
+      for (j = 0; offset < size && j < 32; ++j) {
+         fprintf(w->fp(), "%02x", data[offset++]);
+      } 
+      fprintf(w->fp(), "'\n");
+    }
+  }
+#else
   static void WriteBinaryContentsAsInlineAssembly(
       PlatformDependentEmbeddedFileWriter* w, const uint8_t* data,
       uint32_t size) {
@@ -458,6 +483,7 @@ class EmbeddedFileWriter : public EmbeddedFileWriterInterface {
 
     if (current_line_length != 0) w->Newline();
   }
+#endif
 
   static int ExternalFilenameIndexToId(int index) {
     return kFirstExternalFilenameId + index;
