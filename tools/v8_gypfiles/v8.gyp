@@ -515,7 +515,7 @@
               },
             }, {
                'conditions': [ ['OS=="zos"', {
-                    'outputs': ["<(INTERMEDIATE_DIR)/snapshot.cc", "<(INTERMEDIATE_DIR)/snapshot.cc.S"],
+                    'outputs': ["<(INTERMEDIATE_DIR)/snapshot.cc", "<(INTERMEDIATE_DIR)/snapshot_hlasm.S"],
                 }, {
                     'outputs': ["<(INTERMEDIATE_DIR)/snapshot.cc"],
                }]],
