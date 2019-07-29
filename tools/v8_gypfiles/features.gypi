@@ -90,7 +90,7 @@
     'v8_enable_fast_mksnapshot%': 0,
 
     # Enable embedded builtins.
-    'v8_enable_embedded_builtins%': 0,
+    'v8_enable_embedded_builtins%': 1,
 
     # Enable code comments for builtins in the snapshot (impacts performance).
     'v8_enable_snapshot_code_comments%': 0,
