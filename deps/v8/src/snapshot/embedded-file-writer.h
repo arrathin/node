@@ -154,7 +154,11 @@ class EmbeddedFileWriter : public EmbeddedFileWriterInterface {
   }
 
   static FILE* GetFileDescriptorOrDie(const char* filename) {
+#ifdef V8_OS_ZOS
+    FILE* fp = v8::base::OS::FOpen(filename, "w");
+#else
     FILE* fp = v8::base::OS::FOpen(filename, "wb");
+#endif
     if (fp == nullptr) {
       i::PrintF("Unable to open file \"%s\" for writing.\n", filename);
       exit(1);
