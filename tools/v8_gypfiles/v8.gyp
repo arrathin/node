@@ -2317,7 +2317,7 @@
         }],
         # Platforms that don't have Compare-And-Swap (CAS) support need to link atomic library
         # to implement atomic memory access
-        ['v8_current_cpu in ["mips", "mipsel", "mips64", "mips64el", "ppc", "ppc64", "s390", "s390x"]', {
+        ['v8_current_cpu in ["mips", "mipsel", "mips64", "mips64el", "ppc", "ppc64", "s390", "s390x"] and OS!="zos"', {
           'link_settings': {
             'libraries': ['-latomic', ],
           },
@@ -2908,7 +2908,6 @@
       'target_name': 'mksnapshot',
       'type': 'executable',
       'dependencies': [
-        '<(V8_ROOT)/../../deps/zoslib/zoslib.gyp:zoslib#target',
         'v8_base_without_compiler',
         'v8_compiler_for_mksnapshot',
         'v8_init',
@@ -2917,14 +2916,15 @@
         'v8_libbase',
         # "build/win:default_exe_manifest",
         'v8_maybe_icu',
+        '<(V8_ROOT)/../../deps/zoslib/zoslib.gyp:zoslib#target',
+      ],
+      'include_dirs+': [
+        '<(V8_ROOT)/../zoslib/include',
       ],
       'sources': [
         '<(V8_ROOT)/src/snapshot/embedded-file-writer.cc',
         '<(V8_ROOT)/src/snapshot/embedded-file-writer.h',
         '<(V8_ROOT)/src/snapshot/mksnapshot.cc',
-      ],
-      'include_dirs+': [
-        '<(V8_ROOT)/../zoslib/include',
       ],
       'conditions': [
         ['OS == "fuchsia"', {
