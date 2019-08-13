@@ -48,7 +48,11 @@ class FeedbackCell : public Struct {
   DEFINE_FIELD_OFFSET_CONSTANTS(HeapObject::kHeaderSize, FEEDBACK_CELL_FIELDS)
 #undef FEEDBACK_CELL_FIELDS
 
+#ifdef V8_OS_ZOS
+  static const int kSize = static_cast<int>(int{kUnalignedSize} + (kObjectAlignment - 1)) & -kObjectAlignment;
+#else
   static const int kSize = RoundUp<kObjectAlignment>(int{kUnalignedSize});
+#endif
 
   inline void clear_padding();
 
