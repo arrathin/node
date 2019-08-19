@@ -31,6 +31,9 @@
 #if defined(V8_OS_WIN_X64)
 #include "src/unwinding-info-win64.h"
 #endif
+#ifdef V8_OS_ZOS
+#include "zos.h"
+#endif
 
 #define TRACE_HEAP(...)                                   \
   do {                                                    \
@@ -1452,8 +1455,9 @@ NativeModuleModificationScope::~NativeModuleModificationScope() {
 
 namespace {
 #ifdef V8_OS_ZOS
-// TODO(z/OS): no support for thread_local. Must be handled properly.
-WasmCodeRefScope* current_code_refs_scope = nullptr;
+__tlssim<WasmCodeRefScope*> __current_code_refs_scope_impl(nullptr);
+#define current_code_refs_scope (*__current_code_refs_scope_impl.access())
+
 #else
 thread_local WasmCodeRefScope* current_code_refs_scope = nullptr;
 #endif
