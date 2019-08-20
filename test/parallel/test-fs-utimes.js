@@ -37,7 +37,6 @@ function stat_resource(resource) {
   } else {
     const stats = fs.fstatSync(resource);
     // ensure mtime has been written to disk
-    // except for directories on z/OS or AIX where it cannot be synced
     if ((common.isZOS || common.isAIX) && stats.isDirectory())
       return stats;
     fs.fsyncSync(resource);

@@ -97,7 +97,7 @@ typedef struct {
    response frames are stacked up, which leads to memory exhaustion.
    The value selected here is arbitrary, but safe value and if we have
    these frames in this number, it is considered suspicious. */
-#define NGHTTP2_MAX_OBQ_FLOOD_ITEM 10000
+#define NGHTTP2_DEFAULT_MAX_OBQ_FLOOD_ITEM 1000
 
 /* The default value of maximum number of concurrent streams. */
 #define NGHTTP2_DEFAULT_MAX_CONCURRENT_STREAMS 0xffffffffu
@@ -164,6 +164,7 @@ typedef struct {
   uint32_t initial_window_size;
   uint32_t max_frame_size;
   uint32_t max_header_list_size;
+  uint32_t enable_connect_protocol;
 } nghttp2_settings_storage;
 
 typedef enum {
@@ -208,9 +209,6 @@ struct nghttp2_session {
   nghttp2_session_callbacks callbacks;
   /* Memory allocator */
   nghttp2_mem mem;
-  /* Base value when we schedule next DATA frame write.  This is
-     updated when one frame was written. */
-  uint64_t last_cycle;
   void *user_data;
   /* Points to the latest incoming closed stream.  NULL if there is no
      closed stream.  Only used when session is initialized as
@@ -260,8 +258,12 @@ struct nghttp2_session {
   size_t num_idle_streams;
   /* The number of bytes allocated for nvbuf */
   size_t nvbuflen;
-  /* Counter for detecting flooding in outbound queue */
+  /* Counter for detecting flooding in outbound queue.  If it exceeds
+     max_outbound_ack, session will be closed. */
   size_t obq_flood_counter_;
+  /* The maximum number of outgoing SETTINGS ACK and PING ACK in
+     outbound queue. */
+  size_t max_outbound_ack;
   /* The maximum length of header block to send.  Calculated by the
      same way as nghttp2_hd_deflate_bound() does. */
   size_t max_send_header_block_length;
@@ -321,6 +323,9 @@ struct nghttp2_session {
   /* Unacked local ENABLE_PUSH value.  We use this to refuse
      PUSH_PROMISE before SETTINGS ACK is received. */
   uint8_t pending_enable_push;
+  /* Unacked local ENABLE_CONNECT_PROTOCOL value.  We use this to
+     accept :protocol header field before SETTINGS_ACK is received. */
+  uint8_t pending_enable_connect_protocol;
   /* Nonzero if the session is server side. */
   uint8_t server;
   /* Flags indicating GOAWAY is sent and/or received. The flags are

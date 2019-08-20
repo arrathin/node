@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <functional>
 #include <type_traits>  // std::remove_reference
 
 namespace node {
@@ -495,6 +495,17 @@ class A2E {
   if (name##_length > 0)                                                      \
     CHECK_NE(name##_data, nullptr);
 
+// Use this when a variable or parameter is unused in order to explicitly
+// silence a compiler warning about that.
+template <typename T> inline void USE(T&&) {}
+
+// Run a function when exiting the current scope.
+struct OnScopeLeave {
+  std::function<void()> fn_;
+
+  explicit OnScopeLeave(std::function<void()> fn) : fn_(fn) {}
+  ~OnScopeLeave() { fn_(); }
+};
 
 }  // namespace node
 
