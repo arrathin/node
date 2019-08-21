@@ -741,6 +741,8 @@ def Execute(args, context, timeout=None, env=None, faketty=False, disable_core_f
   else:
     (fd_out, outname) = tempfile.mkstemp()
     (fd_err, errname) = tempfile.mkstemp()
+    if utils.IsZos():
+      os.system('chtag -tc 819 {} {}'.format(outname, errname))
     fd_in = 0
     pty_out = None
 
