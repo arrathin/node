@@ -26,7 +26,6 @@
           '_ALL_SOURCE',
           '_LARGE_TIME_API',
           '_OPEN_SYS_FILE_EXT',
-          '_AE_BIMODAL',
           'PATH_MAX=1023'
         ],
       }, {
