@@ -170,6 +170,9 @@ constexpr size_t kMinExpectedOSPageSize = 64 * KB;  // OS page on PPC Linux
 #elif V8_TARGET_ARCH_ARM64
 constexpr size_t kMaximalCodeRangeSize = 128 * MB;
 constexpr size_t kMinExpectedOSPageSize = 4 * KB;  // OS page.
+#elif V8_OS_ZOS
+constexpr size_t kMaximalCodeRangeSize = 512 * MB;
+constexpr size_t kMinExpectedOSPageSize = 4 * KB;  // OS page.
 #else
 constexpr size_t kMaximalCodeRangeSize = 128 * MB;
 constexpr size_t kMinExpectedOSPageSize = 4 * KB;  // OS page.
@@ -1477,6 +1480,18 @@ enum IsolateAddressId {
 #undef DECLARE_ENUM
       kIsolateAddressCount
 };
+
+inline bool RequiresCodeRange() {
+#if V8_HOST_ARCH_64_BIT
+  return true;
+#else
+# if V8_TARGET_ARCH_X64 && V8_TARGET_ARCH_32_BIT
+  return true;
+# else
+  return false;
+# endif
+#endif
+}
 
 V8_INLINE static bool HasWeakHeapObjectTag(Address value) {
   // TODO(jkummerow): Consolidate integer types here.

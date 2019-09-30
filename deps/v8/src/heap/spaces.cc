@@ -29,6 +29,7 @@
 #include "src/snapshot/snapshot.h"
 #include "src/v8.h"
 #include "src/vm-state-inl.h"
+#include "src/base/sys-info.h"
 
 namespace v8 {
 namespace internal {
@@ -149,7 +150,7 @@ void MemoryAllocator::InitializeCodePageAllocator(
   code_page_allocator_ = page_allocator;
 
   if (requested == 0) {
-    if (!kRequiresCodeRange) return;
+    if (!RequiresCodeRange()) return;
     // When a target requires the code range feature, we put all code objects
     // in a kMaximalCodeRangeSize range of virtual address space, so that
     // they can call each other with near calls.
@@ -166,7 +167,7 @@ void MemoryAllocator::InitializeCodePageAllocator(
     // alignments is not supported (requires re-implementation).
     DCHECK_LE(kMinExpectedOSPageSize, page_allocator->AllocatePageSize());
   }
-  DCHECK(!kRequiresCodeRange || requested <= kMaximalCodeRangeSize);
+  DCHECK(!RequiresCodeRange()|| requested <= kMaximalCodeRangeSize);
 
   Address hint =
       RoundDown(code_range_address_hint.Pointer()->GetAddressHint(requested),
@@ -1001,6 +1002,11 @@ size_t Page::ShrinkToHighWaterMark() {
   DCHECK_EQ(area_end(), SkipFillers(filler, area_end()));
   // Ensure that no objects will be allocated on this page.
   DCHECK_EQ(0u, AvailableInFreeList());
+
+#ifdef V8_OS_ZOS
+  // z/OS does not allow partial frees, return 0 
+  return 0;
+#endif
 
   size_t unused = RoundDown(static_cast<size_t>(area_end() - filler->address()),
                             MemoryAllocator::GetCommitPageSize());
@@ -3592,8 +3598,13 @@ void LargeObjectSpace::FreeUnmarkedObjects() {
     if (marking_state->IsBlack(object)) {
       Address free_start;
       surviving_object_size += size;
+#ifdef V8_OS_ZOS
+      // z/OS does not allow partial frees, skip shrinkage
+      if (0) {
+#else
       if ((free_start = current->GetAddressToShrink(object->address(), size)) !=
           0) {
+#endif
         DCHECK(!current->IsFlagSet(Page::IS_EXECUTABLE));
         current->ClearOutOfLiveRangeSlots(free_start);
         const size_t bytes_to_free =
