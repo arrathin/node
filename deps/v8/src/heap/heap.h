@@ -247,7 +247,11 @@ class Heap {
 #endif
 
   // Semi-space size needs to be a multiple of page size.
+#ifdef __MVS__
+  static const size_t kMinSemiSpaceSizeInKB = 1024 * kPointerMultiplier;
+#else
   static const size_t kMinSemiSpaceSizeInKB = 512 * kPointerMultiplier;
+#endif
   static const size_t kMaxSemiSpaceSizeInKB = 8192 * kPointerMultiplier;
 
   STATIC_ASSERT(kMinSemiSpaceSizeInKB* KB % (1 << kPageSizeBits) == 0);

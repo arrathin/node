@@ -979,7 +979,7 @@ void ResourceConstraints::ConfigureDefaults(uint64_t physical_memory,
       i::Heap::ComputeMaxSemiSpaceSize(physical_memory));
   set_max_old_space_size(i::Heap::ComputeMaxOldGenerationSize(physical_memory));
 
-  if (virtual_memory_limit > 0 && i::kRequiresCodeRange) {
+  if (virtual_memory_limit > 0 && i::RequiresCodeRange()) {
     // Reserve no more than 1/8 of the memory for the code range, but at most
     // kMaximalCodeRangeSize.
     set_code_range_size(
