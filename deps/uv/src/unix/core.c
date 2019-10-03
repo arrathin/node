@@ -1475,7 +1475,11 @@ int uv_os_uname(uv_utsname_t* buffer) {
     goto error;
   }
 
+#ifdef __MVS__
+  r = uv__strscpy(buffer->sysname, "os390", strlen("os390") + 1);
+#else
   r = uv__strscpy(buffer->sysname, buf.sysname, sizeof(buffer->sysname));
+#endif
   if (r == UV_E2BIG)
     goto error;
 
