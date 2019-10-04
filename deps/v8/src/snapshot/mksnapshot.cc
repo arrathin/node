@@ -19,7 +19,9 @@
 #include "src/snapshot/startup-serializer.h"
 #include "src/source-position-table.h"
 
+#ifdef __MVS__
 #include "zos.h"
+#endif
 
 namespace {
 
