@@ -16,7 +16,9 @@
 #include "src/unwinding-info-win64.h"
 #endif
 
+#ifdef __MVS__
 #include "zos.h"
+#endif
 
 namespace v8 {
 namespace internal {

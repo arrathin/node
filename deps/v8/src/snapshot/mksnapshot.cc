@@ -19,7 +19,9 @@
 #include "src/snapshot/startup-serializer.h"
 #include "src/source-position-table.h"
 
+#ifdef __MVS__
 #include "zos.h"
+#endif
 
 namespace {
 
@@ -75,12 +77,13 @@ class SnapshotFileWriter {
     strcat(snapshot_asm_path, "_hlasm.S");
 
     FILE* fp_asm = GetFileDescriptorOrDie(snapshot_asm_path);
-#endif
-
     WriteSnapshotFilePrefix(fp);
     WriteSnapshotFileData(fp, fp_asm, blob);
+#else
+    WriteSnapshotFilePrefix(fp);
+    WriteSnapshotFileData(fp, blob);
+#endif
     WriteSnapshotFileSuffix(fp);
-
     fclose(fp);
   }
 
@@ -104,20 +107,26 @@ class SnapshotFileWriter {
     fprintf(fp, "}  // namespace v8\n");
   }
 
+#ifdef V8_OS_ZOS
   static void WriteSnapshotFileData(FILE* fp, FILE* fp_asm,
                                     const i::Vector<const i::byte>& blob) {
-#ifdef V8_OS_ZOS
     fprintf(fp, "byte* blob_data = (byte*)(&__blob_data);\n");
     WriteBinaryContentsAsCArray(fp_asm, blob);
-#else
-    fprintf(fp, "static const byte blob_data[] = {\n");
-    WriteBinaryContentsAsCArray(fp, fp_asm, blob);
-    fprintf(fp, "};\n");
-#endif
     fprintf(fp, "static const int blob_size = %d;\n", blob.length());
     fprintf(fp, "static const v8::StartupData blob =\n");
     fprintf(fp, "{ (const char*) blob_data, blob_size };\n");
   }
+#else
+  static void WriteSnapshotFileData(FILE* fp,
+                                    const i::Vector<const i::byte>& blob) {
+    fprintf(fp, "static const byte blob_data[] = {\n");
+    WriteBinaryContentsAsCArray(fp, blob);
+    fprintf(fp, "};\n");
+    fprintf(fp, "static const int blob_size = %d;\n", blob.length());
+    fprintf(fp, "static const v8::StartupData blob =\n");
+    fprintf(fp, "{ (const char*) blob_data, blob_size };\n");
+  }
+#endif
 
   static void WriteBinaryContentsAsCArray(
       FILE* fp, const i::Vector<const i::byte>& blob) {
