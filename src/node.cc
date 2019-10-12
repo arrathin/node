@@ -27,6 +27,7 @@
 #include <ctest.h>
 #include "node_watchdog.h"
 #include "util.h"
+#include "zos.h"
 #endif
 
 #include "debug_utils.h"
@@ -1014,6 +1015,9 @@ void Init(int* argc,
 
   if (per_process::cli_options->print_version) {
     printf("%s\n", NODE_VERSION);
+#if defined(__MVS__)
+    __build_version();
+#endif
     exit(0);
   }
 
@@ -1070,6 +1074,9 @@ InitializationResult InitializeOncePerProcess(int argc, char** argv) {
 
   if (per_process::cli_options->print_version) {
     printf("%s\n", NODE_VERSION);
+#if defined(__MVS__)
+    __build_version();
+#endif
     result.exit_code = 0;
     result.early_return = true;
     return result;
