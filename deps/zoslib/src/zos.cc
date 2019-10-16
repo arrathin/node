@@ -2489,7 +2489,9 @@ extern "C" int getentropy(void* output, size_t size) {
 extern "C" void __build_version(void) {
   char* V = __getenv_a("V");
   if (V && !memcmp(V, "1", 2)) {
+#if defined(BUILD_VERSION)
     printf("%s\n", __version);
+#endif
   }
 }
 extern "C" size_t strnlen(const char* str, size_t maxlen) {
