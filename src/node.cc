@@ -3771,6 +3771,7 @@ static void ParseArgs(int* argc,
       // Done, consumed by DebugOptions::ParseOption().
     } else if (strcmp(arg, "--version") == 0 || strcmp(arg, "-v") == 0) {
       PrintOutString("%s\n", NODE_VERSION);
+      __build_version();
       platform_exit(0);
     } else if (strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
       PrintHelp();
